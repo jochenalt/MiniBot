@@ -1,0 +1,5 @@
+<launch>
+  <!-- send robot_description to param server -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find minibot_moveit_config)/config/minibot.urdf.xacro'"/>
+</launch>
+           

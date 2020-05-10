@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: minibot_moveit_config
+    relative_path: config/minibot.urdf
+    xacro_args: ""
+  SRDF:
+    relative_path: config/minibot.srdf
+  CONFIG:
+    author_name: Jochen Alt
+    author_email: jochen.alt@gmx.net
+    generated_timestamp: 1588973796

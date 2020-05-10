@@ -1,0 +1,384 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="minibot">
+
+  <!--  ############ -->  
+  <!--  minibot body -->
+  <!--  +########### -->  
+  <xacro:property name="body_color" value="${231/255} ${210/255} ${64/255} 1.0"/>
+  <xacro:property name="palm_color" value="${214/255} ${195/255} ${59/255} 1.0"/>
+  <xacro:property name="finger_color" value="0.62 0.25 0.25 1.0"/>
+  <xacro:property name="wrist2tcp" value="0.10"/>
+
+  <link name="base_link">  
+    <visual>
+	  <origin rpy="0 0 0" xyz="0.0 0 0.0"/>
+      <material name="body">
+          <color rgba="${body_color}"/>
+      </material>
+      <geometry>
+        <mesh filename="package://minibot_moveit_config/config/stl/base.stl" />
+      </geometry>
+    </visual>
+    <collision>
+        <geometry>
+          <mesh filename="package://minibot_moveit_config/config/stl/base_collision.stl" />
+        </geometry>
+     </collision>
+  </link>
+
+  <joint name="base_joint" type="revolute">
+     <origin rpy="0.0 0 0.0" xyz="0 0 0.1005"/>
+     <parent link="base_link"/>
+     <child link="shoulder_link"/>
+     <axis xyz="0 0 1" />
+     <limit effort="10.0" lower="${-135/180*pi}" upper="${135/180*pi}" velocity="${90/180*pi}" />
+
+     <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="${-130/180*pi}" soft_upper_limit="${130/180*pi}" />
+  </joint>
+  
+  <link name="shoulder_link">
+      <visual>
+      	  <origin rpy="0.0 ${-pi/2} ${-pi/2}" xyz="0 0 0"/>
+          <material name="body">
+             <color rgba="${body_color}"/>
+          </material>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/shoulder.stl" />
+          </geometry>
+      </visual>
+      <collision>
+         <geometry>
+            <mesh filename="package://minibot_moveit_config/config/stl/shoulder_collision.stl" />
+         </geometry>
+     </collision>
+  </link>
+
+  <joint name="shoulder_joint" type="revolute">
+     <origin rpy="0.0 0 0" xyz="0 0 0.0745"/>
+     <parent link="shoulder_link"/>
+     <child link="upperarm_link"/>
+     <axis xyz="0 1 0" />
+     <limit effort="20" lower="${-90/180*pi}" upper="${105/180*pi}" velocity="${120/180*pi}" />
+
+     <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="${-85/80*pi}" soft_upper_limit="${100/180*pi}" />
+  </joint>
+
+  <link name="upperarm_link">
+      <visual>
+       	  <origin  xyz="0 0 0" rpy="0.0 ${-pi/2} ${pi/2}"/>
+          <material name="body">
+             <color rgba="${body_color}"/>
+          </material>
+
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/upperarm.stl" />
+          </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="package://minibot_moveit_config/config/stl/upperarm_collision.stl" />
+        </geometry>
+      </collision>
+  </link>
+
+
+  <!-- measured in CAD/upperarm.ipt -->
+  <joint name="upperarm_joint" type="revolute">
+     <origin rpy="0.0 ${20.0/180*pi} 0" xyz="0.027362 0 0.105175"/>
+     <parent link="upperarm_link"/>
+     <child link="elbow_link"/>
+     <axis xyz="0 1 0" />
+     <limit effort="20" lower="${-115/180*pi}" upper="${115/180*pi}" velocity="${90/180*pi}" />
+     <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="${-110/180*pi}" soft_upper_limit="${110/180*pi}" />
+  </joint>
+
+  <link name="elbow_link">
+       <visual>
+       	  <origin  xyz="0 0 0" rpy="${-pi/2} ${-pi/2} 0.0"/>
+          <material name="body">
+             <color rgba="${body_color}"/>
+          </material>
+
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/elbow.stl" />
+          </geometry>
+       </visual>
+      <collision>
+         <geometry>
+           <mesh filename="package://minibot_moveit_config/config/stl/elbow_collision.stl" />
+        </geometry>
+     </collision>
+  </link>
+   
+  <!-- measured in CAD/elbow.ipt -->
+  <joint name="elbow_joint" type="revolute">
+     <origin rpy="0.0 ${23.0/180*pi} 0" xyz="0.052749 0 0.159268"/>
+     <parent link="elbow_link"/>
+     <child link="forearm_link"/>
+     <axis xyz="0 0 1" />
+     <limit effort="15" lower="${-179/180*pi }" upper="${179/180*pi}" velocity="${120/180*pi}" />
+     <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="${-170/180*pi}" soft_upper_limit="${170/180*pi}" />
+  </joint>
+  
+  <link name="forearm_link">
+       <visual>
+       	  <origin  xyz="0 0 0" rpy="${-pi/2} ${-pi/2} 0"/>
+          <material name="body">
+             <color rgba="${body_color}"/>
+          </material>
+
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/forearm.stl"/>
+          </geometry>
+       </visual>
+       <collision>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/forearm_collision.stl" />
+          </geometry>
+       </collision>
+  </link>
+  
+   <joint name="forearm_joint" type="revolute">
+     <origin rpy="0.0 0.0 0" xyz="0.0 0 0.0"/>
+     <parent link="forearm_link"/>
+     <child link="wrist_link"/>
+     <axis xyz="0 1 0" />
+     <limit effort="5" lower="${-130/180*pi}" upper="${112/180*pi}" velocity="${90/180*pi}" />
+     <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="${-125/180*pi}" soft_upper_limit="${107/180*pi}" />
+  </joint>
+  
+  <link name="wrist_link">
+       <visual>
+       	  <origin  xyz="0 0 ${0}" rpy="0 ${pi} ${pi/2}"/>
+          <material name="body">
+             <color rgba="${body_color}"/>
+          </material>
+
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/wrist.stl" />
+          </geometry>
+       </visual>
+  </link>
+  
+  <joint name="wrist_joint" type="revolute">
+     <origin rpy="0.0 ${10.0/180*pi} 0" xyz="0.01046 0 ${0.05842}"/>
+     <parent link="wrist_link"/>
+     <child link="flange_link"/>
+     <axis xyz="0 0 1" />
+     <limit effort="5" lower="${-179/180*pi}" upper="${179/180*pi}" velocity="${180/180*pi}" />
+     <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="${-170/180*pi}" soft_upper_limit="${170/180*pi}" />
+  </joint>
+
+  <!--  ###### -->  
+  <!--  flange -->
+  <!--  ###### -->  
+
+  
+  <link name="flange_link">
+  </link>
+
+  <joint name="flange_joint" type="fixed">
+     <origin rpy="0 0 0"  xyz="0 0 0"/>
+     <parent link="flange_link"/>
+     <child link="palm_link"/>
+  </joint>
+
+  <!--  ####################### -->  
+  <!--  tool centre point tool0 -->
+  <!--  ####################### -->  
+
+
+  <joint name="tool0_joint" type="fixed">
+     <origin rpy="0 0 0"  xyz="0 0 0.10"/>
+     <parent link="flange_link"/>
+     <child link="tool0_link"/>
+  </joint>
+
+  <link name="tool0_link">
+  </link>
+
+  <!--  ############ -->  
+  <!--  minibot palm -->
+  <!--  +########### -->  
+
+
+  <link name="palm_link">
+       <visual>${179/180*pi}
+          <origin  xyz="0 0 ${0.042}" rpy="0 0 ${pi/2}"/>
+          <material name="palm">
+            <color rgba="${palm_color}"/>
+         </material>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/palm.stl" />
+          </geometry>
+       </visual>
+       <collision>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/palm_collision.stl" />
+          </geometry>
+     </collision>
+  </link>
+
+  <joint name="knuckle_joint" type="revolute">
+     <origin rpy="0 0 0" xyz="0 0 ${0}"/>
+     <parent link="flange_link"/>
+     <child link="knuckle_link"/> 
+     <axis xyz="0 0 1" />
+     <limit effort="5.0" lower="0" upper="${60/180*pi}" velocity="${180/180*pi}" /> 
+  </joint>
+
+  <link name="knuckle_link">
+  </link>
+
+  <!-- distance of knuckle turning centre to the centre of the palm -->
+  <!-- x,y is measured from CAD Model "Centre.ipt"; z is measured from "Gripper.iam" -->
+  <xacro:property name="knuckle_centre_x" value="0.010392"/>
+  <xacro:property name="knuckle_centre_y" value="0.006"/>
+  <xacro:property name="knuckle_centre_z" value="0.0425"/>
+  
+  <joint name="palm_left_joint" type="continuous">
+     <origin rpy="0 0 0" xyz="${knuckle_centre_x} -${knuckle_centre_y} ${0}"/>
+     <parent link="flange_link"/>
+     <child link="knuckle_left_link"/>
+     <axis xyz="0 0 1" />
+     <mimic joint="knuckle_joint" multiplier="1"/>
+  </joint>
+  
+  <link name="knuckle_left_link">
+       <visual>
+          <origin  xyz="-${knuckle_centre_x} ${knuckle_centre_y} ${knuckle_centre_z}" rpy="0 ${pi} ${pi/2}"/>
+          <material name="palm">
+            <color rgba="${palm_color}"/>
+          </material>
+
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/knuckle_left.stl"/>
+          </geometry>
+       </visual>
+  </link>
+
+  <joint name="palm_right_joint" type="continuous">
+     <origin rpy="0 0 0" xyz="${knuckle_centre_x} ${knuckle_centre_y} ${0}"/>
+     <parent link="flange_link"/>
+     <child link="knuckle_right_link"/>
+     <axis xyz="0 0 1" />
+     <mimic joint="knuckle_joint" multiplier="-1"/>
+  </joint>
+
+  <link name="knuckle_right_link">
+       <visual>
+          <origin  xyz="-${knuckle_centre_x} -${knuckle_centre_y} ${knuckle_centre_z}" rpy="0 ${pi} ${pi/2}"/>
+          <material name="palm">
+            <color rgba="${palm_color}"/>
+          </material>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/knuckle_right.stl" />
+          </geometry>
+       </visual>
+       <!-- no collision objects, knuckles are excluded from collision checking -->
+  </link>
+
+  <!--  ############ -->  
+  <!--  minibot hand -->
+  <!--  +########### -->  
+
+  <!-- heigth of centre finger relativey to palm centre -->
+  <!-- measured from CAD Model "Gripper.iam" -->
+
+  <xacro:property name="finger_distance_z" value="0.0625"/>
+
+  <!-- distance of knuckle turning centre to the centre of the finger -->
+  <!-- defined in CAD Model "Centre.ipt" -->
+  <xacro:property name="knuckle2finger_x" value="0.003108"/> 
+  <xacro:property name="knuckle2finger_y" value="0.017383"/>
+
+  <joint name="finger_joint" type="revolute">
+     <origin rpy="0 0 0" xyz="0 0 ${0}"/>
+     <parent link="flange_link"/>
+     <child link="finger_link"/> 
+     <axis xyz="0 1 0" />
+     <limit effort="5.0" lower="${-10/180*pi}" upper="${60/180*pi}" velocity="${180/180*pi}" />
+  </joint>
+
+  <link name="finger_link">
+  </link>
+
+  <joint name="finger_centre_joint" type="continuous">
+     <origin rpy="0 0 0" xyz="-0.027392 0 ${finger_distance_z}"/>
+     <parent link="flange_link"/>
+     <child link="finger_centre_link"/>
+     <axis xyz="0 1 0" />
+     <mimic joint="finger_joint" multiplier="-1"/> 
+  </joint>
+
+ <link name="finger_centre_link">
+       <visual>
+          <origin  xyz="0 0 0" rpy="${pi/2} 0 ${pi}"/>
+          <material name="finger">
+            <color rgba="${finger_color}"/>
+          </material>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/finger.stl"/>
+          </geometry>
+       </visual>
+       <collision>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/finger_collision.stl" />
+          </geometry>
+      </collision>
+  </link>
+
+  <joint name="finger_left_joint" type="continuous">
+     <origin rpy="0 0 ${-60/180*pi}" xyz="${knuckle2finger_x} -${knuckle2finger_y} ${finger_distance_z}"/>
+     <parent link="knuckle_left_link"/>
+     <child link="finger_left_link"/>
+     <axis xyz="0 1 0" />
+     <mimic joint="finger_joint" multiplier="1"/> 
+  </joint>
+
+  <link name="finger_left_link">
+       <visual>
+          <origin  xyz="0.0 0 0" rpy="${pi/2} 0 0"/>
+          <material name="finger">
+            <color rgba="${finger_color}"/>
+          </material>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/finger.stl"/>
+          </geometry>
+       </visual>
+       <collision>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/finger_collision.stl" />
+          </geometry>
+      </collision>
+
+  </link>
+
+ <joint name="finger_right_joint" type="continuous">
+     <origin rpy="0 0 ${60/180*pi}" xyz="${knuckle2finger_x} ${knuckle2finger_y} ${finger_distance_z}"/>
+     <parent link="knuckle_right_link"/>
+     <child link="finger_right_link"/>
+     <axis xyz="0 1 0" />
+     <mimic joint="finger_joint" multiplier="1"/> 
+  </joint>
+
+  <link name="finger_right_link">
+       <visual>
+          <origin  xyz="0.0 0 0" rpy="${pi/2} 0 0"/>
+          <material name="finger">
+            <color rgba="${finger_color}"/>
+          </material>
+
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/finger.stl" />
+          </geometry>
+       </visual>
+       <collision>
+          <geometry>
+             <mesh filename="package://minibot_moveit_config/config/stl/finger_collision.stl" />
+          </geometry>
+      </collision>
+
+  </link>
+</robot>
+

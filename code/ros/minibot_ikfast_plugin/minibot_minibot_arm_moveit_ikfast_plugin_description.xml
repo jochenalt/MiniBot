@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<library path="lib/libminibot_minibot_arm_moveit_ikfast_plugin">
+  <class base_class_type="kinematics::KinematicsBase" name="minibot_minibot_arm/IKFastKinematicsPlugin" type="minibot_minibot_arm::IKFastKinematicsPlugin">
+    <description>IKFast61 plugin for closed-form kinematics of minibot minibot_arm</description>
+  </class>
+</library>

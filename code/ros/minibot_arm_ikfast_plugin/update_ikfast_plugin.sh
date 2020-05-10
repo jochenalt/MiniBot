@@ -1,0 +1,1 @@
+rosrun moveit_kinematics create_ikfast_moveit_plugin.py --search_mode=OPTIMIZE_MAX_JOINT --srdf_filename=minibot.srdf --robot_name_in_srdf=minibot --moveit_config_pkg=minibot_moveit_config minibot minibot_arm minibot_arm_ikfast_plugin base_link tool0_link /home/jochenalt/catkin_ws/src/minibot_arm_ikfast_plugin/src/minibot_minibot_arm_ikfast_solver.cpp

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <link rel="icon" href="/minibot/favicon.ico" type="image/x-icon">
+    <meta charset="utf-8" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- robotwebtools libraries -->
+    <script src="http://static.robotwebtools.org/threejs/current/three.min.js"></script>
+    <script src="http://static.robotwebtools.org/threejs/r89/ColladaLoader.js"></script>
+    <script src="http://static.robotwebtools.org/threejs/r89/STLLoader.js"></script>
+    <script src="http://static.robotwebtools.org/EventEmitter2/0.4.14/eventemitter2.js"></script>
+    <script src="http://static.robotwebtools.org/roslibjs/current/roslib.js"></script>
+    <script src="http://static.robotwebtools.org/ros3djs/current/ros3d.min.js"></script>
+
+    <!-- base libraries -->
+    <script language="JavaScript" src="/minibot/constants.js"></script>
+    <script language="JavaScript" src="/minibot/utils.js"></script>
+    <script language="JavaScript" src="/minibot/kinematics.js"></script>
+
+    <!-- Panels -->
+    <script language="JavaScript" src="/minibot/kinematicsPanel.js"></script>
+    <script language="JavaScript" src="/minibot/poseStorePanel.js"></script>
+    <script language="JavaScript" src="/minibot/programmePanel.js"></script>
+
+    <!-- bootstrap4 -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+
+    <!-- dont use default bootstrap color schema but a special one from https://bootstrap.build/ -->
+    <!--<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">-->
+    <!--
+    <link rel="stylesheet" href="/minibot/bootstrap-slate.min.css">
+    <link rel="stylesheet" href="/minibot/bootstrap-darkly.min.css">
+    <link rel="stylesheet" href="/minibot/bootstrap-simplex.min.css">
+    <link rel="stylesheet" href="/minibot/bootstrap-sandstone.min.css">    
+    <link rel="stylesheet" href="/minibot/bootstrap-darkly.min.css">
+-->
+    <link rel="stylesheet" href="/minibot/bootstrap-cyborg.min.css">
+    
+
+    <script>
+        var ros;
+        var botUrdfView;        // view of URDF
+        var kinematicsPanel;    // panel for  kinematics
+        var poseStorePanel;     // panel for managing poses
+        var programmePanel;
+        var kinematics;         // kinematics library
+        /**
+         * Setup all visualization elements when the page is loaded.
+         */
+        var serverName = window.location.href.replace("http://","").split(":")[0]
+        function init() {
+            // Connect to ROS.
+            ros = new ROSLIB.Ros({
+                url: 'ws://' + serverName + ':9090'
+            });
+
+            // Setup a client to listen to TFs.
+            var tfClient = new ROSLIB.TFClient({
+                ros: ros,
+                angularThres: 0.0001,    // [rad] angular threshold for rotations before th UI reacts
+                transThres: 0.0001,       // [m] translation threshold, 0.1 mm
+                fixedFrame : 'base_link', // all coordinates are relative to world
+                rate : 10.0               // update frequency [Hz]
+            });
+
+            var w = document.getElementById("RobotView").offsetWidth ;
+            var h = document.getElementById("RobotView").offsetHeight;
+            botUrdfView = new ROS3D.Viewer({
+                divID: 'urdf',
+                width: w,
+                height: h,
+                antialias: true,
+                // background: '#ecf0f1', // theme "slate"
+                // background: '#F8F5F0', // theme "sandstone"
+                // background: '#FFFFFF', // theme "simplex"
+                // background: '#ADB5BD', // theme "darkly"
+                background: '#222222',  // theme "simplex"
+                cameraPose: {
+                    x: 0.6,
+                    y: 0.6,
+                    z: 0.8
+                },
+                displayPanAndZoomFrame : false, // no coord frame in the origin
+                lineTypePanAndZoomFrame : false,
+                antialias : true
+            });
+
+            // Add a grid.
+            botUrdfView.addObject(new ROS3D.Grid({
+              num_cells: 5,
+              color: '#343A30',
+              lineWidth: 1,
+              cellSize: 0.1
+            }));
+
+            kinematics = new Kinematics.Init({
+              ros: ros
+            });
+
+            kinematicsPanel = new KinematicsPanel.Init({
+              ros: ros
+            });
+
+
+
+            // ugly: the first invokation on the webserver requires all topics to be published
+            // wait 1s until this is sure before initiating the bot view
+            setTimeout(function() {
+
+                poseStorePanel  = new PoseStorePanel.Init({
+                  ros: ros,
+                  kinematicsPanel: kinematicsPanel,
+                  kinematics: kinematics
+                });
+
+                programmePanel  = new ProgrammePanel.Init({
+                  ros: ros,
+                  kinematicsPanel: kinematicsPanel,
+                  kinematics: kinematics,
+                  poseStorePanel : poseStorePanel
+                });
+
+                poseStorePanel.setProgrammePanel(programmePanel);
+
+                // Setup the direct kinematics panel
+                var urdfClient = new ROS3D.UrdfClient({
+                  ros: ros,
+                  tfClient: tfClient,
+                  path: 'http://' + serverName + ':8085/',
+                  rootObject: botUrdfView.scene,
+                  loader: ROS3D.COLLADA_LOADER
+                });
+
+
+                // Setup the marker client.
+                var startMarkerClient = new ROS3D.InteractiveMarkerClient({
+                  ros : ros,
+                  tfClient : tfClient,
+                  // hidden : true,
+                  topic : '/markers',
+                  camera : botUrdfView.camera,
+                  rootObject : botUrdfView.selectableObjects
+                });
+
+                kinematicsPanel.refresh();
+
+            }, 1500);
+
+            window.addEventListener("resize", resize);
+
+            // size of poseStore panel and programme panel is computed in resize
+            resize();
+        }
+
+        function resize() {
+            var outerBorder = document.getElementById("RobotViewOuter").offsetHeight;
+            var innerBorder= document.getElementById("RobotView").offsetHeight;
+            var spacer = (outerBorder-innerBorder)/2;
+
+
+                // resize robot view
+                var w = document.getElementById("RobotView").offsetWidth;
+                var h = document.getElementById("RobotView").offsetHeight
+                // botUrdfView.resize(w-spacer, h-spacer); // leave some space for the border of the container
+
+                // resize the pose list
+                var hList = document.getElementById("posePanel").offsetHeight - document.getElementById("poseButtonPanel").offsetHeight - spacer*28;
+                document.getElementById("poseListGroup").style.height = hList.toString() +"px";
+
+                // resize the programme list
+                var hList = document.getElementById("planningPanel").offsetHeight - document.getElementById("programmButtonPanel").offsetHeight - spacer*24;
+                document.getElementById("statementListGroup").style.height = hList.toString() +"px";   
+        };
+
+        function unitChange() {
+          Utils.switchAngleUnit(1-Utils.currentAngleUnitIsGrad());
+
+          if (Utils.currentAngleUnitIsGrad())
+            document.getElementById("unitChangeButton").innerHTML = "[°]";
+          else 
+            document.getElementById("unitChangeButton").innerHTML = "[RAD]";
+
+          kinematicsPanel.switchAngleUnit(Utils.currentAngleUnitIsGrad());
+        }
+
+       </script>
+</head>
+
+<body onload="init()">
+
+    <div id="root" class="container-fluid  d-flex flex-column m-0 p-0" style="height:98vh;width:98vw;" >
+        <div class="row">
+            <div class="col m-0 p-0">
+                <nav id="navbar" class="navbar navbar-expand-md navbar-dark bg-light">
+                   <div class="mx-auto order-0">
+                        <big><a class="navbar-brand mx-auto" href="#">Minibot</a></big>
+                    </div>
+                    <div class="navbar-collapse collapse w-100 order-3 dual-collapse2">
+                        <ul class="navbar-nav ml-auto">
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Plan</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Execute</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Settings</a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <div class="row flex-grow-1 m-0">
+            <div id="RobotViewOuter" class="col-6 d-flex p-0 m-0">
+                <div  id="RobotView" class="col bg-light border my-1 ml-0 mr-1 p-0">
+                    <div id="urdf" class=" p-0 m-0" ></div>
+                </div>
+            </div>
+
+            <div id="kinematicsPanel" class="row d-flex col-2 mx-0 p-0">
+                <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
+                    <div class="w-100  mx-1 mt-1 mb-0 px-2">
+                        <div class='w-100 my-0 py-0' id='kinematicsAlertHeadline' role='alert'>Kinematics</div>
+                        <!-- <button id="unitChangeButton" type="button" class="btn-sm btn-light" onclick="unitChange()">[RAD]</button>-->
+                        <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
+                             id='kinematicsAlertSuccess' role='alert'/></div>
+                        <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                             id='kinematicsAlertError' role='alert'/></div>
+                        <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
+                             id='kinematicsAlertWarning' role='alert'/></div>
+                    </div>
+                    <div class="container w-100">
+                        <div class="row ">
+                                <div class="col">
+                                    <small>x [mm]</small>
+                                    <div class="input-group input-group-sm m-0">
+                                        <input type="text" class="form-control input-sm" id="coord_x_text" >
+                                    </div>
+                                    <input type="range" class="custom-range" id="coord_x_slider">
+                                </div>
+                                <div class="col">
+                                    <small>x [rad]</small>
+                                    <div class="input-group input-group-sm m-0">
+                                        <input type="text" class="form-control input-sm" id="orientation_x_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="orientation_x_slider">
+                                </div>
+                        </div>
+                        <div class="row ">
+                                <div class="col">
+                                    <small>y [mm]</small>
+                                    <div class="input-group input-group-sm m-0">
+                                        <input type="text" class="form-control input-sm" id="coord_y_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="coord_y_slider">
+                                </div>
+                                <div class="col ">
+                                    <small>y [rad]</small>
+                                    <div class="input-group input-group-sm m-0">
+                                        <input type="text" class="form-control input-sm" id="orientation_y_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="orientation_y_slider">
+                                </div>
+                        </div>
+                        <div class="row">
+                                <div class="col ">
+                                    <small>z [mm]</small>
+                                    <div class="input-group input-group-sm m-0">
+                                        <input type="text" class="form-control input-sm" id="coord_z_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="coord_z_slider">
+                                </div>
+                                <div class="col ">
+                                    <small>z [rad]</small>
+                                    <div class="input-group input-group-sm m-0">
+                                        <input type="text" class="form-control input-sm" id="orientation_z_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="orientation_z_slider">
+                                </div>
+                        </div>
+                    </div>
+                    <div class="container w-100">
+                        <div class="w-100">
+                            <div class="row">
+                                <div class="col ">
+                                    <small>Base</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="base_joint_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="base_joint_slider">
+                                </div>
+                                <div class="col">
+                                    <small>Shoulder</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="shoulder_joint_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="shoulder_joint_slider">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    <small>Upperarm</small>
+                                    <div class="input-group  input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="upperarm_joint_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="upperarm_joint_slider">
+                                </div>
+                                <div class="col">
+                                    <small>Elbow</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="elbow_joint_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="elbow_joint_slider">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    <small>Forearm</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="forearm_joint_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="forearm_joint_slider">
+                                </div>
+                                <div class="col">
+                                    <small>Wrist</small>
+                                    <div class="input-group  input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="wrist_joint_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="wrist_joint_slider">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="container w-100">
+                        <div class="w-100">
+                            <div class="row">
+                                <div class="col w-100">
+                                    <small>Knuckle</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="knuckle_joint_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="knuckle_joint_slider">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    <small>Grip</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="finger_joint_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="finger_joint_slider">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-100 row  p-0 m-0 mb-3 d-flex btn-group ">
+                        <div class="col align-self-end w-100 m-0 p-0">
+                            <div class="btn-group col  ">
+                                <button type="button" class="btn-primary w-100" onclick="kinematicsPanel.setZeroPosition()">Zero Position</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="posePanel" class="row d-flex col-2 mx-0 p-0">
+                <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
+                    <div class="col w-100 p-0 m-0 ">
+                        <div class="w-100 mx-1 mt-1 mb-0 px-2 " >
+                            <div class='w-100 my-0 py-0' 
+                                 id='poseStorageAlertHeadline' role='alert'/>Posing</div>
+                            <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
+                                 id='poseStorageAlertSuccess' role='alert'/></div>
+                            <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                 id='poseStorageAlertError' role='alert'/></div>
+                            <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
+                                 id='poseStorageAlertWarning' role='alert'/></div>
+                        </div>
+                        <div id="poseListGroup" class="overflow-auto  mt-5 mx-2" >
+                            <ul class="list-group "  id="poseStoreList">
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="w-100 row p-0 m-0 mb-3 d-flex align-self-end ">
+                        <div id="poseButtonPanel" class="col  w-100 m-0 p-0">
+                            <div class="btn-group col  ">
+                              <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.newPose()">New</button>
+                              <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.storePose()">Store</button>
+                              <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.deletePose()">Delete</button>
+                            </div>
+                            <div class="btn-group col">
+                              <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.renamePose()">Rename</button>
+                              <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.up()">Up</button>
+                              <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.down()">Down</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="planningPanel" class="row d-flex col-2 mx-0 p-0">
+                <div class="row d-flex bg-light border my-1 ml-0 mr-0 p-0">
+                    <div class="col w-100 p-0 m-0 ">
+                        <div class="w-100 mx-1 mt-1 mb-0 px-2 " >
+                            <div class='w-100 my-0 py-0' 
+                                id='programmeAlertHeadline' role='alert'/>Programme</div>
+                            <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
+                                 id='programmeAlertSuccess' role='alert'/></div>
+                            <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                 id='programmeAlertError' role='alert'/></div>
+                            <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
+                                 id='programmeAlertWarning' role='alert'/></div>
+                        </div>
+                        <div id="statementListGroup" class=" overflow-auto mt-5 mx-2" >
+                            <ul class="list-group "  id="programmeList">
+                            </ul>
+                        </div>
+                    </div>
+                    <div id="programmButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
+                        <div class="w-100 p-1 my-3" style='height:25vh;' >
+                            <div class="p-1 m-1" id='detailsWaypointStatement'  style="display:none;">
+                                <p>Waypoint</p>
+                                <div class="mt-2 p-0">
+                                    <div class="custom-control custom-checkbox custom-control-inline">
+                                      <input id="cartesicPath" type="checkbox" class="custom-control-input" onclick="programmePanel.setCartesicPath(event)">
+                                      <label class="custom-control-label" for="cartesicPath">cartesic</label>
+                                    </div>
+                                    <div class="custom-control custom-checkbox custom-control-inline">
+                                      <input id="collisionCheck" type="checkbox" class="custom-control-input" onclick="programmePanel.setCollisionCheck(event)">
+                                      <label class="custom-control-label" for="collisionCheck">collision check</label>
+                                    </div>
+                                    <div class="custom-control custom-checkbox custom-control-inline">
+                                      <input id="improvedPath" type="checkbox" class="custom-control-input" onclick="programmePanel.setImprovedPath(event)">
+                                      <label class="custom-control-label" for="improvedPath">improved</label>
+                                    </div>
+                                  <div class="btn-group col my-2 p-0">
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick='programmePanel.assignActivePose()'>Assign active pose</button>
+                                  </div>
+                                </div>
+                            </div>
+                            <div class='p-1 m-1' id='detailsWaitStatement' style="display:none;">
+                                <p>Wait</p>
+                                <div class='form-check'>
+                                    <div class="custom-control custom-radio">
+                                        <input id="dontWait" type="radio" class="custom-control-input"  name="WaitStatementType" onchange='programmePanel.setWaitTypeNoWait(event)' checked/>
+                                        <label class="custom-control-label" for="dontWait">No Wait</label>
+                                    </div>
+                                    <div class="custom-control custom-radio">
+                                        <input id="waitForSeconds" type="radio" class="custom-control-input"  name="WaitStatementType" onchange='programmePanel.setWaitTypeWaitForSeconds(event)'/>
+                                        <label class="custom-control-label" for="waitForSeconds">Wait for </label>
+                                        <div class="input-group">
+                                            <input id="secondsToWait" type="text" class="form-control w-2" placeholder="how many" onkeydown='programmePanel.setWaitingSeconds(event)'/>
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">seconds</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="custom-control custom-radio">
+                                        <input id="waitForConfirmation"  type="radio" class="custom-control-input"  name="WaitStatementType" 
+                                                oninput="programmePanel.setWaitTypeWaitForConfirmation(event)"/>
+                                        <label class="custom-control-label" for="waitForConfirmation">Wait for confirmation </label>
+                                        <div class="input-group">
+                                            <textarea id ='waitConfirmationText' class='form-control' placeholder='valuable advice' onkeydown='programmePanel.setConfirmationText(event)'></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-1 m-1" id='detailsCommentStatement' style="display:none;">
+                                <p>Comment</p>
+                                <div class="input-group">
+                                  <textarea id="commentStatement" class="form-control input-sm" placeholder="valuable advice" oninput="programmePanel.setComment(event)"></textarea>
+                                </div>
+                            </div>
+                        </div> 
+                        <div class="col w-100 m-0 p-0">
+                            <div class="col p-0"><small>Action Management</small></div>
+                            <div class="btn-group col p-0">
+                              <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWaypoint()">Waypoint</button>
+                              <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWait()" >Wait</button>
+                              <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newComment()">Comment</button>
+                            </div>
+                            <div class="btn-group col p-0">
+                                <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.deleteStatement()">Delete</button>
+                                <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.rename()">Rename</button>
+                            </div>
+                            <div class="btn-group col p-0">
+                              <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.up()">Up</button>
+                              <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.down()">Down</button>
+                            </div>
+                            <div class="col p-0"><small>Simulation</small></div>
+                            <div class="btn-group col p-0 mb-3">
+                              <button type="button" class="btn-sm btn-secondary w-100">Forward</button>
+                              <button type="button" class="btn-sm btn-secondary w-100">Back</button>
+                              <button type="button" class="btn-sm btn-secondary w-100">Run</button>
+                            </div>   
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

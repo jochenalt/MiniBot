@@ -1,0 +1,25 @@
+<launch>
+
+  <arg name="rvizconfig" default="$(find minibot)/launch/urdf.rviz" />
+
+  <!-- specific robot description with urdf file, used by rviz -->
+  <param name="robot_description" command="$(find xacro)/xacro $(find minibot_moveit_config)/config/minibot.urdf.xacro" />
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+
+  <!-- launch gui with sliders for each joint -->
+  <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" />
+
+  <!-- launch only joint_state_publisher without gui -->
+  <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" /> -->
+
+  <node name="tf2_web_republisher" pkg="tf2_web_republisher" type="tf2_web_republisher"/>
+
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+  <include file="$(find minibot)/launch/roswww.launch" />
+
+  <!-- launch rviz gui --> 
+ <node name="rviz" pkg="rviz" type="rviz" args="-d $(find minibot)/launch/urdf.rviz" required="true" /> 
+
+</launch>
