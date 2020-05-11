@@ -83,6 +83,8 @@ PoseStorePanel.Init = function(options) {
 
     // compute a new UID
     var max = poseItems.length;
+    if (max == 0)
+      max = 1; // start with 1 to distinguish an unset uid from a valid one 
     for (var idx = 0; idx < poseItems.length; idx++) {
       if (poseItems[idx].uid >= max)
         max = poseItems[idx] + 1;
@@ -382,7 +384,7 @@ PoseStorePanel.Init = function(options) {
 
   function getPoseByUID(uid) {
     var id = getPoseItemIDByUID(uid);
-    if (id != null)
+    if (id != null && id >= 0 && id<poseItems.length)
       return poseItems[id].pose;
     else
       return null;

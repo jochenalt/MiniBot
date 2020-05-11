@@ -14,7 +14,8 @@ from std_msgs.msg import String
 
 from minibot.msg import Statement
 from minibot.msg import Programme
-from minibot.srv import SetProgramme
+from minibot.srv import SetProgramme, SetProgrammeRequest, SetProgrammeResponse
+from minibot.msg import ErrorCodes
 
 import constants
 from constants import Constants
@@ -41,12 +42,18 @@ def init():
 
 def handleSetProgramme(prg):
   statements = prg
+  print("handleSetProgramme")
+  print(prg)
+  response = SetProgrammeResponse()
+  response.error_code.val = ErrorCodes.SUCCESS;
+  return response
+
 
 if __name__=='__main__':
   try:
     init()
 
-    s = rospy.Service('SetProgramme', SetProgramme, handleSetProgramme)
+    s = rospy.Service('set_programme', SetProgramme, handleSetProgramme)
 
     rospy.spin()
   except rospy.ROSInterruptException:

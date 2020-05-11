@@ -55,6 +55,7 @@ add_message_files(
    Statement.msg
    Programme.msg
    Action.msg
+   ErrorCodes.msg
 )
 
 ## Generate services in the 'srv' folder

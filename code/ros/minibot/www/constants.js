@@ -31,9 +31,12 @@ ErrorCode.MOVEIT = {
 		ROBOT_STATE_STALE : -23,
 		SENSOR_INFO_STALE : -24,
 		NO_IK_SOLUTION : -31
-// 	}
 }
 
+ErrorCode.PLANNING = {
+		SUCCESS : 1,
+		FAILURE : 99999
+}
 var Constants = {};
 Constants.Kinematics = {
 		MAX_KINEMATICS_RATE : 10, // [Hz] max rate the UI sends new tcp or joints to the server

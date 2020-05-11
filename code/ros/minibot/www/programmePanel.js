@@ -646,6 +646,72 @@ ProgrammePanel.Init = function(options) {
       displayErr("select a pose first");
   }
 
+  // save  the programm to the server
+  var storeProgramme = function() {
+
+    // build the message
+    stmtList = [];
+    for (var idx = 0; idx < getProgrammeLength(); idx++) {
+      var item = programmeItems[idx];
+      var stmt = new Object();
+      stmt.comment = item.comment;
+      stmt.id  = item.uid;
+      stmt.name  = item.name;
+      stmt.type  = item.type;
+      stmt.waitType  = item.waitType;
+      stmt.kitkat = new Object();
+      stmt.kitkat.sec  = Math.floor(item.waitForSeconds);
+      stmt.kitkat.nsec  = (item.waitForSeconds-stmt.kitkat.sec)*1000000000;
+      if (item.type  == StatementType.WayPoint) {
+        stmt.pose = poseStorePanel.getPoseByUID(item.poseUID).pose; 
+      }
+      stmtList[stmtList.length] = stmt;
+    }
+    var prg = new ROSLIB.Message({
+      statements: stmtList
+    });
+   
+    var request = new ROSLIB.ServiceRequest({
+      programme: prg
+    });
+
+    var setProgramme = new ROSLIB.Service({
+          ros : ros,
+          name : '/set_programme',
+          serviceType : 'minibot/SetProgramme'
+    });
+
+
+    setProgramme.callService(request, 
+      function(response) {     
+        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS) 
+          ;
+        else
+          displayErr("setProgramme failed(" + response.error_code.val + ")");
+      }, 
+      function (response) {
+        displayErr("setProgramme failed");
+      });
+  }
+
+  var forward = function(event) {
+    // push programm to server
+    storeProgramme()
+
+  }
+
+  var backward = function(event) {
+    // push programm to server
+    storeProgramme()
+
+    
+  }
+
+  var run = function(event) {
+    // push programm to server
+    storeProgramme()
+    
+  }
 
   function displayAlert(text, headlinewidget, widget) {
     widget.style.display = 'block';
@@ -696,6 +762,9 @@ ProgrammePanel.Init = function(options) {
     setWaitTypeNoWait: setWaitTypeNoWait,
     setWaitTypeWaitForConfirmation: setWaitTypeWaitForConfirmation,
 
+    forward: forward,
+    backward: backward,
+    run: run,
     refresh: refresh
   };
 };
