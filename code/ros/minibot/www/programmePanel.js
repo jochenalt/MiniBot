@@ -145,7 +145,7 @@ ProgrammePanel.Init = function(options) {
     statement.type = StatementType.NoStatement;
 
     var li = document.createElement('LI');
-    li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center');
+    li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center p-1');
 
     var leftSpan = document.createElement("SPAN");
     leftSpan.setAttribute('class', 'badge badge-light float-left mr-1 ml-0 justify-content-center align-self-center');

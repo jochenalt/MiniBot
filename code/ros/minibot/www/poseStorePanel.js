@@ -86,8 +86,9 @@ PoseStorePanel.Init = function(options) {
     if (max == 0)
       max = 1; // start with 1 to distinguish an unset uid from a valid one 
     for (var idx = 0; idx < poseItems.length; idx++) {
-      if (poseItems[idx].uid >= max)
-        max = poseItems[idx] + 1;
+      var currUID = poseItems[idx].uid;
+      if (currUID >= max)
+        max = currUID + 1;
     }
 
     poseItem.uid = max;
@@ -96,7 +97,7 @@ PoseStorePanel.Init = function(options) {
     poseItem.pose = null;
 
     var li = document.createElement('LI');
-    li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center');
+    li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center p-1');
 
     var leftSpan = document.createElement("SPAN");
     leftSpan.setAttribute('class', 'badge badge-light float-left mr-1 ml-0 justify-content-center align-self-center');
