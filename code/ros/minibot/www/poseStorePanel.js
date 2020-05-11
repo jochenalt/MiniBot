@@ -64,7 +64,6 @@ PoseStorePanel.Init = function(options) {
   }
 
   var getPoseItemIDByUID = function(uid) {
-    var result = 0;
     for (var idx = 0; idx < getPoseItemLength(); idx++) {
       if (poseItems[idx].uid == uid)
         return idx;
