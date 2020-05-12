@@ -383,6 +383,22 @@ PoseStorePanel.Init = function(options) {
     return null;
   }
 
+  // set the current kinematics to the pose passed identifid by the passed uid
+  function setPoseByUID(uid) {
+    var id =  getPoseItemIDByUID(uid);
+    if (id != null && id >= 0 && id<poseItems.length) {      
+      var jointState = poseItems[id].jointState;
+      if (jointState != null)
+        kinematicsPanel.setJointState(jointState);
+      else {
+        var pose = poseItem.pose;
+        kinematicsPanel.setPose(pose);
+      }
+    }
+    else
+      return null;
+  }
+
   function getPoseByUID(uid) {
     var id = getPoseItemIDByUID(uid);
     if (id != null && id >= 0 && id<poseItems.length)
@@ -445,6 +461,7 @@ PoseStorePanel.Init = function(options) {
     getPoseByUID: getPoseByUID,
     getJointStateByUID: getJointStateByUID,
     getNameByUID: getNameByUID,
-    setProgrammePanel: setProgrammePanel
+    setProgrammePanel: setProgrammePanel,
+    setPoseByUID: setPoseByUID
   };
 };

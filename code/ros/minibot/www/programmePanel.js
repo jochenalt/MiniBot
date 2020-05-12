@@ -157,6 +157,7 @@ ProgrammePanel.Init = function(options) {
     rightSpan.setAttribute('href', '#');
     rightSpan.setAttribute('class', 'badge badge-success badge-pill mt-1 mr-0 float-right justify-content-center align-self-center');
     rightSpan.innerHTML = '';
+    rightSpan.onclick = activatePose;
     var text = document.createTextNode('');
 
     li.appendChild(leftSpan);
@@ -326,6 +327,11 @@ ProgrammePanel.Init = function(options) {
       }
     }
   }
+
+  var activatePose = function(event) {
+    var id = parseInt(event.target.parentNode.getAttribute('id'));
+    poseStorePanel.setPoseByUID(programmeItems[id].poseUID);
+  } 
 
   // return id of active list item
   var getActiveId = function(event) {
