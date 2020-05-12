@@ -92,7 +92,7 @@ PoseStorePanel.Init = function(options) {
     }
 
     poseItem.uid = max;
-    poseItem.jointStates = null;
+    poseItem.jointState = null;
     poseItem.name = null;
     poseItem.pose = null;
 
@@ -391,6 +391,14 @@ PoseStorePanel.Init = function(options) {
       return null;
   }
 
+  function getJointStateByUID(uid) {
+    var id = getPoseItemIDByUID(uid);
+    if (id != null && id >= 0 && id<poseItems.length)
+      return poseItems[id].jointState;
+    else
+      return null;
+  }
+
   function getNameByUID(uid) {
     var id = getPoseItemIDByUID(uid);
     if (id != null)
@@ -435,6 +443,7 @@ PoseStorePanel.Init = function(options) {
     renamePose: renamePose,
     getCurrentPoseUID: getCurrentPoseUID,
     getPoseByUID: getPoseByUID,
+    getJointStateByUID: getJointStateByUID,
     getNameByUID: getNameByUID,
     setProgrammePanel: setProgrammePanel
   };

@@ -73,7 +73,7 @@ def initData():
             for links in groups.links:
                 kinematicGroupLinks.append(links.name)
     if kinematicGroupLinks == None:
-        rospy.logerr("group definition of %s not found".format(kinematicGroup))
+        rospy.logerr("group definition of {0} not found".format(kinematicGroup))
 
     # done
     rospy.loginfo("core node initialized")

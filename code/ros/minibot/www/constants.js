@@ -45,6 +45,7 @@ Constants.Kinematics = {
 
 Constants.Planning = {
 		KINEMATICS_GROUP : 'minibot_arm',  	// group of links as defined in SRDF defining the arm without the endeffector
-		FIXED_FRAME : 'base_link'  			// first link 
+		FIXED_FRAME : 'base_link', 			// first link 
+		ACTION_DISPLAY_TRAJECTORY : 3		// display the selected path		
 };
 

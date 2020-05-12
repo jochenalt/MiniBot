@@ -134,9 +134,12 @@ ProgrammePanel.Init = function(options) {
 
     // compute a new UID
     var max = programmeItems.length;
+    if (max == 0)
+      max = 1;
     for (var idx = 0; idx < programmeItems.length; idx++) {
-      if (programmeItems[idx].uid >= max)
-        max = programmeItems[idx] + 1;
+      var currUID = programmeItems[idx].uid;
+      if (currUID >= max)
+        max = currUID + 1;
     }
 
     // this methods ends with an empty statement
@@ -647,6 +650,63 @@ ProgrammePanel.Init = function(options) {
   }
 
   // save  the programm to the server
+  var planningAction = function(type) {
+    // first waypoint is the active waypoint
+    var startID  = getActiveId();
+    if (startID == null || startID <0) {
+      displayError("select a waypoint first");
+      return;
+    }
+    var startUID = programmeItems[startID].uid;
+    if (programmeItems[startID].type != StatementType.WayPoint) {
+      displayError("select a waypoint first");
+      return;      
+    }
+
+    // look for next waypoit
+    var endID = -1;
+    var endUID = null;
+    for (var idx = startID+1;idx < programmeItems.length;idx++)
+      if (programmeItems[idx].type == StatementType.WayPoint) {
+        endID = idx;
+        break;
+      }
+    if (endID >= 0)
+      endUID = programmeItems[endID].uid;
+    else {
+      displayErr("Please add another waypoint after the one  selected");
+      return;
+    }
+
+    var action = new ROSLIB.Message({
+      type: type,
+      startStatementUID :startUID,
+      endStatementUID : endUID
+    });
+   
+    var request = new ROSLIB.ServiceRequest({
+      action: action
+    });
+
+    var planningAction = new ROSLIB.Service({
+          ros : ros,
+          name : '/planning_action',
+          serviceType : 'minibot/PlanningAction'
+    });
+
+    planningAction.callService(request, 
+      function(response) {     
+        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS) 
+          ;
+        else
+          displayErr("planningAction failed(" + response.error_code.val + ")");
+      }, 
+      function (response) {
+        displayErr("planningAction " + type + "failed");
+      });
+  }
+
+  // save  the programm to the server
   var storeProgramme = function() {
 
     // build the message
@@ -655,7 +715,7 @@ ProgrammePanel.Init = function(options) {
       var item = programmeItems[idx];
       var stmt = new Object();
       stmt.comment = item.comment;
-      stmt.id  = item.uid;
+      stmt.uid  = item.uid;
       stmt.name  = item.name;
       stmt.type  = item.type;
       stmt.waitType  = item.waitType;
@@ -664,6 +724,7 @@ ProgrammePanel.Init = function(options) {
       stmt.kitkat.nsec  = (item.waitForSeconds-stmt.kitkat.sec)*1000000000;
       if (item.type  == StatementType.WayPoint) {
         stmt.pose = poseStorePanel.getPoseByUID(item.poseUID).pose; 
+        stmt.jointState = poseStorePanel.getJointStateByUID(item.poseUID).pose; 
       }
       stmtList[stmtList.length] = stmt;
     }
@@ -710,6 +771,7 @@ ProgrammePanel.Init = function(options) {
   var run = function(event) {
     // push programm to server
     storeProgramme()
+    planningAction(Constants.Planning.ACTION_DISPLAY_TRAJECTORY)
     
   }
 

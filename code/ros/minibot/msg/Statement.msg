@@ -1,4 +1,4 @@
-int64 id
+int64 uid
 string name
 
 # a statement can be a waypoint, a comment or a wait operation
