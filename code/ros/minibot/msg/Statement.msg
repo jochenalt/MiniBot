@@ -10,7 +10,9 @@ uint8 type
 # Waypoint:
 sensor_msgs/JointState jointState
 geometry_msgs/Pose pose
-
+bool cartesic_path
+bool collision_check
+bool improved_path
 # Comment
 string comment
 

@@ -85,10 +85,11 @@ def handleSetProgramme(request):
 def handlePlanningAction(request):
   global statements, group, robot,display_trajectory_publisher
   #print("handlePlanningAction")
+
   # think positive
   response = PlanningActionResponse()
   response.error_code.val = ErrorCodes.SUCCESS;
-  print(request)
+  #print(request)
 
   if request.programme.statements:
     statements = request.programme.statements
@@ -115,22 +116,24 @@ def handlePlanningAction(request):
     robotStartState.joint_state = startJointState
     robotStartState.joint_state.header = Header()
     robotStartState.joint_state.header.stamp = rospy.Time.now()
-
-    group.set_pose_target(endPose)
     group.set_start_state(robotStartState);
 
-    ## Now, we call the planner to compute the plan
-    ## and visualize it if successful
-    ## Note that we are just planning, not asking move_group 
-    ## to actually move the robot
-    plan1 = group.plan()
+    # compute waypoints, but leave out the first one, which is the start state
+    group.clear_pose_targets()
+    waypoints = []
+    for idx in range(startID+1, endID+1):
+      waypoints.append(copy.copy(statements[idx].pose))
+
+    if statements[startID].cartesic_path:
+      (plan,fraction) = group.compute_cartesian_path(waypoints,0.005,0.0)
+    else:
+      group.set_pose_targets(waypoints)
+      plan = group.plan()
+
+    ## visualize it if successful
     display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-    #display_trajectory.trajectory_start = startPose.jointState;
-    #display_trajectory.trajectory_start = robot.get_current_state();
-    #display_trajectory.trajectory_start = robotStartState;
-    display_trajectory.trajectory.append(plan1)
+    display_trajectory.trajectory.append(plan)
     display_trajectory_publisher.publish(display_trajectory);
-    print("plan done")
 
 
   return response

@@ -677,7 +677,7 @@ ProgrammePanel.Init = function(options) {
   // save  the programm to the server
   var planningAction = function(type) {
 
-     // build the message
+    // build the message
     stmtList = [];
     for (var idx = 0; idx < getProgrammeLength(); idx++) {
       var item = programmeItems[idx];
@@ -693,6 +693,9 @@ ProgrammePanel.Init = function(options) {
       if (item.type  == StatementType.WayPoint) {
         stmt.pose = poseStorePanel.getPoseByUID(item.poseUID).pose; 
         stmt.jointState = poseStorePanel.getJointStateByUID(item.poseUID); 
+        stmt.cartesic_path = item.cartesicPath;
+        stmt.collision_check = item.collisionCheck;
+        stmt.improved_path = item.improvedPath;
       }
       stmtList[stmtList.length] = stmt;
     }
@@ -702,25 +705,27 @@ ProgrammePanel.Init = function(options) {
     // first waypoint is the active waypoint
     var startID  = getActiveId();
     if (startID == null || startID <0) {
-      // displayError("select a waypoint first");
       // cant show trajectory
       return;
     }
+
+    // think positive
+    programmeItems[startID].error_code = ErrorCode.PLANNING.SUCCESS;
+
     var startUID = programmeItems[startID].uid;
     if (programmeItems[startID].type != StatementType.WayPoint) {
-      // displayError("select a waypoint first");
-      // cant show trajectory
       return;      
     }
 
-    // look for next waypoit
+    // look for all next waypoints until we reach a different a different statement type
     var endID = -1;
     var endUID = null;
     for (var idx = startID+1;idx < programmeItems.length;idx++)
       if (programmeItems[idx].type == StatementType.WayPoint) {
         endID = idx;
-        break;
       }
+      else
+        break;
     if (endID >= 0)
       endUID = programmeItems[endID].uid;
     else {
