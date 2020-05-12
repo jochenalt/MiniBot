@@ -61,7 +61,15 @@ ProgrammePanel.Init = function(options) {
     text.id = idx;
     badge.id = idx;
 
-    // update the detail section
+    // set color of right badge
+    if (statement.error_code != null && statement.error_code != ErrorCode.PLANNING.SUCCESS) {
+      badge.classList.remove("badge-success");
+      badge.classList.add("badge-danger");
+    }
+    else {
+      badge.classList.remove("badge-danger");
+      badge.classList.add("badge-success");
+    }
 
     // remove color of waypoints
     statement.widget.classList.remove('list-group-item-success');
@@ -94,6 +102,14 @@ ProgrammePanel.Init = function(options) {
       document.getElementById('cartesicPath').checked  = statement.cartesicPath;
       document.getElementById('collisionCheck').checked  = statement.collisionCheck;
       document.getElementById('improvedPath').checked  = statement.improvedPath;
+      var waypointErrorWidget = document.getElementById('waypointError');
+      if (statement.error_code != null && statement.error_code != ErrorCode.PLANNING.SUCCESS) {
+         waypointErrorWidget.style.display = 'block';
+         waypointErrorWidget.innerHTML = "Planning error " + statement.error_code;
+      } else {
+         document.getElementById('waypointError').style.display = 'none';
+         waypointErrorWidget.innerHTML = "";
+      }
     }
     if (statement.type == StatementType.Comment) {
       badge.classList.add('badge-secondary');
@@ -294,11 +310,11 @@ ProgrammePanel.Init = function(options) {
 
   var callbackClick = function(event) {
     var id = event.target.id;
-    activate(id);
+    activateStatement(id);
   }
 
   // activate the passed list item
-  var activate = function(id) {
+  var activateStatement = function(id) {
     var activeID = getActiveId();
     id = parseFloat(id); // passed id might be a string
     if (id >= 0) {
@@ -323,6 +339,9 @@ ProgrammePanel.Init = function(options) {
           updateWidget(idx);
         } else {
           programmeItems[idx].widget.classList.remove('active');
+
+          // display the trajectory to the next Item
+          planningAction(Constants.Planning.ACTION_DISPLAY_TRAJECTORY);
         }
       }
     }
@@ -399,10 +418,10 @@ ProgrammePanel.Init = function(options) {
 
       // activate the next statement
       if (id < programmeItems.length)
-        activate(id);
+        activateStatement(id);
       else
       if (id > 0)
-        activate(id - 1);
+        activateStatement(id - 1);
     } else
       displayErr('select a statement first')
   }
@@ -419,7 +438,7 @@ ProgrammePanel.Init = function(options) {
       var id = getStatementIDByUID(statement.uid);
       // scroll to new element and activate it
       statement.widget.scrollIntoView();
-      activate(id);
+      activateStatement(id);
     } else
       displayErr('select a pose first')
   }
@@ -433,7 +452,7 @@ ProgrammePanel.Init = function(options) {
     var id = getStatementIDByUID(statement.uid);
     // scroll to new element and activate it
     statement.widget.scrollIntoView();
-    activate(id);
+    activateStatement(id);
   }
 
   function newWait() {
@@ -447,7 +466,7 @@ ProgrammePanel.Init = function(options) {
     statement.waitForSeconds = 0;
     // scroll to new element and activate it
     statement.widget.scrollIntoView();
-    activate(id);
+    activateStatement(id);
   }
 
 
@@ -657,15 +676,40 @@ ProgrammePanel.Init = function(options) {
 
   // save  the programm to the server
   var planningAction = function(type) {
+
+     // build the message
+    stmtList = [];
+    for (var idx = 0; idx < getProgrammeLength(); idx++) {
+      var item = programmeItems[idx];
+      var stmt = new Object();
+      stmt.comment = item.comment;
+      stmt.uid  = item.uid;
+      stmt.name  = item.name;
+      stmt.type  = item.type;
+      stmt.waitType  = item.waitType;
+      stmt.kitkat = new Object();
+      stmt.kitkat.sec  = Math.floor(item.waitForSeconds);
+      stmt.kitkat.nsec  = (item.waitForSeconds-stmt.kitkat.sec)*1000000000;
+      if (item.type  == StatementType.WayPoint) {
+        stmt.pose = poseStorePanel.getPoseByUID(item.poseUID).pose; 
+        stmt.jointState = poseStorePanel.getJointStateByUID(item.poseUID); 
+      }
+      stmtList[stmtList.length] = stmt;
+    }
+    programme = new Object();
+    programme.statements = stmtList;
+
     // first waypoint is the active waypoint
     var startID  = getActiveId();
     if (startID == null || startID <0) {
-      displayError("select a waypoint first");
+      // displayError("select a waypoint first");
+      // cant show trajectory
       return;
     }
     var startUID = programmeItems[startID].uid;
     if (programmeItems[startID].type != StatementType.WayPoint) {
-      displayError("select a waypoint first");
+      // displayError("select a waypoint first");
+      // cant show trajectory
       return;      
     }
 
@@ -680,7 +724,8 @@ ProgrammePanel.Init = function(options) {
     if (endID >= 0)
       endUID = programmeItems[endID].uid;
     else {
-      displayErr("Please add another waypoint after the one  selected");
+      // displayErr("Please add another waypoint after the one  selected");
+      // cant show trajectory
       return;
     }
 
@@ -691,6 +736,7 @@ ProgrammePanel.Init = function(options) {
     });
    
     var request = new ROSLIB.ServiceRequest({
+      programme: programme,
       action: action
     });
 
@@ -702,13 +748,16 @@ ProgrammePanel.Init = function(options) {
 
     planningAction.callService(request, 
       function(response) {     
+        var id = getActiveId();
         if (response.error_code.val == ErrorCode.PLANNING.SUCCESS) 
-          ;
-        else
-          displayErr("planningAction failed(" + response.error_code.val + ")");
+          programmeItems[id].error_code = response.error_code.val;
+        else {
+          programmeItems[id].error_code = response.error_code.val;
+        }
       }, 
       function (response) {
-        displayErr("planningAction " + type + "failed");
+          var id = getActiveId();
+          programmeItems[id].error_code = ErrorCode.PLANNING.FAILURE;
       });
   }
 
@@ -776,7 +825,6 @@ ProgrammePanel.Init = function(options) {
 
   var run = function(event) {
     // push programm to server
-    storeProgramme()
     planningAction(Constants.Planning.ACTION_DISPLAY_TRAJECTORY)
     
   }

@@ -11,6 +11,9 @@ import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 from std_msgs.msg import String
+from moveit_msgs.msg import RobotState
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Header
 
 from minibot.msg import Statement
 from minibot.msg import Programme
@@ -59,12 +62,12 @@ def getStatementIDByUID(uid):
   print("getStatementIDByUID(" + str(uid) + ")")
   idx = 0;
   for stmt in statements:
-    #print("stmt(: " + str(idx) + ")=" + str(stmt))
+    print("stmt(: " + str(idx) + ")=" + str(stmt.uid))
     if stmt.uid == uid:
-        #print("-> " + str(idx));
+        print("-> " + str(idx));
         return idx
     idx = idx + 1
-  #print("-> not found -1");
+  print("-> not found -1");
   return -1
 
 
@@ -80,12 +83,15 @@ def handleSetProgramme(request):
 
 
 def handlePlanningAction(request):
-  global group, robot,display_trajectory_publisher
+  global statements, group, robot,display_trajectory_publisher
   print("handlePlanningAction")
   # think positive
   response = PlanningActionResponse()
   response.error_code.val = ErrorCodes.SUCCESS;
   print(request)
+
+  if request.programme.statements:
+    statements = request.programme.statements
 
   if request.action.type == Action.DISPLAY_PATH:
     print("in Dispay path")
@@ -102,22 +108,18 @@ def handlePlanningAction(request):
       return response
 
     print("start pose")
-    startPose = statements[startID].pose
-    print(startPose)
-    print("start pose")
+    startJointState = statements[startID].jointState
     endPose = statements[endID].pose
-    print(startPose)
-    pose_target = geometry_msgs.msg.Pose()
-    pose_target.orientation.x = 0.0
-    pose_target.orientation.y = 0.819929470642
-    pose_target.orientation.z = 0.0
-    pose_target.orientation.w = 0.572464551892
 
-    pose_target.position.x = 0.3
-    pose_target.position.y = 0.1
-    pose_target.position.z = 0.3
-    #group.set_pose_target(pose_target)
+    robotStartState = RobotState()
+    robotStartState.joint_state = JointState()
+    robotStartState.joint_state.header = Header()
+    robotStartState.joint_state.header.stamp = rospy.Time.now()
+    robotStartState.joint_state.name = startJointState.name
+    robotStartState.joint_state.position = startJointState.position
+
     group.set_pose_target(endPose)
+    group.set_start_state(robotStartState);
 
     ## Now, we call the planner to compute the plan
     ## and visualize it if successful
@@ -126,7 +128,8 @@ def handlePlanningAction(request):
     plan1 = group.plan()
     display_trajectory = moveit_msgs.msg.DisplayTrajectory()
     #display_trajectory.trajectory_start = startPose.jointState;
-    display_trajectory.trajectory_start = robot.get_current_state();
+    #display_trajectory.trajectory_start = robot.get_current_state();
+    #display_trajectory.trajectory_start = robotStartState;
     display_trajectory.trajectory.append(plan1)
     display_trajectory_publisher.publish(display_trajectory);
     print("plan done")

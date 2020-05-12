@@ -37,6 +37,7 @@ ErrorCode.PLANNING = {
 		SUCCESS : 1,
 		FAILURE : 99999
 }
+
 var Constants = {};
 Constants.Kinematics = {
 		MAX_KINEMATICS_RATE : 10, // [Hz] max rate the UI sends new tcp or joints to the server
