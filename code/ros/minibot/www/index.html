@@ -365,7 +365,7 @@
                     <div class="w-100 row  p-0 m-0 mb-3 d-flex btn-group ">
                         <div class="col align-self-end w-100 m-0 p-0">
                             <div class="btn-group col  ">
-                                <button type="button" class="btn-primary w-100" onclick="kinematicsPanel.setZeroPosition()">Zero Position</button>
+                                <button type="button" class="btn-sm btn-primary w-100" onclick="kinematicsPanel.setZeroPosition()">Zero Position</button>
                             </div>
                         </div>
                     </div>
@@ -426,13 +426,12 @@
                         </div>
                     </div>
                     <div id="programmButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
-                        <div class="w-100 p-1 my-3" style='height:25vh;' >
-                            <div class="p-1 m-1" id='detailsWaypointStatement'  style="display:none;">
-                                <p>Waypoint</p>
+                        <div class="w-100 p-0 my-3" style='height:25vh;' >
+                            <div class="p-0 m-0" id='detailsWaypointStatement'  style="display:none;">
+                                <small>Waypoint</small>
                                 <div class="mt-2 p-0">
                                     <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
                                          id='waypointError' role='alert'/></div>
-
                                     <div class="custom-control custom-checkbox custom-control-inline">
                                       <input id="cartesicPath" type="checkbox" class="custom-control-input" onclick="programmePanel.setCartesicPath(event)">
                                       <label class="custom-control-label" for="cartesicPath">cartesic</label>
@@ -450,8 +449,8 @@
                                   </div>
                                 </div>
                             </div>
-                            <div class='p-1 m-1' id='detailsWaitStatement' style="display:none;">
-                                <p>Wait</p>
+                            <div class='p-0 m-0' id='detailsWaitStatement' style="display:none;">
+                                <small>Wait</small>
                                 <div class='form-check'>
                                     <div class="custom-control custom-radio">
                                         <input id="dontWait" type="radio" class="custom-control-input"  name="WaitStatementType" onchange='programmePanel.setWaitTypeNoWait(event)' checked/>
@@ -477,8 +476,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="p-1 m-1" id='detailsCommentStatement' style="display:none;">
-                                <p>Comment</p>
+                            <div class="p-0 m-0" id='detailsCommentStatement' style="display:none;">
+                                <small>Comment</small>
                                 <div class="input-group">
                                   <textarea id="commentStatement" class="form-control input-sm" placeholder="valuable advice" oninput="programmePanel.setComment(event)"></textarea>
                                 </div>

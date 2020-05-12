@@ -59,24 +59,24 @@ def init():
 
 
 def getStatementIDByUID(uid):
-  print("getStatementIDByUID(" + str(uid) + ")")
+  #print("getStatementIDByUID(" + str(uid) + ")")
   idx = 0;
   for stmt in statements:
-    print("stmt(: " + str(idx) + ")=" + str(stmt.uid))
+    #print("stmt(: " + str(idx) + ")=" + str(stmt.uid))
     if stmt.uid == uid:
-        print("-> " + str(idx));
+        #print("-> " + str(idx));
         return idx
     idx = idx + 1
-  print("-> not found -1");
+  #print("-> not found -1");
   return -1
 
 
 def handleSetProgramme(request):
   global statements
   statements = request.programme.statements
-  print ("start handleSetProgramme")
-  print (statements)
-  print ("end handleSetProgramme")
+  #print ("start handleSetProgramme")
+  #print (statements)
+  #print ("end handleSetProgramme")
   response = SetProgrammeResponse()
   response.error_code.val = ErrorCodes.SUCCESS;
   return response
@@ -84,7 +84,7 @@ def handleSetProgramme(request):
 
 def handlePlanningAction(request):
   global statements, group, robot,display_trajectory_publisher
-  print("handlePlanningAction")
+  #print("handlePlanningAction")
   # think positive
   response = PlanningActionResponse()
   response.error_code.val = ErrorCodes.SUCCESS;
@@ -94,7 +94,7 @@ def handlePlanningAction(request):
     statements = request.programme.statements
 
   if request.action.type == Action.DISPLAY_PATH:
-    print("in Dispay path")
+    #print("in Dispay path")
   
     startID = getStatementIDByUID(request.action.startStatementUID)
     endID = getStatementIDByUID(request.action.endStatementUID)
@@ -107,16 +107,14 @@ def handlePlanningAction(request):
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
 
-    print("start pose")
+    #print("start pose")
     startJointState = statements[startID].jointState
     endPose = statements[endID].pose
 
     robotStartState = RobotState()
-    robotStartState.joint_state = JointState()
+    robotStartState.joint_state = startJointState
     robotStartState.joint_state.header = Header()
     robotStartState.joint_state.header.stamp = rospy.Time.now()
-    robotStartState.joint_state.name = startJointState.name
-    robotStartState.joint_state.position = startJointState.position
 
     group.set_pose_target(endPose)
     group.set_start_state(robotStartState);
