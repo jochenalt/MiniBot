@@ -4,10 +4,14 @@
 import sys
 import copy
 import rospy
+
+# import mongodb
+import mongodb_store_msgs.srv as db_srv
+import mongodb_store.util as db_util
+from mongodb_store.message_store import MessageStoreProxy
+
+# import moveit stuff
 import moveit_commander
-
-
-
 import moveit_msgs.msg
 import geometry_msgs.msg
 from std_msgs.msg import String
@@ -15,16 +19,16 @@ from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 
+# import minibot stuff
+import constants
+from constants import Constants
 from minibot.msg import Statement
 from minibot.msg import Programme
 from minibot.msg import ErrorCodes
 from minibot.msg import Action
-
 from minibot.srv import SetProgramme, SetProgrammeRequest, SetProgrammeResponse
 from minibot.srv import PlanningAction, PlanningActionRequest, PlanningActionResponse
 
-import constants
-from constants import Constants
 
 statements = []   # all programme statement as recently sent over via set_proramme
 group = None      # MoveGroupCommander Object
@@ -34,17 +38,16 @@ scene = None      # Planing scene Object
 def init():
   global group,robot,display_trajectory_publisher, scene
 
-
-  #  initialize moveit_commander and rospy.
+  #  initialize moveit pyhton interface
   moveit_commander.roscpp_initialize(sys.argv)
+
   rospy.init_node('planning', anonymous=True)
 
-  # Instantiate a RobotCommander object.  This object is an interface to
-  # the robot as a whole.
+
+  # RobotCommander is the interface to the robot as a whole
   robot = moveit_commander.RobotCommander()
 
-  # Instantiate a MoveGroupCommander object.  This object is an interface
-  # to one group of joints.  
+  # MoveGroupCommander is the interface to one group of joints.  
   group = moveit_commander.MoveGroupCommander(Constants.KINEMATICS_GROUP)
 
   # instantiate a planning scene
@@ -54,6 +57,16 @@ def init():
   display_trajectory_publisher = rospy.Publisher(
                                       '/move_group/display_planned_path',
                                       moveit_msgs.msg.DisplayTrajectory, queue_size=1)
+
+
+  # errors and messages
+  msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
+  msgInfoPub  = rospy.Publisher('/messages/info',String, queue_size=1)
+  msgWarnPub  = rospy.Publisher('/messages/warn',String, queue_size=1)
+
+  # minibot planning services
+  set_programme = rospy.Service('set_programme', SetProgramme, handleSetProgramme)
+  planning_action = rospy.Service('planning_action', PlanningAction, handlePlanningAction)
 
   rospy.loginfo("planning node initialized")
 
@@ -158,15 +171,9 @@ if __name__=='__main__':
   try:
 
     global msgErrorPub,msgInfoPub, msgWarnPub
+
     init()
 
-    # errors and messages
-    msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
-    msgInfoPub  = rospy.Publisher('/messages/info',String, queue_size=1)
-    msgWarnPub  = rospy.Publisher('/messages/warn',String, queue_size=1)
-
-    set_programme = rospy.Service('set_programme', SetProgramme, handleSetProgramme)
-    planning_action = rospy.Service('planning_action', PlanningAction, handlePlanningAction)
 
     rospy.spin()
   except rospy.ROSInterruptException:

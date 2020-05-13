@@ -2,6 +2,10 @@
   <param name="port" value="62345" />
   <param name="host" value="localhost" />
 
+  <!-- start the database server -->
   <node  name="mongodb_server" pkg="mongodb_store" type="mongodb_server.py" output="screen"/>
+
+  <!-- start a node providing services to access the database -->
+  <node  name="mongodb_service" pkg="mongodb_store" type="message_store_node.py" output="screen"/>
 
 </launch>
