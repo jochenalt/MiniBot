@@ -112,32 +112,32 @@ def handlePlanningAction(request):
     startJointState = statements[startID].jointState
 
     robotStartState = RobotState()
-    robotStartState.joint_state = startJointState
     robotStartState.joint_state.header = Header()
     robotStartState.joint_state.header.stamp = rospy.Time.now()
-    group.set_start_state(robotStartState);
 
     # compute waypoints, but leave out the first one, which is the start state
     group.clear_pose_targets()
     waypoints = []
 
+    # display trajectoy. this is also done in group.plan, but only for one leg, not the entire trajectory 
     display_trajectory = moveit_msgs.msg.DisplayTrajectory()
 
     if statements[startID].cartesic_path:
+      robotStartState.joint_state = statements[startID].jointState
+      group.set_start_state(copy.copy(robotStartState))        
       for idx in range(startID+1, endID+1):
         waypoints.append(copy.copy(statements[idx].pose))
-      (plan,fraction) = group.compute_cartesian_path(waypoints,0.01,0.0)
+      (plan,qualityFraction) = group.compute_cartesian_path(waypoints,0.01,0.0)
+      if qualityFraction < 0.8:
+        rospy.logerr("quality of plan is quite bad " + str(qualityFraction))
     else:
       group.set_start_state(copy.copy(robotStartState))
-      group.allow_replanning(True)
       for idx in range(startID+1, endID+1):
+        robotStartState.joint_state = statements[idx-1].jointState
+        group.set_start_state(copy.copy(robotStartState))        
         group.set_pose_target(statements[idx].pose)
         plan = group.plan()
         display_trajectory.trajectory.append(plan)
-        # set end state as start state for next loop
-        if idx < endID:
-          robotStartState.joint_state = statements[idx].jointState;
-          group.set_start_state(robotStartState);        
 
       ## visualization is done by plan/compute cartesian path
       display_trajectory_publisher.publish(display_trajectory);
@@ -145,10 +145,10 @@ def handlePlanningAction(request):
   if request.action.type == Action.CLEAR_PATH:
     rospy.loginfo("Action.CLEAR_PATH")
     # dont know how to delete a plan and remove the displayed trajectory!?
+    # so set start and end point to current position
     group.clear_pose_targets()
     group.set_start_state_to_current_state()
     group.set_pose_target(group.get_current_pose().pose)
-    #group.stop()
     plan = group.plan()
 
   return response
