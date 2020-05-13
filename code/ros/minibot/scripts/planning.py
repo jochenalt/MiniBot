@@ -29,28 +29,28 @@ from constants import Constants
 statements = []   # all programme statement as recently sent over via set_proramme
 group = None      # MoveGroupCommander Object
 robot = None      # RobotCommander Object
+scene = None      # Planing scene Object
 
 def init():
-  global group,robot,display_trajectory_publisher
+  global group,robot,display_trajectory_publisher, scene
 
 
   #  initialize moveit_commander and rospy.
   moveit_commander.roscpp_initialize(sys.argv)
-  rospy.init_node('planning',
-                  anonymous=True)
+  rospy.init_node('planning', anonymous=True)
 
   # Instantiate a RobotCommander object.  This object is an interface to
   # the robot as a whole.
   robot = moveit_commander.RobotCommander()
 
   # Instantiate a MoveGroupCommander object.  This object is an interface
-  # to one group of joints.  In this case the group is the joints in the left
-  # arm.  This interface can be used to plan and execute motions on the left
-  # arm.
+  # to one group of joints.  
   group = moveit_commander.MoveGroupCommander(Constants.KINEMATICS_GROUP)
 
-  ## We create this DisplayTrajectory publisher which is used below to publish
-  ## trajectories for RVIZ to visualize.
+  # instantiate a planning scene
+  scene = moveit_commander.PlanningSceneInterface()
+
+  ## publisher of trajectories to be displayed
   display_trajectory_publisher = rospy.Publisher(
                                       '/move_group/display_planned_path',
                                       moveit_msgs.msg.DisplayTrajectory, queue_size=1)
@@ -94,8 +94,8 @@ def handlePlanningAction(request):
   if request.programme.statements:
     statements = request.programme.statements
 
-  if request.action.type == Action.DISPLAY_PATH:
-    #print("in Dispay path")
+  if request.action.type == Action.PLAN_PATH:
+    rospy.loginfo("Action.PLAN_PATH")
   
     startID = getStatementIDByUID(request.action.startStatementUID)
     endID = getStatementIDByUID(request.action.endStatementUID)
@@ -110,7 +110,6 @@ def handlePlanningAction(request):
 
     #print("start pose")
     startJointState = statements[startID].jointState
-    endPose = statements[endID].pose
 
     robotStartState = RobotState()
     robotStartState.joint_state = startJointState
@@ -121,20 +120,36 @@ def handlePlanningAction(request):
     # compute waypoints, but leave out the first one, which is the start state
     group.clear_pose_targets()
     waypoints = []
-    for idx in range(startID+1, endID+1):
-      waypoints.append(copy.copy(statements[idx].pose))
+
+    display_trajectory = moveit_msgs.msg.DisplayTrajectory()
 
     if statements[startID].cartesic_path:
-      (plan,fraction) = group.compute_cartesian_path(waypoints,0.005,0.0)
+      for idx in range(startID+1, endID+1):
+        waypoints.append(copy.copy(statements[idx].pose))
+      (plan,fraction) = group.compute_cartesian_path(waypoints,0.01,0.0)
     else:
-      group.set_pose_targets(waypoints)
-      plan = group.plan()
+      group.set_start_state(copy.copy(robotStartState))
+      group.allow_replanning(True)
+      for idx in range(startID+1, endID+1):
+        group.set_pose_target(statements[idx].pose)
+        plan = group.plan()
+        display_trajectory.trajectory.append(plan)
+        # set end state as start state for next loop
+        if idx < endID:
+          robotStartState.joint_state = statements[idx].jointState;
+          group.set_start_state(robotStartState);        
 
-    ## visualize it if successful
-    display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-    display_trajectory.trajectory.append(plan)
-    display_trajectory_publisher.publish(display_trajectory);
+      ## visualization is done by plan/compute cartesian path
+      display_trajectory_publisher.publish(display_trajectory);
 
+  if request.action.type == Action.CLEAR_PATH:
+    rospy.loginfo("Action.CLEAR_PATH")
+    # dont know how to delete a plan and remove the displayed trajectory!?
+    group.clear_pose_targets()
+    group.set_start_state_to_current_state()
+    group.set_pose_target(group.get_current_pose().pose)
+    #group.stop()
+    plan = group.plan()
 
   return response
 

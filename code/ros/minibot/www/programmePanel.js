@@ -341,7 +341,7 @@ ProgrammePanel.Init = function(options) {
           programmeItems[idx].widget.classList.remove('active');
 
           // display the trajectory to the next Item
-          planningAction(Constants.Planning.ACTION_DISPLAY_TRAJECTORY);
+          planningAction();
         }
       }
     }
@@ -675,7 +675,7 @@ ProgrammePanel.Init = function(options) {
   }
 
   // save  the programm to the server
-  var planningAction = function(type) {
+  var planningAction = function() {
 
     // build the message
     stmtList = [];
@@ -702,44 +702,35 @@ ProgrammePanel.Init = function(options) {
     programme = new Object();
     programme.statements = stmtList;
 
-    // first waypoint is the active waypoint
+
+    // check if we clean a plan or compute a plan
+    // in case of the latter, startUID and endUID are set
     var startID  = getActiveId();
-    if (startID == null || startID <0) {
-      // cant show trajectory
-      return;
-    }
-
-    // think positive
-    programmeItems[startID].error_code = ErrorCode.PLANNING.SUCCESS;
-
-    var startUID = programmeItems[startID].uid;
-    if (programmeItems[startID].type != StatementType.WayPoint) {
-      return;      
-    }
-
-    // look for all next waypoints until we reach a different a different statement type
-    var endID = -1;
+    var startUID = null;
     var endUID = null;
-    for (var idx = startID+1;idx < programmeItems.length;idx++)
-      if (programmeItems[idx].type == StatementType.WayPoint) {
-        endID = idx;
-      }
-      else
-        break;
-    if (endID >= 0)
-      endUID = programmeItems[endID].uid;
-    else {
-      // displayErr("Please add another waypoint after the one  selected");
-      // cant show trajectory
-      return;
-    }
-
     var action = new ROSLIB.Message({
-      type: type,
-      startStatementUID :startUID,
-      endStatementUID : endUID
+      type: Constants.Planning.ACTION_CLEAR_PLAN,
     });
-   
+
+    if ((startID != null) && (startID >= 0) && (programmeItems[startID].type == StatementType.WayPoint)) {
+      // look for all next waypoints until we reach a different a different statement type
+      var endID = -1;
+      for (var idx = startID+1;idx < programmeItems.length;idx++) {
+        if (programmeItems[idx].type == StatementType.WayPoint) {
+          endID = idx;
+        }
+        else
+          break;
+      }
+      if (endID >= 0) {
+        action = new ROSLIB.Message({
+          type: Constants.Planning.ACTION_PLAN_PATH,
+          startStatementUID :programmeItems[startID].uid,
+          endStatementUID : programmeItems[endID].uid
+        });
+      }
+    }
+    
     var request = new ROSLIB.ServiceRequest({
       programme: programme,
       action: action
@@ -816,21 +807,14 @@ ProgrammePanel.Init = function(options) {
   }
 
   var forward = function(event) {
-    // push programm to server
-    storeProgramme()
-
   }
 
   var backward = function(event) {
-    // push programm to server
-    storeProgramme()
-
-    
   }
 
   var run = function(event) {
     // push programm to server
-    planningAction(Constants.Planning.ACTION_DISPLAY_TRAJECTORY)
+    planningAction()
     
   }
 
