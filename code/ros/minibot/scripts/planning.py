@@ -121,9 +121,6 @@ def handlePlanningAction(request):
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
 
-    #print("start pose")
-    startJointState = statements[startID].jointState
-
     robotStartState = RobotState()
     robotStartState.joint_state.header = Header()
     robotStartState.joint_state.header.stamp = rospy.Time.now()
@@ -132,25 +129,24 @@ def handlePlanningAction(request):
     group.clear_pose_targets()
     waypoints = []
 
-    # display trajectoy. this is also done in group.plan, but only for one leg, not the entire trajectory 
     display_trajectory = moveit_msgs.msg.DisplayTrajectory()
 
     if statements[startID].cartesic_path:
-      robotStartState.joint_state = statements[startID].jointState
-      group.set_start_state(copy.copy(robotStartState))        
-      for idx in range(startID+1, endID+1):
-        waypoints.append(copy.copy(statements[idx].pose))
-      (plan,qualityFraction) = group.compute_cartesian_path(waypoints,0.01,0.0)
-      if qualityFraction < 0.8:
-        rospy.logerr("quality of plan is quite bad " + str(qualityFraction))
-    else:
+      robotStartState.joint_state = copy.copy(statements[startID].jointState)
       group.set_start_state(copy.copy(robotStartState))
       for idx in range(startID+1, endID+1):
-        robotStartState.joint_state = statements[idx-1].jointState
-        group.set_start_state(copy.copy(robotStartState))        
+        waypoints.append(copy.copy(statements[idx].pose))
+      (plan,fraction) = group.compute_cartesian_path(waypoints,0.01,0.0)
+    else:
+      for idx in range(startID+1, endID+1):
+        robotStartState.joint_state = copy.copy(statements[idx-1].jointState)
+        group.set_start_state(copy.copy(robotStartState))
         group.set_pose_target(statements[idx].pose)
         plan = group.plan()
         display_trajectory.trajectory.append(plan)
+
+      ## visualization is done by plan/compute cartesian path
+      display_trajectory_publisher.publish(display_trajectory);
 
       ## visualization is done by plan/compute cartesian path
       display_trajectory_publisher.publish(display_trajectory);
