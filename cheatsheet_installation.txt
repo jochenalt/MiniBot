@@ -43,6 +43,10 @@ sudo apt-get install ros-melodic-pr2-common
 sudo apt-get install ros-melodic-robot-state-publisher
 sudo apt-get install ros-melodic-interactive-marker-proxy
 
+--- install mongodb
+sudo apt-get install ros-melodic-mongodb-store
+sudo mkdir /opt/ros/mongodb_store
+
 --- install moveit
 sudo apt-get install ros-melodic-moveit
 

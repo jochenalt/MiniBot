@@ -1,0 +1,7 @@
+<launch>
+  <param name="port" value="62345" />
+  <param name="host" value="localhost" />
+
+  <node  name="mongodb_server" pkg="mongodb_store" type="mongodb_server.py" output="screen"/>
+
+</launch>
