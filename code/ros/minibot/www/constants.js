@@ -52,3 +52,9 @@ Constants.Planning = {
 
 };
 
+Constants.Database = {
+		READ_POSES : 0,
+		READ_PROGRAMME : 1,
+		WRITE_POSES : 2,
+		WRITE_PROGRAMME :3
+};

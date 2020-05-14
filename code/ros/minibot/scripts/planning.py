@@ -26,23 +26,27 @@ from minibot.msg import Statement
 from minibot.msg import Programme
 from minibot.msg import ErrorCodes
 from minibot.msg import Action
+from minibot.msg import MinibotState
+from minibot.msg import PoseStorage
 from minibot.srv import SetProgramme, SetProgrammeRequest, SetProgrammeResponse
 from minibot.srv import PlanningAction, PlanningActionRequest, PlanningActionResponse
+from minibot.srv import Database, DatabaseRequest, DatabaseResponse
 
 
 statements = []   # all programme statement as recently sent over via set_proramme
 group = None      # MoveGroupCommander Object
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
+db = None         # MessageStoreProxy
 
 def init():
-  global group,robot,display_trajectory_publisher, scene
+  global group,robot,display_trajectory_publisher, scene, db, msgErrorPub,msgInfoPub, msgWarnPub
 
-  #  initialize moveit pyhton interface
+  #  initialize moveit pyhton interface, needs to happenn before .init_node
   moveit_commander.roscpp_initialize(sys.argv)
 
-  rospy.init_node('planning', anonymous=True)
-
+ 
+  rospy.init_node('planning')
 
   # RobotCommander is the interface to the robot as a whole
   robot = moveit_commander.RobotCommander()
@@ -59,6 +63,12 @@ def init():
                                       moveit_msgs.msg.DisplayTrajectory, queue_size=1)
 
 
+  # clear any existing plans (if moveit is still running from a previous session)
+  group.clear_pose_targets()
+  group.set_start_state_to_current_state()
+  group.set_pose_target(group.get_current_pose().pose)
+  plan = group.plan()
+
   # errors and messages
   msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
   msgInfoPub  = rospy.Publisher('/messages/info',String, queue_size=1)
@@ -68,7 +78,51 @@ def init():
   set_programme = rospy.Service('set_programme', SetProgramme, handleSetProgramme)
   planning_action = rospy.Service('planning_action', PlanningAction, handlePlanningAction)
 
-  rospy.loginfo("planning node initialized")
+  # database service capable of managing the PosePanel and the ProgrammePanel
+  db = MessageStoreProxy()
+  database = rospy.Service('database', Database, handleDatabaseAction)
+
+  # in case the database is empty, initialize
+  initDatabase()
+
+  rospy.loginfo("minibot planning node initialized")
+
+def initDatabase ():
+    (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
+    if poseStorage is None:
+      poseStorage= PoseStorage()
+      db.insert_named("default_pose_storage",poseStorage)
+    (programme, meta) = db.query_named("default_programme", Programme._type)
+    if programme is None:
+      programme = Programme()
+      db.insert_named("default_pose_storage",programme)
+
+
+
+def handleDatabaseAction (request):
+  response = DatabaseResponse()
+  response.error_code.val = ErrorCodes.SUCCESS
+
+  if request.type == DatabaseRequest.READ_POSES:
+    (poses, meta) = db.query_named("default_pose_storage",PoseStorage._type)
+    if poses:
+      response.pose_store = poses
+    else:
+      rospy.logerror("pose storage is not initialized");
+
+  if request.type == DatabaseRequest.READ_PROGRAMME:
+    (programme, meta) = db.query_named("default_programme", Programme._type)
+    if programme:
+      response.programme_store = programme
+    else:
+      rospy.logerror("programme storage is not initialized");
+
+  if request.type == DatabaseRequest.WRITE_POSES:
+    db.update_named("default_pose_storage",request.pose_store)
+  if request.type == DatabaseRequest.WRITE_PROGRAMME:
+    db.update_named("default_programme", request.programme_store)
+
+  return response;
 
 
 def getStatementIDByUID(uid):
@@ -108,7 +162,6 @@ def handlePlanningAction(request):
     statements = request.programme.statements
 
   if request.action.type == Action.PLAN_PATH:
-    rospy.loginfo("Action.PLAN_PATH")
   
     startID = getStatementIDByUID(request.action.startStatementUID)
     endID = getStatementIDByUID(request.action.endStatementUID)
@@ -152,7 +205,6 @@ def handlePlanningAction(request):
       display_trajectory_publisher.publish(display_trajectory);
 
   if request.action.type == Action.CLEAR_PATH:
-    rospy.loginfo("Action.CLEAR_PATH")
     # dont know how to delete a plan and remove the displayed trajectory!?
     # so set start and end point to current position
     group.clear_pose_targets()
@@ -166,7 +218,6 @@ def handlePlanningAction(request):
 if __name__=='__main__':
   try:
 
-    global msgErrorPub,msgInfoPub, msgWarnPub
 
     init()
 

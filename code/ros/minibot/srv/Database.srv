@@ -1,0 +1,13 @@
+uint8 type
+
+uint8 READ_POSES=0
+uint8 READ_PROGRAMME=1
+uint8 WRITE_POSES=2
+uint8 WRITE_PROGRAMME=3
+
+minibot/Programme programme_store
+minibot/PoseStorage pose_store
+---
+minibot/ErrorCodes error_code
+minibot/PoseStorage pose_store
+minibot/Programme programme_store

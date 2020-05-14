@@ -56,12 +56,15 @@ add_message_files(
    Programme.msg
    Action.msg
    ErrorCodes.msg
+   MinibotState.msg
+   PoseStorage.msg
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
   SetProgramme.srv
+  Database.srv
   PlanningAction.srv
 )
 

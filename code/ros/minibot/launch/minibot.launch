@@ -4,7 +4,7 @@
   <arg name="pipeline" default="ompl" />f
 
   <!-- the webpage server node  -->
-  <node pkg="minibot" type="core.py" name="core"/>
+  <node pkg="minibot" type="core.py" name="core" output="screen"/>
 
   <!-- start marker node -->
   <node pkg="interactive_marker_proxy" type="proxy" name="marker_proxy" 
@@ -21,7 +21,7 @@
   </include>
 
   <!-- start the trajectory planning node --> 
-  <node pkg="minibot" type="planning.py" name="planning"/>
+  <node pkg="minibot" type="planning.py" name="planning" output="screen"/>
 
    <!-- Run Rviz -->
    <!--

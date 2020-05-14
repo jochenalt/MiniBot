@@ -76,7 +76,7 @@ def initData():
         rospy.logerr("group definition of {0} not found".format(kinematicGroup))
 
     # done
-    rospy.loginfo("core node initialized")
+    rospy.loginfo("minibot core node initialized")
 
 
 def tcpGearwheelCallback(tcpPoseStamped):
@@ -128,7 +128,6 @@ def jointStatesCallback(msg):
 
 def plannedPathCallback(msgDisplayTrajectory):
     global plannedTCPPath
-    print "plannedPathCallback:"
 
     poseArray = PoseArray()
     # for all contained trajectories
@@ -136,15 +135,15 @@ def plannedPathCallback(msgDisplayTrajectory):
         jointNames = []
         for jointName in trajectory.joint_trajectory.joint_names:
             jointNames.append(jointName)
-        print ("jointNames:")
-        print (jointNames)
+        rospy.logdebug ("jointNames:")
+        rospy.logdebug(jointNames)
 
         # work through the path and compute forward kinematics  
         # collect the result in PoseArray
         jointPosition = []
         for point in trajectory.joint_trajectory.points:
-            print ("point:")
-            print point
+            rospy.logdebug ("point:")
+            rospy.logdebug( point)
             jointState = JointState()
             jointState.name = copy.copy(jointNames)
             jointState.position = copy.copy(point.positions)
@@ -185,12 +184,12 @@ def computeFK (msgJointState):
         header.frame_id = 'base_link'
         request.header = header
 
-        print ("computeFK request:")
-        print (request)
+        rospy.logdebug ("computeFK request:")
+        rospy.logdebug(request)
         # do the call to /compute_fk
         response = service(request)
-        print("computeFK response:")
-        print (response)
+        rospy.logdebug("computeFK response:")
+        rospy.logdebug(response)
         if response.error_code.val == MoveItErrorCodes.SUCCESS:
             return response.pose_stamped[-1]
         else:
@@ -215,8 +214,8 @@ def computeIK (msgTcpPose):
     robotState.joint_state.position = copy.copy(jointStates[0:tcpIndex-1])
     request.ik_request.robot_state  = robotState
 
-    print ("computeIK:")
-    print ("jointNames:%s", jointNames[0:tcpIndex])
+    rospy.logdebug ("computeIK:")
+    rospy.logdebug ("jointNames:%s", jointNames[0:tcpIndex])
 
     # goal end pose
     pose_stamped = PoseStamped()

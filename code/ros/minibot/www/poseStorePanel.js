@@ -31,19 +31,99 @@ PoseStorePanel.Init = function(options) {
     programmePanel = panel;
   }
 
-
   // initialize reference data, currently only zero position
   var initialize = function() {
     poseListWidget = document.getElementById("poseStoreList");
-    var zeroPose = kinematics.getZeroPose(
-      function(pose) {
-        createPoseElement('zero position', pose, kinematics.getZeroJointState());
-      },
-      function(error) {
-        displayErr('kinematics failure when getting zero position ${error}');
-      });
 
+    // read the poses from the database
+    var request = new ROSLIB.ServiceRequest({
+       type: Constants.Database.READ_POSES
+    });
+   var databaseAction = new ROSLIB.Service({
+        ros : ros,
+        name : '/database',
+        serviceType : 'minibot/Database'
+    });
+
+    databaseAction.callService(request, 
+      function(result) {
+        if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+          poseItems = [];
+          for (var idx = 0;idx < result.pose_store.states.length;idx ++) {
+            var minibotState = result.pose_store.states[idx];
+            var poseItem = createPoseItem();
+            poseItem.uid = minibotState.uid;
+            poseItem.id = minibotState.id;
+            poseItem.name = minibotState.name;
+            poseItem.pose = new Object();
+            poseItem.pose.pose = minibotState.pose;
+            poseItem.jointState = minibotState.jointState;            
+          }
+
+          // update DOM 
+          updateWidgets();
+
+          if (idx == 0) {
+            // if the stored list is empty, create the zero position
+            var zeroPose = kinematics.getZeroPose(
+              function(pose) {
+                createPoseElement('zero position', pose, kinematics.getZeroJointState());
+              },
+              function(error) {
+                displayErr("creating zero positon failed " + result.error_code.val);
+              }
+            );
+          }
+        }
+        else {
+          displayErr("reading poses from database failed "+ result.error_code.val);
+        }
+      }, 
+      function (result) {
+          displayErr("reading poses from database failed " + result);
+    });
   };
+
+  var storeInDatabase = function() {
+
+    var minibotStates = [];
+    for (var idx = 0;idx < poseItems.length;idx++) {
+      var minibotState = new Object();
+      var poseItem = poseItems[idx];
+      minibotState.id = idx;
+      minibotState.uid = poseItem.uid;
+      minibotState.name = poseItem.name;
+      minibotState.jointState = poseItem.jointState;
+      minibotState.pose = poseItem.pose.pose;
+      minibotStates[idx] = minibotState;
+    }
+
+    // read the poses from the database
+    var request = new ROSLIB.ServiceRequest({
+      type: Constants.Database.WRITE_POSES,
+      pose_store: { 
+        states: minibotStates
+      }
+    });
+    var databaseAction = new ROSLIB.Service({
+        ros : ros,
+        name : '/database',
+        serviceType : 'minibot/Database'
+    });
+
+    databaseAction.callService(request, 
+      function(result) {
+        if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+             displayInfo("stored in database");
+        }
+        else {
+          displayErr("storing in database failed "+ result.error_code.val);
+        }
+      }, 
+      function (result) {
+        displayErr("storing in database failed " + result.toString());
+    });
+  }
 
 
   var updateWidgets = function() {
@@ -132,6 +212,9 @@ PoseStorePanel.Init = function(options) {
       // update the dom accordingly 
       updateWidgets();
 
+      // save immediatly 
+      storeInDatabase()
+
       return poseItems[id];
     }
     return null;
@@ -154,7 +237,6 @@ PoseStorePanel.Init = function(options) {
   }
 
 
-
   // return a short string out of a pose that is used in the badges 
   var getPoseString = function(pose, jointState) {
     var s = Math.round(pose.pose.position.x * 1000).toString() + '/' + Math.round(pose.pose.position.y * 1000).toString() + '/' + Math.round(pose.pose.position.z * 1000).toString();
@@ -170,9 +252,13 @@ PoseStorePanel.Init = function(options) {
 
 
   var createPoseElement = function(name, pose, jointState) {
+    // create and update the new pose
     var newPoseItem = createPoseItem();
     updatePoseItem(newPoseItem.uid, name, pose, jointState);
+    
+    // update DOM
     updateWidgets();
+
     return newPoseItem;
   }
 
@@ -201,6 +287,7 @@ PoseStorePanel.Init = function(options) {
       poseItem.name = event.target.value
       cancelEditMode();
       updateWidgets;
+      storeInDatabase();
 
     // the name is mentioned in the programme panel, so update that as well
     if (programmePanel != null)
@@ -273,8 +360,6 @@ PoseStorePanel.Init = function(options) {
       poseItem.widget.appendChild(inputWidget);
       poseItem.widget.removeChild(text);
       inputWidget.focus();
-
-
     } else
       displayErr('select a pose first')
   }
@@ -295,6 +380,9 @@ PoseStorePanel.Init = function(options) {
 
       // deleting an item changes the IDs
       updateWidgets();
+
+      // save immediatly 
+      storeInDatabase()
 
       // activate the next item 
       if (id < poseItems.length)
@@ -319,6 +407,9 @@ PoseStorePanel.Init = function(options) {
     // scroll to new element and activate it
     poseItem.widget.scrollIntoView();
     activate(id);
+
+    // store in database
+    storeInDatabase();
   }
 
   function storePose() {
@@ -336,6 +427,9 @@ PoseStorePanel.Init = function(options) {
 
       // we need to change the badges
       updateWidgets();
+
+      // store in database
+      storeInDatabase();
     }
   }
 
@@ -352,6 +446,10 @@ PoseStorePanel.Init = function(options) {
 
       poseListWidget.insertBefore(poseItem.widget, prevPoseItem.widget);
       updateWidgets();
+
+      // store in database
+      storeInDatabase();
+
     } else
       displayErr('selected pose is first already')
   }
@@ -370,6 +468,10 @@ PoseStorePanel.Init = function(options) {
         poseListWidget.insertBefore(poseItem.widget, poseItems[id + 2].widget);
 
       updateWidgets();
+
+      // store in database
+      storeInDatabase();
+
     } else
       displayErr('selected pose is last already')
   }

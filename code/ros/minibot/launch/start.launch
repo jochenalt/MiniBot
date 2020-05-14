@@ -1,28 +1,22 @@
 <launch>
-  <param name="port" value="62345" />
-  <param name="host" value="localhost" />
+  <!-- By default, we are not in debug mode -->
   <arg name="debug" default="false" />
   <arg name="pipeline" default="ompl" />f
 
-  <!-- start the database server -->
-  <node  name="mongodb_server" pkg="mongodb_store" type="mongodb_server.py" output="screen"/>
-
-  <!-- start a node providing services to access the database -->
-  <node  name="mongodb_service" pkg="mongodb_store" type="message_store_node.py" output="screen"/>
+  <!-- the webpage server node  -->
+  <node pkg="minibot" type="core.py" name="core"/>
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
   <include file="$(find minibot)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
   </include>
 
-
   <!-- take the joint states, compute the poses of all joints and publish in tf -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
     <rosparam param="rate">10</rosparam>
-  </node>
+  </node> 
 
-
-  <!-- We do not have a robot connected, so take the desired joint states
+  <!-- We do not have a robot connected, so take the desired joint states 
        coming from web page and publish in /joint_states -->
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
     <rosparam param="/source_list">[/joint_states/update]</rosparam>
@@ -30,9 +24,9 @@
   </node>
 
   <!-- forward joint states to joint_states_desired ensure backward compatibility -->
-  <!-- <node name="joint_state_desired_publisher" pkg="topic_tools" type="relay" args="joint_states joint_states_desired" /> -->
+  <!-- <node name="joint_state_desired_publisher" pkg="topic_tools" type="relay" args="joint_states joint_states_desired" /> --> 
 
-  <!-- Run the main MoveIt executable without trajectory execution
+  <!-- Run the main MoveIt executable without trajectory execution 
        (we do not have controllers configured by default) -->
   <include file="$(find minibot)/launch/move_group.launch">
     <arg name="allow_trajectory_execution" value="true"/>
@@ -41,17 +35,40 @@
     <arg name="debug" value="$(arg debug)"/>
     <arg name="pipeline" value="$(arg pipeline)"  />
   </include>
-
+   
   <!-- throttle tf before sending to the rosbridge server -->
   <node name="tf2_web_republisher" pkg="tf2_web_republisher" type="tf2_web_republisher">
     <rosparam param="angularThres">0.0001</rosparam>
     <rosparam param="transThres">0.0001</rosparam>
     <rosparam param="rate">10</rosparam>
-  </node>
+  </node> 
 
   <!-- provide websocket procotol to let the server communicate with the browsser-->
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
       <arg name="use_compression" value="true"/>
   </include>
 
+  <!-- start marker node -->
+  <node pkg="interactive_marker_proxy" type="proxy" name="marker_proxy" 
+        args="topic_ns:=/markers target_frame:=base_link" />
+  <node pkg="minibot" type="markers.py" name="marker_server"/>
+
+  <!-- launch web server
+       index: use minibot package to delegate pathless calls to /minibot/index.html -->
+  <include file="$(find roswww)/launch/roswww.launch">
+    <arg name="name" value="minibot"/>
+    <arg name="port" value="8085"/>
+    <arg name="webpath" value="www"/>
+    <arg name="index" value="minibot"/> 
+  </include>
+
+  <!-- start the trajectory planning node --> 
+  <node pkg="minibot" type="planning.py" name="planning" output="screen"/>
+
+   <!-- Run Rviz -->
+   <!--
+   <include file="$(find minibot)/launch/moveit_rviz.launch">
+     <arg name="debug" value="$(arg debug)"/>
+   </include>
+ -->
 </launch>

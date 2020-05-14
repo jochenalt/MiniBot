@@ -76,12 +76,6 @@ Kinematics.Init = function(options) {
      }
     });
 
-   var getPositionFK = new ROSLIB.Service({
-        ros : ros,
-        name : '/compute_fk',
-        serviceType : 'moveit_msgs/GetPositionFK'
-    });
-
     var getPositionFK = new ROSLIB.Service({
         ros : ros,
         name : '/compute_fk',
