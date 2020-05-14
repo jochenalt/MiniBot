@@ -1,0 +1,32 @@
+<launch>
+  <!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+  <arg name="pipeline" default="ompl" />f
+
+  <!-- the webpage server node  -->
+  <node pkg="minibot" type="core.py" name="core"/>
+
+  <!-- start marker node -->
+  <node pkg="interactive_marker_proxy" type="proxy" name="marker_proxy" 
+        args="topic_ns:=/markers target_frame:=base_link" />
+  <node pkg="minibot" type="markers.py" name="marker_server"/>
+
+  <!-- launch web server
+       index: use minibot package to delegate pathless calls to /minibot/index.html -->
+  <include file="$(find roswww)/launch/roswww.launch">
+    <arg name="name" value="minibot"/>
+    <arg name="port" value="8085"/>
+    <arg name="webpath" value="www"/>
+    <arg name="index" value="minibot"/> 
+  </include>
+
+  <!-- start the trajectory planning node --> 
+  <node pkg="minibot" type="planning.py" name="planning"/>
+
+   <!-- Run Rviz -->
+   <!--
+   <include file="$(find minibot)/launch/moveit_rviz.launch">
+     <arg name="debug" value="$(arg debug)"/>
+   </include>
+ -->
+</launch>
