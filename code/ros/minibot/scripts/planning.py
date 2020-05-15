@@ -33,7 +33,7 @@ from minibot.srv import PlanningAction, PlanningActionRequest, PlanningActionRes
 from minibot.srv import Database, DatabaseRequest, DatabaseResponse
 
 
-statements = []   # all programme statement as recently sent over via set_proramme
+statements = []   # memory cache of all programme statements
 group = None      # MoveGroupCommander Object
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
@@ -88,15 +88,19 @@ def init():
   rospy.loginfo("minibot planning node initialized")
 
 def initDatabase ():
-    (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
-    if poseStorage is None:
-      poseStorage= PoseStorage()
-      db.insert_named("default_pose_storage",poseStorage)
-    (programme, meta) = db.query_named("default_programme", Programme._type)
-    if programme is None:
-      programme = Programme()
-      db.insert_named("default_programme",programme)
-
+  global statements
+  (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
+  if poseStorage is None:
+    poseStorage= PoseStorage()
+    db.insert_named("default_pose_storage",poseStorage)
+  (programme, meta) = db.query_named("default_programme", Programme._type)
+  if programme is None:
+    programme = Programme()
+    db.insert_named("default_programme",programme)
+  else:
+    #  cache programme in memory
+    statements = programme.statements
+ 
 
 
 def handleDatabaseAction (request):
@@ -112,8 +116,11 @@ def handleDatabaseAction (request):
 
   if request.type == DatabaseRequest.READ_PROGRAMME:
     (programme, meta) = db.query_named("default_programme", Programme._type)
+
     if programme:
       response.programme_store = programme
+      # store programme in memory
+      statements = programme.statements
     else:
       rospy.logerror("programme storage is not initialized");
 
@@ -122,10 +129,14 @@ def handleDatabaseAction (request):
   if request.type == DatabaseRequest.WRITE_PROGRAMME:
     db.update_named("default_programme", request.programme_store)
 
+    # store programme in memory
+    statements = request.programme_store.statements
+
   return response;
 
 
 def getStatementIDByUID(uid):
+  global statements
   #print("getStatementIDByUID(" + str(uid) + ")")
   idx = 0;
   for stmt in statements:
@@ -156,10 +167,6 @@ def handlePlanningAction(request):
   # think positive
   response = PlanningActionResponse()
   response.error_code.val = ErrorCodes.SUCCESS;
-  #print(request)
-
-  if request.programme.statements:
-    statements = request.programme.statements
 
   if request.action.type == Action.PLAN_PATH:
   
@@ -170,7 +177,7 @@ def handlePlanningAction(request):
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
     if endID == -1:
-      rospy. logerr("endStatementUID {0} does not exist".format(request.action.endStatementUID))
+      rospy.logerr("endStatementUID {0} does not exist".format(request.action.endStatementUID))
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
 

@@ -452,7 +452,7 @@ ProgrammePanel.Init = function(options) {
           programmeItems[idx].widget.classList.remove('active');
 
           // display the trajectory to the next Item
-          // planningAction();
+          planningAction();
         }
       }
     }
@@ -827,6 +827,7 @@ ProgrammePanel.Init = function(options) {
   var planningAction = function() {
 
     // build the message
+/*
     stmtList = [];
     for (var idx = 0; idx < getProgrammeLength(); idx++) {
       var item = programmeItems[idx];
@@ -850,7 +851,7 @@ ProgrammePanel.Init = function(options) {
     }
     programme = new Object();
     programme.statements = stmtList;
-
+  */
 
     // check if we clean a plan or compute a plan
     // in case of the latter, startUID and endUID are set
@@ -881,7 +882,7 @@ ProgrammePanel.Init = function(options) {
     }
     
     var request = new ROSLIB.ServiceRequest({
-      programme: programme,
+     // programme: programme,
       action: action
     });
 
@@ -914,8 +915,6 @@ ProgrammePanel.Init = function(options) {
   }
 
   var run = function(event) {
-    // push programm to server
-    planningAction()
     
   }
 

@@ -517,7 +517,7 @@ PoseStorePanel.Init = function(options) {
 
   function getNameByUID(uid) {
     var id = getPoseItemIDByUID(uid);
-    if (id != null)
+    if (id != null && id >= 0 && id<poseItems.length)
       return poseItems[id].name;
     else
       return null;
