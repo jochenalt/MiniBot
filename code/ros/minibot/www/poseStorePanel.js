@@ -16,10 +16,8 @@ PoseStorePanel.Init = function(options) {
 
   // interface to other panels
   var kinematicsPanel = options.kinematicsPanel;
-  var kinematics = options.kinematics;
+  var kinematicsUtils = options.kinematics;
   var programmePanel = null;
-
-  var listWidgetName = options.listName;
 
   // each item has an id which is the positon in the list
   // and a uid that stays constant
@@ -65,9 +63,9 @@ PoseStorePanel.Init = function(options) {
 
           if (idx == 0) {
             // if the stored list is empty, create the zero position
-            var zeroPose = kinematics.getZeroPose(
+            var zeroPose = kinematicsUtils.getZeroPose(
               function(pose) {
-                createPoseElement('zero position', pose, kinematics.getZeroJointState());
+                createPoseElement('zero position', pose, kinematicsUtils.getZeroJointState());
               },
               function(error) {
                 displayErr("creating zero positon failed " + result.error_code.val);

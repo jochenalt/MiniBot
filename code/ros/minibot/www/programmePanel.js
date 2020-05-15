@@ -42,7 +42,118 @@ ProgrammePanel.Init = function(options) {
   // initialize reference data, currently only zero position
   var initialize = function() {
     programmeListWidget = document.getElementById('programmeList');
+
+    // read the poses from the database
+    var request = new ROSLIB.ServiceRequest({
+       type: Constants.Database.READ_PROGRAMME
+    });
+   var databaseAction = new ROSLIB.Service({
+        ros : ros,
+        name : '/database',
+        serviceType : 'minibot/Database'
+    });
+
+    databaseAction.callService(request, 
+      function(result) {
+        if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+          programmeItems = [];
+          for (var idx = 0;idx < result.programme_store.statements.length;idx ++) {
+            var statementDB = result.programme_store.statements[idx];
+            var stmt = newStatement();
+            stmt.uid = statementDB.uid;
+            stmt.name = statementDB.name;
+            if (statementDB.type  == StatementType.WayPoint) {
+              stmt.type  = StatementType.WayPoint;
+              stmt.poseUID = statementDB.pose_uid;
+              stmt.cartesic_path = statementDB.cartesicPath;
+              stmt.collision_check = statementDB.collisionCheck;
+              stmt.improved_path = statementDB.improvedPath;
+            }
+            if (statementDB.type  == StatementType.Wait) {
+              stmt.type  = StatementType.Wait;
+              stmt.waitForSeconds = Math.floor((statementDB.kitkat.sec + minibotStatement.kitkat.nsec/1000000000)*1000)/1000;
+              minibotStatement.waitType  = statement.waitType;
+            }
+            if (statementDB.type  == StatementType.Comment) {
+              stmt.type  = StatementType.Comment;
+              stmt.comment = statementDB.comment;
+            }
+          }
+
+          // update DOM 
+          updateWidgets();
+        }
+        else {
+          displayErr("reading programme from database failed "+ result.error_code.val);
+        }
+      },
+      function (result) {
+          displayErr("reading programme from database failed " + result);      
+      })
   };
+
+
+ var storeInDatabase = function() {
+
+    var statementsDB = [];
+    for (var idx = 0;idx < programmeItems.length;idx++) {
+      var minibotState = new Object();
+      var statement  = programmeItems[idx];
+      var statementDB = new Object();
+      statementDB.uid = statement.uid;
+      statementDB.name = statement.name;
+      
+      if (statement.type  == StatementType.WayPoint) {
+        statementDB.type  = StatementType.WayPoint;
+        statementDB.pose = poseStorePanel.getPoseByUID(statement.poseUID).pose; 
+        statementDB.jointState = poseStorePanel.getJointStateByUID(statement.poseUID); 
+        statementDB.pose_uid = statement.poseUID;
+        statementDB.cartesic_path = statement.cartesicPath;
+        statementDB.collision_check = statement.collisionCheck;
+        statementDB.improved_path = statement.improvedPath;
+      }
+      if (statement.type  == StatementType.WaitType) {
+        statementDB.type  = StatementType.WaitType;
+        statementDB.kitkat = new Object();
+        statementDB.kitkat.sec  = Math.floor(statement.waitForSeconds);
+        statementDB.kitkat.nsec  = (statement.waitForSeconds-statement.kitkat.sec)*1000000000;
+        statementDB.waitType  = statement.waitType;
+      }
+      if (statement.type  == StatementType.CommentType) {
+        statementDB.type  = StatementType.CommentType;
+        statementDB.comment = statement.comment;
+      }
+
+      statementsDB[idx] = statementDB;
+    }
+
+    // read the poses from the database
+    var request = new ROSLIB.ServiceRequest({
+      type: Constants.Database.WRITE_PROGRAMME,
+      programme_store: { 
+        statements: statementsDB
+      }
+    });
+    var databaseAction = new ROSLIB.Service({
+        ros : ros,
+        name : '/database',
+        serviceType : 'minibot/Database'
+    });
+
+    databaseAction.callService(request, 
+      function(result) {
+        if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+             displayInfo("stored in database");
+        }
+        else {
+          displayErr("storing in database failed "+ result.error_code.val);
+        }
+      }, 
+      function (result) {
+        displayErr("storing in database failed " + result.toString());
+    });
+  }
+
 
   var updateWidget = function(idx) {
     var statement = programmeItems[idx];
@@ -341,7 +452,7 @@ ProgrammePanel.Init = function(options) {
           programmeItems[idx].widget.classList.remove('active');
 
           // display the trajectory to the next Item
-          planningAction();
+          // planningAction();
         }
       }
     }
@@ -420,8 +531,11 @@ ProgrammePanel.Init = function(options) {
       if (id < programmeItems.length)
         activateStatement(id);
       else
-      if (id > 0)
-        activateStatement(id - 1);
+        if (id > 0)
+          activateStatement(id - 1);
+
+      // immediately store in database
+      storeInDatabase();
     } else
       displayErr('select a statement first')
   }
@@ -439,6 +553,10 @@ ProgrammePanel.Init = function(options) {
       // scroll to new element and activate it
       statement.widget.scrollIntoView();
       activateStatement(id);
+
+      // immediately store in database
+      storeInDatabase();
+
     } else
       displayErr('select a pose first')
   }
@@ -453,6 +571,9 @@ ProgrammePanel.Init = function(options) {
     // scroll to new element and activate it
     statement.widget.scrollIntoView();
     activateStatement(id);
+
+    // immediately store in database
+    storeInDatabase();
   }
 
   function newWait() {
@@ -467,6 +588,9 @@ ProgrammePanel.Init = function(options) {
     // scroll to new element and activate it
     statement.widget.scrollIntoView();
     activateStatement(id);
+
+    // immediately store in database
+    storeInDatabase();
   }
 
 
@@ -505,6 +629,9 @@ ProgrammePanel.Init = function(options) {
 
       statement.widget.scrollIntoView();
       updateWidgets();
+
+      // immediately store in database
+      storeInDatabase();
     } else
       displayErr('selected statement is last already')
   }
@@ -518,6 +645,9 @@ ProgrammePanel.Init = function(options) {
       else
         statement.cartesicPath = false;
       updateWidget(id);
+
+      // immediately store in database
+      storeInDatabase();
     }
   }
 
@@ -530,6 +660,9 @@ ProgrammePanel.Init = function(options) {
       else
         statement.collisionCheck = false;
       updateWidget(id);
+
+      // immediately store in database
+      storeInDatabase();
     }
   }
 
@@ -542,6 +675,9 @@ ProgrammePanel.Init = function(options) {
       else
         statement.improvedPath = false;
       updateWidget(id);
+
+      // immediately store in database
+      storeInDatabase();
     }
   }
 
@@ -551,6 +687,9 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.waitType = waitType;
       updateWidget(id);
+
+      // immediately store in database
+      storeInDatabase();
     }
   }
 
@@ -582,6 +721,9 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.comment = event.target.value;
       updateWidget(id);
+
+      // immediately store in database
+      storeInDatabase();
     }
   }
 
@@ -591,6 +733,9 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.comment = event.target.value;
       updateWidget(id);
+
+      // immediately store in database
+      storeInDatabase();
     }
   }
 
@@ -643,6 +788,10 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.name = event.target.value;
       cancelEditMode();
+
+      // immediately store in database
+      storeInDatabase();
+
       updateWidgets;
     }
   }
@@ -713,7 +862,7 @@ ProgrammePanel.Init = function(options) {
     });
 
     if ((startID != null) && (startID >= 0) && (programmeItems[startID].type == StatementType.WayPoint)) {
-      // look for all next waypoints until we reach a different a different statement type
+      // look for all next waypoints until we reach a different statement type
       var endID = -1;
       for (var idx = startID+1;idx < programmeItems.length;idx++) {
         if (programmeItems[idx].type == StatementType.WayPoint) {
@@ -757,54 +906,6 @@ ProgrammePanel.Init = function(options) {
       });
   }
 
-  // save  the programm to the server
-  var storeProgramme = function() {
-
-    // build the message
-    stmtList = [];
-    for (var idx = 0; idx < getProgrammeLength(); idx++) {
-      var item = programmeItems[idx];
-      var stmt = new Object();
-      stmt.comment = item.comment;
-      stmt.uid  = item.uid;
-      stmt.name  = item.name;
-      stmt.type  = item.type;
-      stmt.waitType  = item.waitType;
-      stmt.kitkat = new Object();
-      stmt.kitkat.sec  = Math.floor(item.waitForSeconds);
-      stmt.kitkat.nsec  = (item.waitForSeconds-stmt.kitkat.sec)*1000000000;
-      if (item.type  == StatementType.WayPoint) {
-        stmt.pose = poseStorePanel.getPoseByUID(item.poseUID).pose; 
-        stmt.jointState = poseStorePanel.getJointStateByUID(item.poseUID).pose; 
-      }
-      stmtList[stmtList.length] = stmt;
-    }
-    var prg = new ROSLIB.Message({
-      statements: stmtList
-    });
-   
-    var request = new ROSLIB.ServiceRequest({
-      programme: prg
-    });
-
-    var setProgramme = new ROSLIB.Service({
-          ros : ros,
-          name : '/set_programme',
-          serviceType : 'minibot/SetProgramme'
-    });
-
-
-    setProgramme.callService(request, 
-      function(response) {     
-        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS) 
-          ;
-        else
-          displayErr("setProgramme failed(" + response.error_code.val + ")");
-      }, 
-      function (response) {
-        displayErr("setProgramme failed");
-      });
-  }
 
   var forward = function(event) {
   }

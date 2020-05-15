@@ -8,6 +8,7 @@ uint8 STATEMENT_TYPE_WAIT=4
 uint8 type
 
 # Waypoint:
+uint16 pose_uid
 sensor_msgs/JointState jointState
 geometry_msgs/Pose pose
 bool cartesic_path
@@ -17,9 +18,9 @@ bool improved_path
 string comment
 
 # Wait
-uint8 WAIT_TYPE_NOWAIT=2
-uint8 WAIT_TYPE_WAIT=3
-uint8 WAIT_TYPE_CONFIRMATION=4
+uint8 WAIT_TYPE_NOWAIT=1
+uint8 WAIT_TYPE_WAIT=2
+uint8 WAIT_TYPE_CONFIRMATION=3
 uint8 waitType
 duration kitkat
 

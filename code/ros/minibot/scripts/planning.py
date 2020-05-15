@@ -95,7 +95,7 @@ def initDatabase ():
     (programme, meta) = db.query_named("default_programme", Programme._type)
     if programme is None:
       programme = Programme()
-      db.insert_named("default_pose_storage",programme)
+      db.insert_named("default_programme",programme)
 
 
 
