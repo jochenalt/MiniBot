@@ -34,6 +34,8 @@ from minibot.srv import Database, DatabaseRequest, DatabaseResponse
 
 
 statements = []   # memory cache of all programme statements
+robotstates = []  # memory cache of all poses
+
 group = None      # MoveGroupCommander Object
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
@@ -75,7 +77,6 @@ def init():
   msgWarnPub  = rospy.Publisher('/messages/warn',String, queue_size=1)
 
   # minibot planning services
-  set_programme = rospy.Service('set_programme', SetProgramme, handleSetProgramme)
   planning_action = rospy.Service('planning_action', PlanningAction, handlePlanningAction)
 
   # database service capable of managing the PosePanel and the ProgrammePanel
@@ -88,78 +89,72 @@ def init():
   rospy.loginfo("minibot planning node initialized")
 
 def initDatabase ():
-  global statements
+  global statements, robotstates, db
   (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
   if poseStorage is None:
-    poseStorage= PoseStorage()
+    poseStorage = PoseStorage()
     db.insert_named("default_pose_storage",poseStorage)
+  robotstates = poseStorage.states
+
   (programme, meta) = db.query_named("default_programme", Programme._type)
   if programme is None:
     programme = Programme()
     db.insert_named("default_programme",programme)
-  else:
-    #  cache programme in memory
-    statements = programme.statements
+  statements = programme.statements
  
 
-
 def handleDatabaseAction (request):
+  global statement, robotstates, db
   response = DatabaseResponse()
   response.error_code.val = ErrorCodes.SUCCESS
 
   if request.type == DatabaseRequest.READ_POSES:
-    (poses, meta) = db.query_named("default_pose_storage",PoseStorage._type)
-    if poses:
-      response.pose_store = poses
+    (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
+    if poseStorage:
+      response.pose_store = poseStorage
+      robotstates = poseStorage.states
     else:
       rospy.logerror("pose storage is not initialized");
 
   if request.type == DatabaseRequest.READ_PROGRAMME:
     (programme, meta) = db.query_named("default_programme", Programme._type)
-
     if programme:
       response.programme_store = programme
-      # store programme in memory
       statements = programme.statements
     else:
       rospy.logerror("programme storage is not initialized");
 
   if request.type == DatabaseRequest.WRITE_POSES:
     db.update_named("default_pose_storage",request.pose_store)
+    robotstates = request.pose_store.states
+
   if request.type == DatabaseRequest.WRITE_PROGRAMME:
     db.update_named("default_programme", request.programme_store)
-
-    # store programme in memory
     statements = request.programme_store.statements
 
   return response;
 
+# return the RobotState (MinibotState.msg) with a given uid
+def getRobotState(uid):
+  global robotstates, db
+  for rs in robotstates:
+    if rs.uid == uid:
+        return rs
+  return None
 
+
+# return the id of the statement with a given uid
 def getStatementIDByUID(uid):
   global statements
-  #print("getStatementIDByUID(" + str(uid) + ")")
   idx = 0;
   for stmt in statements:
-    #print("stmt(: " + str(idx) + ")=" + str(stmt.uid))
     if stmt.uid == uid:
-        #print("-> " + str(idx));
         return idx
     idx = idx + 1
-  #print("-> not found -1");
   return -1
 
 
-def handleSetProgramme(request):
-  global statements
-  statements = request.programme.statements
-  #print ("start handleSetProgramme")
-  #print (statements)
-  #print ("end handleSetProgramme")
-  response = SetProgrammeResponse()
-  response.error_code.val = ErrorCodes.SUCCESS;
-  return response
-
-
+# callback when a statement is activated
 def handlePlanningAction(request):
   global statements, group, robot,display_trajectory_publisher
   #print("handlePlanningAction")
@@ -173,17 +168,28 @@ def handlePlanningAction(request):
     startID = getStatementIDByUID(request.action.startStatementUID)
     endID = getStatementIDByUID(request.action.endStatementUID)
     if startID == -1:
-      rospy.logerr("startStatementUID {0} does not exist".format(request.action.startStatementUID) )
+      rospy.logerr("statement with uid={0} does not exist".format(request.action.startStatementUID) )
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
     if endID == -1:
-      rospy.logerr("endStatementUID {0} does not exist".format(request.action.endStatementUID))
+      rospy.logerr("statement with uid={0} does not exist".format(request.action.endStatementUID))
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
 
-    robotStartState = RobotState()
-    robotStartState.joint_state.header = Header()
-    robotStartState.joint_state.header.stamp = rospy.Time.now()
+    robotState = RobotState()
+    robotState.joint_state.header = Header()
+    robotState.joint_state.header.stamp = rospy.Time.now()
+
+    startRS = getRobotState(statements[startID].pose_uid)
+    endRS = getRobotState(statements[endID].pose_uid)
+    if startRS is None:
+      rospy.logerr("pose with uid {0} does not exist".format(statements[startID].pose_uid))
+      response.error_code.val = ErrorCodes.UNKNOWN_POSE_UID
+      return None
+    if endRS is None:
+      rospy.logerr("pose with uid {0} does not exist".format(statements[endID].pose_uid))
+      response.error_code.val = ErrorCodes.UNKNOWN_POSE_UID
+      return None
 
     # compute waypoints, but leave out the first one, which is the start state
     group.clear_pose_targets()
@@ -192,16 +198,19 @@ def handlePlanningAction(request):
     display_trajectory = moveit_msgs.msg.DisplayTrajectory()
 
     if statements[startID].cartesic_path:
-      robotStartState.joint_state = copy.copy(statements[startID].jointState)
-      group.set_start_state(copy.copy(robotStartState))
-      for idx in range(startID+1, endID+1):
-        waypoints.append(copy.copy(statements[idx].pose))
+      robotState.joint_state = startRS.jointState
+      group.set_start_state(copy.copy(robotState))
+      for idx in range(startID, endID+1):
+        waypointRS = getRobotState(statements[idx].pose_uid)
+        waypoints.append(copy.copy(waypointRS.pose))
       (plan,fraction) = group.compute_cartesian_path(waypoints,0.01,0.0)
     else:
-      for idx in range(startID+1, endID+1):
-        robotStartState.joint_state = copy.copy(statements[idx-1].jointState)
-        group.set_start_state(copy.copy(robotStartState))
-        group.set_pose_target(statements[idx].pose)
+      for idx in range(startID, endID):
+        startRS  = getRobotState(statements[idx].pose_uid)
+        endRS = getRobotState(statements[idx+1].pose_uid)
+        robotState.joint_state = copy.copy(startRS.jointState)
+        group.set_start_state(copy.copy(robotState))
+        group.set_pose_target(copy.copy(endRS.pose))
         plan = group.plan()
         display_trajectory.trajectory.append(plan)
 

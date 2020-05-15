@@ -9,8 +9,6 @@ uint8 type
 
 # Waypoint:
 uint16 pose_uid
-sensor_msgs/JointState jointState
-geometry_msgs/Pose pose
 bool cartesic_path
 bool collision_check
 bool improved_path

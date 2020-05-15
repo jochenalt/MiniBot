@@ -105,8 +105,8 @@ ProgrammePanel.Init = function(options) {
       
       if (statement.type  == StatementType.WayPoint) {
         statementDB.type  = StatementType.WayPoint;
-        statementDB.pose = poseStorePanel.getPoseByUID(statement.poseUID).pose; 
-        statementDB.jointState = poseStorePanel.getJointStateByUID(statement.poseUID); 
+        // statementDB.pose = poseStorePanel.getPoseByUID(statement.poseUID).pose; 
+        // statementDB.jointState = poseStorePanel.getJointStateByUID(statement.poseUID); 
         statementDB.pose_uid = statement.poseUID;
         statementDB.cartesic_path = statement.cartesicPath;
         statementDB.collision_check = statement.collisionCheck;
@@ -826,33 +826,7 @@ ProgrammePanel.Init = function(options) {
   // save  the programm to the server
   var planningAction = function() {
 
-    // build the message
-/*
-    stmtList = [];
-    for (var idx = 0; idx < getProgrammeLength(); idx++) {
-      var item = programmeItems[idx];
-      var stmt = new Object();
-      stmt.comment = item.comment;
-      stmt.uid  = item.uid;
-      stmt.name  = item.name;
-      stmt.type  = item.type;
-      stmt.waitType  = item.waitType;
-      stmt.kitkat = new Object();
-      stmt.kitkat.sec  = Math.floor(item.waitForSeconds);
-      stmt.kitkat.nsec  = (item.waitForSeconds-stmt.kitkat.sec)*1000000000;
-      if (item.type  == StatementType.WayPoint) {
-        stmt.pose = poseStorePanel.getPoseByUID(item.poseUID).pose; 
-        stmt.jointState = poseStorePanel.getJointStateByUID(item.poseUID); 
-        stmt.cartesic_path = item.cartesicPath;
-        stmt.collision_check = item.collisionCheck;
-        stmt.improved_path = item.improvedPath;
-      }
-      stmtList[stmtList.length] = stmt;
-    }
-    programme = new Object();
-    programme.statements = stmtList;
-  */
-
+   
     // check if we clean a plan or compute a plan
     // in case of the latter, startUID and endUID are set
     var startID  = getActiveId();
