@@ -1,7 +1,6 @@
 <launch>
   <!-- By default, we are not in debug mode -->
   <arg name="debug" default="false" />
-  <arg name="pipeline" default="ompl" />f
 
   <!-- the webpage server node  -->
   <node pkg="minibot" type="core.py" name="core" output="screen"/>
