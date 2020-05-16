@@ -17,7 +17,5 @@ controller_list:
 initial:
   - group: minibot_arm
     pose: relaxed
-  - group: palm
-    pose: gripping
-  - group: hand
-    pose: open
+  - group: minibot_gripper
+    pose: egggrip

@@ -149,7 +149,7 @@ minibot_arm:
     - SPARSkConfigDefault
     - SPARStwokConfigDefault
     - TrajOptDefault
-minibot_palm:
+minibot_gripper:
   planner_configs:
     - SBLkConfigDefault
     - ESTkConfigDefault
@@ -173,7 +173,7 @@ minibot_palm:
     - SPARSkConfigDefault
     - SPARStwokConfigDefault
     - TrajOptDefault
-minibot_hand:
+minibot:
   planner_configs:
     - SBLkConfigDefault
     - ESTkConfigDefault
@@ -191,8 +191,6 @@ minibot_hand:
     - PDSTkConfigDefault
     - STRIDEkConfigDefault
     - BiTRRTkConfigDefault
-    - LBTRRTkConfigDefault
-    - BiESTkConfigDefault
     - ProjESTkConfigDefault
     - LazyPRMkConfigDefault
     - LazyPRMstarkConfigDefault

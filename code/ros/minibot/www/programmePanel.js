@@ -65,9 +65,9 @@ ProgrammePanel.Init = function(options) {
             if (statementDB.type  == StatementType.WayPoint) {
               stmt.type  = StatementType.WayPoint;
               stmt.poseUID = statementDB.pose_uid;
-              stmt.cartesic_path = statementDB.cartesicPath;
-              stmt.collision_check = statementDB.collisionCheck;
-              stmt.improved_path = statementDB.improvedPath;
+              stmt.cartesicPath = statementDB.cartesic_path;
+              stmt.collisionCheck = statementDB.collision_check;
+              stmt.improvedPath = statementDB.improved_path;
             }
             if (statementDB.type  == StatementType.Wait) {
               stmt.type  = StatementType.Wait;
@@ -462,7 +462,6 @@ ProgrammePanel.Init = function(options) {
           programmeItems[idx].widget.classList.remove('active');
         }
       }
-
 
       // display the trajectory to the next Item
       if (programmeItems[id].type == StatementType.WayPoint)

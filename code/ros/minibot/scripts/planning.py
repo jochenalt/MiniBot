@@ -36,14 +36,16 @@ from minibot.srv import Database, DatabaseRequest, DatabaseResponse
 statements = []   # memory cache of all programme statements
 robotstates = []  # memory cache of all poses
 
-group = None      # MoveGroupCommander Object
+groupArm = None       # group of all arm links
+groupGripper = None   # group of all gripper links
+
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
 plan  = None      # latest plan
 db = None         # MessageStoreProxy
 
 def init():
-  global group,robot,plan,\
+  global groupArm,groupGripper, robot,plan,\
          display_trajectory_publisher, scene, db, \
          msgErrorPub,msgInfoPub, msgWarnPub
 
@@ -57,7 +59,8 @@ def init():
   robot = moveit_commander.RobotCommander()
 
   # MoveGroupCommander is the interface to one group of joints.  
-  group = moveit_commander.MoveGroupCommander(Constants.KINEMATICS_GROUP)
+  groupArm = moveit_commander.MoveGroupCommander(Constants.ARM_GROUP)
+  #groupGripper = moveit_commander.MoveGroupCommander(Constants.GRIPPER_GROUP)
 
   # instantiate a planning scene
   scene = moveit_commander.PlanningSceneInterface()
@@ -69,10 +72,10 @@ def init():
 
 
   # clear any existing plans (if moveit is still running from a previous session)
-  group.clear_pose_targets()
-  group.set_start_state_to_current_state()
-  group.set_pose_target(group.get_current_pose().pose)
-  plan = group.plan()
+  groupArm.clear_pose_targets()
+  groupArm.set_start_state_to_current_state()
+  groupArm.set_pose_target(groupArm.get_current_pose().pose)
+  plan = groupArm.plan()
 
   # errors and messages
   msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
@@ -107,7 +110,7 @@ def initDatabase ():
  
 
 def handleDatabaseAction (request):
-  global statement, robotstates, db
+  global statements, robotstates, db
   response = DatabaseResponse()
   response.error_code.val = ErrorCodes.SUCCESS
 
@@ -159,8 +162,7 @@ def getStatementIDByUID(uid):
 
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, group, robot,display_trajectory_publisher, plan
-  #print("handlePlanningAction")
+  global statements, groupArm, robot,display_trajectory_publisher, plan
 
   # think positive
   response = PlanningActionResponse()
@@ -195,27 +197,28 @@ def handlePlanningAction(request):
       return None
 
     # compute waypoints, but leave out the first one, which is the start state
-    group.clear_pose_targets()
+    groupArm.clear_pose_targets()
     waypoints = []
 
     display_trajectory = moveit_msgs.msg.DisplayTrajectory()
 
     if statements[startID].cartesic_path:
       robotState.joint_state = startRS.jointState
-      group.set_start_state(copy.copy(robotState))
+      groupArm.set_start_state(copy.copy(robotState))
       for idx in range(startID, endID+1):
         waypointRS = getRobotState(statements[idx].pose_uid)
         waypoints.append(copy.copy(waypointRS.pose))
-      (plan,fraction) = group.compute_cartesian_path(waypoints,0.01,0.0)
-      # visualization is done by compute_cartesian_path
+      (plan,fraction) = groupArm.compute_cartesian_path(waypoints,0.01,0.0)
+      if fraction < 1.0:
+        rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
     else:
       for idx in range(startID, endID):
         startRS  = getRobotState(statements[idx].pose_uid)
         endRS = getRobotState(statements[idx+1].pose_uid)
         robotState.joint_state = copy.copy(startRS.jointState)
-        group.set_start_state(copy.copy(robotState))
-        group.set_pose_target(copy.copy(endRS.pose))
-        plan = group.plan()
+        groupArm.set_start_state(copy.copy(robotState))
+        groupArm.set_pose_target(copy.copy(endRS.pose))
+        plan = groupArm.plan()
         display_trajectory.trajectory.append(plan)
 
       ## visualization is done by plan/compute cartesian path
@@ -224,13 +227,13 @@ def handlePlanningAction(request):
   if request.action.type == Action.CLEAR_PLAN:
     # dont know how to delete a plan and remove the displayed trajectory!?
     # so set start and end point to current position
-    group.clear_pose_targets()
-    group.set_start_state_to_current_state()
-    group.set_pose_target(group.get_current_pose().pose)
-    plan = group.plan()
+    groupArm.clear_pose_targets()
+    groupArm.set_start_state_to_current_state()
+    groupArm.set_pose_target(groupArm.get_current_pose().pose)
+    plan = groupArm.plan()
 
   if request.action.type == Action.SIMULATE_PLAN:
-    group.execute(plan, wait=True)
+    groupArm.execute(plan, wait=True)
 
   return response
 
