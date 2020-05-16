@@ -112,7 +112,7 @@ PoseStorePanel.Init = function(options) {
     databaseAction.callService(request, 
       function(result) {
         if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
-             displayInfo("stored in database");
+             displayInfo("saved");
         }
         else {
           displayErr("storing in database failed "+ result.error_code.val);
@@ -366,6 +366,14 @@ PoseStorePanel.Init = function(options) {
     var id = getActiveId();
     if (id != null) {
       var li = getPoseItem(id).widget;
+      // check if this pose is not used in a programme
+      var statementID = programmePanel.getStatementIDByPoseUID(poseItems[id].uid);
+      if (statementID != null && statementID>=0) {
+        programmePanel.activateStatement(statementID);
+        displayErr("pose is used, delete the statement first");
+        return;
+      }
+
 
       // if editmode is on, stop it
       cancelEditMode();

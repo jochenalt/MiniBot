@@ -143,7 +143,7 @@ ProgrammePanel.Init = function(options) {
     databaseAction.callService(request, 
       function(result) {
         if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
-             displayInfo("stored in database");
+             displayInfo("saved");
         }
         else {
           displayErr("storing in database failed "+ result.error_code.val);
@@ -244,6 +244,16 @@ ProgrammePanel.Init = function(options) {
     var result = 0;
     for (var idx = 0; idx < getProgrammeLength(); idx++) {
       if (programmeItems[idx].uid == uid)
+        return idx;
+    }
+    return -1;
+  }
+
+  // returns the id of the statement that refers to a given pose ID  
+  var getStatementIDByPoseUID = function(uid) {
+    var result = 0;
+    for (var idx = 0; idx < getProgrammeLength(); idx++) {
+      if (programmeItems[idx].poseUID == uid)
         return idx;
     }
     return -1;
@@ -928,6 +938,9 @@ ProgrammePanel.Init = function(options) {
     rename: rename,
     up: up,
     down: down,
+
+    getStatementIDByPoseUID : getStatementIDByPoseUID,
+    activateStatement :activateStatement,
 
     setCartesicPath: setCartesicPath,
     setCollisionCheck: setCollisionCheck,
