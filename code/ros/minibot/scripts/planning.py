@@ -204,6 +204,7 @@ def handlePlanningAction(request):
         waypointRS = getRobotState(statements[idx].pose_uid)
         waypoints.append(copy.copy(waypointRS.pose))
       (plan,fraction) = group.compute_cartesian_path(waypoints,0.01,0.0)
+      # visualization is done by compute_cartesian_path
     else:
       for idx in range(startID, endID):
         startRS  = getRobotState(statements[idx].pose_uid)
@@ -213,9 +214,6 @@ def handlePlanningAction(request):
         group.set_pose_target(copy.copy(endRS.pose))
         plan = group.plan()
         display_trajectory.trajectory.append(plan)
-
-      ## visualization is done by plan/compute cartesian path
-      display_trajectory_publisher.publish(display_trajectory);
 
       ## visualization is done by plan/compute cartesian path
       display_trajectory_publisher.publish(display_trajectory);
