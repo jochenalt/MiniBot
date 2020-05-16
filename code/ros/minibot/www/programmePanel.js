@@ -550,9 +550,10 @@ ProgrammePanel.Init = function(options) {
       // create new element without a name yet
       var statement = createWaypoint('', poseUID, false, false, false);
       var id = getStatementIDByUID(statement.uid);
-      // scroll to new element and activate it
+
+      // scroll to new element, dont activate it yet, the new element needs to be stored in the database first
+      // and we cannot start the planning yet
       statement.widget.scrollIntoView();
-      activateStatement(id);
 
       // immediately store in database
       storeInDatabase();
