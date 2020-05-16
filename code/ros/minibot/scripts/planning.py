@@ -219,7 +219,7 @@ def handlePlanningAction(request):
         display_trajectory.trajectory.append(plan)
 
       ## visualization is done by plan/compute cartesian path
-      display_trajectory_publisher.publish(display_trajectory);
+    display_trajectory_publisher.publish(display_trajectory);
 
   if request.action.type == Action.CLEAR_PLAN:
     # dont know how to delete a plan and remove the displayed trajectory!?

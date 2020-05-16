@@ -460,11 +460,14 @@ ProgrammePanel.Init = function(options) {
           updateWidget(idx);
         } else {
           programmeItems[idx].widget.classList.remove('active');
-
-          // display the trajectory to the next Item
-          planningAction();
         }
       }
+
+
+      // display the trajectory to the next Item
+      if (programmeItems[id].type == StatementType.WayPoint)
+        planningAction();
+
     }
   }
 
