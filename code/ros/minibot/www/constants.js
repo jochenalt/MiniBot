@@ -48,8 +48,8 @@ Constants.Planning = {
 		KINEMATICS_GROUP : 'minibot_arm',  	// group of links as defined in SRDF defining the arm without the endeffector
 		FIXED_FRAME : 'base_link', 			// first link 
 		ACTION_PLAN_PATH : 3,				// plan and display the path		
-		ACTION_CLEAR_PLAN : 4				// clear the last plan		
-
+		ACTION_CLEAR_PLAN : 4,				// clear the last plan		
+		ACTION_SIMULATE_PLAN : 5			// simulate the last plan
 };
 
 Constants.Database = {

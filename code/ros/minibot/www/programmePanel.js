@@ -834,23 +834,12 @@ ProgrammePanel.Init = function(options) {
       displayErr("select a pose first");
   }
 
-  // save  the programm to the server
-  var planningAction = function() {
-
-   
-    // check if we clean a plan or compute a plan
-    // in case of the latter, startUID and endUID are set
-    var startID  = getActiveId();
-    var startUID = null;
-    var endUID = null;
-    var action = new ROSLIB.Message({
-      type: Constants.Planning.ACTION_CLEAR_PLAN,
-    });
-
-    if ((startID != null) && (startID >= 0) && (programmeItems[startID].type == StatementType.WayPoint)) {
-      // look for all next waypoints until we reach a different statement type
+  // return the id of the last continuous waypoint starting from the active statement
+  var getNumberOfWaypoints = function() {
+    var id  = getActiveId();
+    if (id != null && id >= 0 && programmeItems[id].type == StatementType.WayPoint) {
       var endID = -1;
-      for (var idx = startID+1;idx < programmeItems.length;idx++) {
+      for (var idx = id+1;idx < programmeItems.length;idx++) {
         if (programmeItems[idx].type == StatementType.WayPoint) {
           endID = idx;
         }
@@ -858,16 +847,38 @@ ProgrammePanel.Init = function(options) {
           break;
       }
       if (endID >= 0) {
-        action = new ROSLIB.Message({
+        return endID;
+      }     
+    }
+    return -1;
+  }
+
+  // save  the programm to the server
+  var planningAction = function() {
+    // anything active?
+    var startID  = getActiveId();
+    if (startID == null || startID < 0 || programmeItems[startID].type != StatementType.WayPoint) {
+      displayErr("select a statement first");
+      return;
+    }
+
+    var endID = getNumberOfWaypoints();
+    var action = null;
+    if (endID == null || endID< 0) {
+      // only one waypoint, clear the plan
+      action = new ROSLIB.Message({
+        type: Constants.Planning.ACTION_CLEAR_PLAN,
+      });
+    } else {
+      // multiple waypoints, make  a plan
+      action = new ROSLIB.Message({
           type: Constants.Planning.ACTION_PLAN_PATH,
           startStatementUID :programmeItems[startID].uid,
           endStatementUID : programmeItems[endID].uid
         });
-      }
     }
-    
+
     var request = new ROSLIB.ServiceRequest({
-     // programme: programme,
       action: action
     });
 
@@ -893,6 +904,51 @@ ProgrammePanel.Init = function(options) {
   }
 
 
+  var simulatePlan = function() {
+    var startID  = getActiveId();
+    if (startID == null || startID < 0 || programmeItems[startID].type != StatementType.WayPoint) {
+      displayErr("select a statement first");
+      return;
+    }
+
+    var endID = getNumberOfWaypoints();
+    if (endID == null || endID< 0) {
+      displayErr("select a waypoint sequence first");
+      return;
+    }
+
+    // activate the pose of that statement as starting point
+    poseStorePanel.setPoseByUID(programmeItems[startID].poseUID);
+
+    var request = new ROSLIB.ServiceRequest({
+      action: {
+          type: Constants.Planning.ACTION_SIMULATE_PLAN,
+          startStatementUID :programmeItems[startID].uid,
+          endStatementUID : programmeItems[endID].uid
+      }
+    });
+
+    var planningAction = new ROSLIB.Service({
+          ros : ros,
+          name : '/planning_action',
+          serviceType : 'minibot/PlanningAction'
+    });
+
+    planningAction.callService(request, 
+      function(response) {     
+        var id = getActiveId();
+        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS) 
+          programmeItems[id].error_code = response.error_code.val;
+        else {
+          programmeItems[id].error_code = response.error_code.val;
+        }
+      }, 
+      function (response) {
+          var id = getActiveId();
+          programmeItems[id].error_code = ErrorCode.PLANNING.FAILURE;
+      });
+  }
+
   var forward = function(event) {
   }
 
@@ -900,7 +956,7 @@ ProgrammePanel.Init = function(options) {
   }
 
   var run = function(event) {
-    
+      simulatePlan();
   }
 
   function displayAlert(text, headlinewidget, widget) {

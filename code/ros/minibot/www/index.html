@@ -163,19 +163,18 @@
             var innerBorder= document.getElementById("RobotView").offsetHeight;
             var spacer = (outerBorder-innerBorder)/2;
 
+            // resize the pose list
+            var hList = document.getElementById("posePanel").offsetHeight - document.getElementById("poseButtonPanel").offsetHeight - spacer*28;
+            document.getElementById("poseListGroup").style.height = hList.toString() +"px";
 
-                // resize robot view
-                var w = document.getElementById("RobotView").offsetWidth;
-                var h = document.getElementById("RobotView").offsetHeight
-                // botUrdfView.resize(w-spacer, h-spacer); // leave some space for the border of the container
+            // resize the programme list
+            var hList = document.getElementById("planningPanel").offsetHeight - document.getElementById("programmButtonPanel").offsetHeight - spacer*24;
+            document.getElementById("statementListGroup").style.height = hList.toString() +"px";   
 
-                // resize the pose list
-                var hList = document.getElementById("posePanel").offsetHeight - document.getElementById("poseButtonPanel").offsetHeight - spacer*28;
-                document.getElementById("poseListGroup").style.height = hList.toString() +"px";
-
-                // resize the programme list
-                var hList = document.getElementById("planningPanel").offsetHeight - document.getElementById("programmButtonPanel").offsetHeight - spacer*24;
-                document.getElementById("statementListGroup").style.height = hList.toString() +"px";   
+            // resize robot view
+            var w = document.getElementById("RobotView").offsetWidth;
+            var h = document.getElementById("RobotView").offsetHeight
+            // botUrdfView.resize(w, h); // leave some space for the border of the container
         };
 
         function unitChange() {

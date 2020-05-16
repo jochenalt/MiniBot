@@ -226,9 +226,9 @@ def makeTrajectoryMarker( msgPoseArray ):
     # add the sphere list
     marker = Marker()
     marker.type = Marker.SPHERE_LIST
-    marker.scale.x = 0.01
-    marker.scale.y = 0.01
-    marker.scale.z = 0.01
+    marker.scale.x = 0.005
+    marker.scale.y = 0.005
+    marker.scale.z = 0.005
     marker.color.r = 1.0
     marker.color.g = 0.2
     marker.color.b = 0.0

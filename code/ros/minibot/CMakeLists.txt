@@ -63,7 +63,6 @@ add_message_files(
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  SetProgramme.srv
   Database.srv
   PlanningAction.srv
 )

@@ -39,10 +39,13 @@ robotstates = []  # memory cache of all poses
 group = None      # MoveGroupCommander Object
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
+plan  = None      # latest plan
 db = None         # MessageStoreProxy
 
 def init():
-  global group,robot,display_trajectory_publisher, scene, db, msgErrorPub,msgInfoPub, msgWarnPub
+  global group,robot,plan,\
+         display_trajectory_publisher, scene, db, \
+         msgErrorPub,msgInfoPub, msgWarnPub
 
   #  initialize moveit pyhton interface, needs to happenn before .init_node
   moveit_commander.roscpp_initialize(sys.argv)
@@ -156,7 +159,7 @@ def getStatementIDByUID(uid):
 
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, group, robot,display_trajectory_publisher
+  global statements, group, robot,display_trajectory_publisher, plan
   #print("handlePlanningAction")
 
   # think positive
@@ -218,13 +221,16 @@ def handlePlanningAction(request):
       ## visualization is done by plan/compute cartesian path
       display_trajectory_publisher.publish(display_trajectory);
 
-  if request.action.type == Action.CLEAR_PATH:
+  if request.action.type == Action.CLEAR_PLAN:
     # dont know how to delete a plan and remove the displayed trajectory!?
     # so set start and end point to current position
     group.clear_pose_targets()
     group.set_start_state_to_current_state()
     group.set_pose_target(group.get_current_pose().pose)
     plan = group.plan()
+
+  if request.action.type == Action.SIMULATE_PLAN:
+    group.execute(plan, wait=True)
 
   return response
 
