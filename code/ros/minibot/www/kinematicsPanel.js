@@ -9,10 +9,9 @@ KinematicsPanel.Init = function(options) {
   options = options || {};
   var ros = options.ros;
   var paramName                   = 'robot_description';
-  var readTopicName               = '/joint_states'; 
-  var jointInputTopicName         = '/joint_states/input/update'
-  var receiveJointStateTopicName  = '/joint_states/update'
-  var receiveTcpTopicName         = '/tcp/update'
+  var readTopicName               = '/joint_states';                              // 20Hz topic that gives the current state of the joints, publish constantly
+  var jointInputTopicName         = '/move_group/fake_controller_joint_states'    // topic that gives changes of the joint values, published only when a change occurs
+  var receiveTcpTopicName         = '/tcp/update'                                 // topic to receive the tcp out joint states (coming from core.py)
   var tcpInputTopicName           = '/tcp/input/update'
   
   var sliders = [];
@@ -149,7 +148,7 @@ KinematicsPanel.Init = function(options) {
 
     var listenToJointState  = new ROSLIB.Topic({
       ros : ros,
-      name : receiveJointStateTopicName,
+      name : jointInputTopicName,
       messageType : 'sensor_msgs/JointState'
     });
 

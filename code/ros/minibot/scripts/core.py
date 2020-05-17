@@ -5,8 +5,10 @@ import rospy
 import sys
 import copy
 import rospy
+import timeit, time
+import thread
 
-
+from thread import start_new_thread
 
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseStamped
@@ -98,15 +100,14 @@ def tcpInputCallback(tcpPoseStamped):
 def jointStatesInputCallback(msgJointState):
     tcpPose = computeFK(msgJointState)
     if tcpPose != None:
-        jointPositionPub.publish(msgJointState)
         tcpPub.publish(tcpPose)
 
 # callback for joint changes coming from movegroup planning
 # invoke and post forward kinematics
 def moveGroupJointStatesInputCallback(msgJointState):
+    jointPositionPub.publish(msgJointState)
     tcpPose = computeFK(msgJointState)
     if tcpPose != None:
-        jointPositionPub.publish(msgJointState)
         tcpPub.publish(tcpPose)
 
 
@@ -184,12 +185,8 @@ def computeFK (msgJointState):
         header.frame_id = 'base_link'
         request.header = header
 
-        rospy.logdebug ("computeFK request:")
-        rospy.logdebug(request)
         # do the call to /compute_fk
         response = service(request)
-        rospy.logdebug("computeFK response:")
-        rospy.logdebug(response)
         if response.error_code.val == MoveItErrorCodes.SUCCESS:
             return response.pose_stamped[-1]
         else:
@@ -214,8 +211,8 @@ def computeIK (msgTcpPose):
     robotState.joint_state.position = copy.copy(jointStates[0:tcpIndex-1])
     request.ik_request.robot_state  = robotState
 
-    rospy.logdebug ("computeIK:")
-    rospy.logdebug ("jointNames:%s", jointNames[0:tcpIndex])
+    #rospy.logdebug ("computeIK:")
+    #rospy.logdebug ("jointNames:%s", jointNames[0:tcpIndex])
 
     # goal end pose
     pose_stamped = PoseStamped()
@@ -252,14 +249,14 @@ if __name__=="__main__":
     # listen to tcp input coming from various sources (webpage/gearwheel, webpage/tcp/sliders, webpage/joint/sliders)
     rospy.Subscriber('/tcp/gearwheel/update', PoseStamped, tcpGearwheelCallback, queue_size=1);
     rospy.Subscriber('/tcp/input/update', PoseStamped, tcpInputCallback, queue_size=1);
-    rospy.Subscriber('/joint_states/input/update', JointState, jointStatesInputCallback, queue_size=1);
+    rospy.Subscriber('/move_group/fake_controller_joint_states', JointState, jointStatesInputCallback, queue_size=1);
 
     # input from moveit planning comes in via this controller
-    rospy.Subscriber('/move_group/fake_controller_joint_states', JointState, moveGroupJointStatesInputCallback, queue_size=1);
+    #rospy.Subscriber('/move_group/fake_controller_joint_states', JointState, moveGroupJointStatesInputCallback, queue_size=1);
 
     # with any input, post updated joints and tcp  
-    jointPositionPub = rospy.Publisher('/joint_states/update',JointState, queue_size=1)
-    tcpPub  = rospy.Publisher('/tcp/update',PoseStamped, queue_size=1)
+    jointPositionPub = rospy.Publisher('/move_group/fake_controller_joint_states',JointState, queue_size=10)
+    tcpPub  = rospy.Publisher('/tcp/update',PoseStamped, queue_size=10)
 
     # errors and messages
     msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
@@ -267,8 +264,8 @@ if __name__=="__main__":
     msgWarnPub  = rospy.Publisher('/messages/warn',String, queue_size=1)
 
     # listen to trajectory poses
-    plannedTCPPath = rospy.Publisher('/move_group/display_planned_path/tcp', PoseArray, queue_size=100); # 10 seconds contingency,path planning happens in steps of 0.1s 
-    rospy.Subscriber('/move_group/display_planned_path', DisplayTrajectory, plannedPathCallback);
+    plannedTCPPath = rospy.Publisher('/move_group/display_planned_path/tcp', PoseArray, queue_size=10); # 10 seconds contingency,path planning happens in steps of 0.1s 
+    rospy.Subscriber('/move_group/display_planned_path', DisplayTrajectory, plannedPathCallback, queue_size=1);
 
     # and go
     rospy.spin()

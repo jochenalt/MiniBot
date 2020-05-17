@@ -29,13 +29,15 @@
     </group>
     <group name="minibot_gripper">
       <link name="knuckle_link" />
-      <link name="knuckle_left_link" />
-      <link name="knuckle_right_link" />
+      <!-- <link name="knuckle_left_link" />-->
+      <!--<link name="knuckle_right_link" />-->
       <link name="finger_link" />
-      <link name="finger_centre_link" />
+      <!--<link name="finger_centre_link" />
       <link name="finger_left_link" />
       <link name="finger_right_link" />
+    -->
     </group>
+    <end_effector name="gripper" group="minibot_gripper" parent_link="flange_link" parent_group="minibot_arm"/>
     <group name="minibot">
       <link name="base_link" />
       <link name="shoulder_link" />
@@ -45,13 +47,13 @@
       <link name="wrist_link" />
       <link name="flange_link" />
       <link name="tool0_link" />
-      <link name="knuckle_link" />
-      <link name="knuckle_left_link" />
-      <link name="knuckle_right_link" />
+      <link  name="knuckle_link" />
+      <!-- <link name="knuckle_left_link" />-->
+      <!--<link name="knuckle_right_link" />-->
       <link name="finger_link" />
-      <link name="finger_centre_link" />
-      <link name="finger_left_link" />
-      <link name="finger_right_link" />
+      <!--<link name="finger_centre_link" />-->
+      <!--<link name="finger_left_link" />-->
+      <!--<link name="finger_right_link" />-->
     </group>
 
 
@@ -84,43 +86,23 @@
 
     <group_state name="pinching" group="minibot_gripper">
       <joint name="knuckle_joint" value="0" />
-      <joint name="palm_left_joint" value="0" />
-      <joint name="palm_right_joint" value="0" />
       <joint name="finger_joint" value="0" />
-      <joint name="finger_centre_joint" value="0" />
-      <joint name="finger_left_joint" value="0" />
     </group_state>
     <group_state name="seamonster" group="minibot_gripper">
       <joint name="knuckle_joint" value="0" />
-      <joint name="palm_left_joint" value="0" />
-      <joint name="palm_right_joint" value="0" />
       <joint name="finger_joint" value="0" />
-      <joint name="finger_right_joint" value="0" />
-      <joint name="finger_left_joint" value="0" />
     </group_state>
     <group_state name="snake" group="minibot_gripper">
       <joint name="knuckle_joint" value="0" />
-      <joint name="palm_left_joint" value="0" />
-      <joint name="palm_right_joint" value="0" />
       <joint name="finger_joint" value="0" />
-      <joint name="finger_right_joint" value="0" />
-      <joint name="finger_left_joint" value="0" />
     </group_state>
     <group_state name="egggrip" group="minibot_gripper">
       <joint name="knuckle_joint" value="0" />
-      <joint name="palm_left_joint" value="0" />
-      <joint name="palm_right_joint" value="0" />
       <joint name="finger_joint" value="0" />
-      <joint name="finger_right_joint" value="0" />
-      <joint name="finger_left_joint" value="0" />
     </group_state>
     <group_state name="gripping" group="minibot_gripper">
       <joint name="knuckle_joint" value="0" />
-      <joint name="palm_left_joint" value="0" />
-      <joint name="palm_right_joint" value="0" />
       <joint name="finger_joint" value="0" />
-      <joint name="finger_right_joint" value="0" />
-      <joint name="finger_left_joint" value="0" />
     </group_state>
 
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->

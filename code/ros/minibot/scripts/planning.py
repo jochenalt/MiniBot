@@ -58,7 +58,8 @@ def init():
   robot = moveit_commander.RobotCommander()
 
   # MoveGroupCommander is the interface to one group of joints.  
-  groupArm = moveit_commander.MoveGroupCommander(Constants.ARM_GROUP)
+  groupArm = moveit_commander.MoveGroupCommander(Constants.MINIBOT_GROUP)
+  #groupArm.set_end_effector_link("flange_link")
   #groupGripper = moveit_commander.MoveGroupCommander(Constants.GRIPPER_GROUP)
 
   # instantiate a planning scene
@@ -71,10 +72,10 @@ def init():
 
 
   # clear any existing plans (if moveit is still running from a previous session)
-  groupArm.clear_pose_targets()
-  groupArm.set_start_state_to_current_state()
-  groupArm.set_pose_target(groupArm.get_current_pose().pose)
-  plan = groupArm.plan()
+  #groupArm.clear_pose_targets()
+  #groupArm.set_start_state_to_current_state()
+  #groupArm.set_pose_target(groupArm.get_current_pose().pose)
+  #plan = groupArm.plan()
 
   # errors and messages
   msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
@@ -186,6 +187,7 @@ def handlePlanningAction(request):
 
     startRS = getRobotState(statements[startID].pose_uid)
     endRS = getRobotState(statements[endID].pose_uid)
+
     if startRS is None:
       rospy.logerr("pose with uid {0} does not exist".format(statements[startID].pose_uid))
       response.error_code.val = ErrorCodes.UNKNOWN_POSE_UID
@@ -216,7 +218,7 @@ def handlePlanningAction(request):
         endRS = getRobotState(statements[idx+1].pose_uid)
         robotState.joint_state = copy.copy(startRS.jointState)
         groupArm.set_start_state(copy.copy(robotState))
-        groupArm.set_pose_target(copy.copy(endRS.pose))
+        groupArm.set_joint_value_target(copy.copy(endRS.jointState))
         plan = groupArm.plan()
         display_trajectory.trajectory.append(plan)
 

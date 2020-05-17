@@ -5,7 +5,7 @@
   <arg name="pipeline" default="ompl" />f
 
   <!-- start the database server -->
-  <node  name="mongodb_server" pkg="mongodb_store" type="mongodb_server.py" output="screen"/>
+  <!-- <node  name="mongodb_server" pkg="mongodb_store" type="mongodb_server.py" output="screen"/> -->
 
   <!-- start a node providing services to access the database -->
   <node  name="mongodb_service" pkg="mongodb_store" type="message_store_node.py" output="screen"/>
@@ -21,16 +21,12 @@
     <rosparam param="rate">10</rosparam>
   </node>
 
-
   <!-- We do not have a robot connected, so take the desired joint states
        coming from web page and publish in /joint_states -->
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-    <rosparam param="/source_list">[/joint_states/update]</rosparam>
-    <rosparam param="rate">10</rosparam>
+    <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
+    <rosparam param="rate">20</rosparam>
   </node>
-
-  <!-- forward joint states to joint_states_desired ensure backward compatibility -->
-  <!-- <node name="joint_state_desired_publisher" pkg="topic_tools" type="relay" args="joint_states joint_states_desired" /> -->
 
   <!-- Run the main MoveIt executable without trajectory execution
        (we do not have controllers configured by default) -->
@@ -51,7 +47,6 @@
 
   <!-- provide websocket procotol to let the server communicate with the browsser-->
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
-      <arg name="use_compression" value="true"/>
   </include>
 
 </launch>
