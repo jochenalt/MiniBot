@@ -28,7 +28,6 @@ from minibot.msg import ErrorCodes
 from minibot.msg import Action
 from minibot.msg import MinibotState
 from minibot.msg import PoseStorage
-from minibot.srv import SetProgramme, SetProgrammeRequest, SetProgrammeResponse
 from minibot.srv import PlanningAction, PlanningActionRequest, PlanningActionResponse
 from minibot.srv import Database, DatabaseRequest, DatabaseResponse
 
@@ -240,10 +239,7 @@ def handlePlanningAction(request):
 
 if __name__=='__main__':
   try:
-
-
     init()
-
 
     rospy.spin()
   except rospy.ROSInterruptException:
