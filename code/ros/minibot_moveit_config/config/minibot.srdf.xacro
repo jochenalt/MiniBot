@@ -29,13 +29,7 @@
     </group>
     <group name="minibot_gripper">
       <link name="knuckle_link" />
-      <!-- <link name="knuckle_left_link" />-->
-      <!--<link name="knuckle_right_link" />-->
       <link name="finger_link" />
-      <!--<link name="finger_centre_link" />
-      <link name="finger_left_link" />
-      <link name="finger_right_link" />
-    -->
     </group>
     <end_effector name="gripper" group="minibot_gripper" parent_link="flange_link" parent_group="minibot_arm"/>
     <group name="minibot">
@@ -48,12 +42,7 @@
       <link name="flange_link" />
       <link name="tool0_link" />
       <link  name="knuckle_link" />
-      <!-- <link name="knuckle_left_link" />-->
-      <!--<link name="knuckle_right_link" />-->
       <link name="finger_link" />
-      <!--<link name="finger_centre_link" />-->
-      <!--<link name="finger_left_link" />-->
-      <!--<link name="finger_right_link" />-->
     </group>
 
 

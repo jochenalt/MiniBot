@@ -72,10 +72,10 @@ def init():
 
 
   # clear any existing plans (if moveit is still running from a previous session)
-  #groupArm.clear_pose_targets()
-  #groupArm.set_start_state_to_current_state()
-  #groupArm.set_pose_target(groupArm.get_current_pose().pose)
-  #plan = groupArm.plan()
+  groupArm.clear_pose_targets()
+  groupArm.set_start_state_to_current_state()
+  groupArm.set_joint_value_target(groupArm.get_current_joint_values())
+  plan = groupArm.plan()
 
   # errors and messages
   msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
@@ -209,7 +209,8 @@ def handlePlanningAction(request):
       for idx in range(startID, endID+1):
         waypointRS = getRobotState(statements[idx].pose_uid)
         waypoints.append(copy.copy(waypointRS.pose))
-      (plan,fraction) = groupArm.compute_cartesian_path(waypoints,0.01,0.0)
+
+      (plan,fraction) = groupArm.compute_cartesian_path(waypoints,0.01,0)
       if fraction < 1.0:
         rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
     else:
@@ -218,7 +219,9 @@ def handlePlanningAction(request):
         endRS = getRobotState(statements[idx+1].pose_uid)
         robotState.joint_state = copy.copy(startRS.jointState)
         groupArm.set_start_state(copy.copy(robotState))
+        #groupArm.set_pose_target(copy.copy(endRS.pose), "tool0_link")
         groupArm.set_joint_value_target(copy.copy(endRS.jointState))
+
         plan = groupArm.plan()
         display_trajectory.trajectory.append(plan)
 
@@ -230,7 +233,7 @@ def handlePlanningAction(request):
     # so set start and end point to current position
     groupArm.clear_pose_targets()
     groupArm.set_start_state_to_current_state()
-    groupArm.set_pose_target(groupArm.get_current_pose().pose)
+    groupArm.set_joint_value_target(groupArm.get_current_joint_values())
     plan = groupArm.plan()
 
   if request.action.type == Action.SIMULATE_PLAN:

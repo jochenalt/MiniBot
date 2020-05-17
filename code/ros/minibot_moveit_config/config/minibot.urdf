@@ -242,7 +242,7 @@
     <parent link="flange_link"/>
     <child link="finger_link"/>
     <axis xyz="0 1 0"/>
-    <limit effort="5.0" lower="-0.174532925199" upper="1.0471975512" velocity="3.14159265359"/>
+    <limit effort="50.0" lower="-0.174532925199" upper="1.0471975512" velocity="31.4159265359"/>
   </joint>
   <link name="finger_link">
   </link>

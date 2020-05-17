@@ -297,7 +297,7 @@
      <parent link="flange_link"/>
      <child link="finger_link"/> 
      <axis xyz="0 1 0" />
-     <limit effort="5.0" lower="${-10/180*pi}" upper="${60/180*pi}" velocity="${180/180*pi}" />
+     <limit effort="50.0" lower="${-10/180*pi}" upper="${60/180*pi}" velocity="${1800/180*pi}" />
   </joint>
 
   <link name="finger_link">
