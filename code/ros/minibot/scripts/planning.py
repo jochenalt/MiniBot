@@ -5,6 +5,7 @@ import sys
 import copy
 import rospy
 import array
+import timeit
 
 # import mongodb
 import mongodb_store_msgs.srv as db_srv
@@ -41,7 +42,7 @@ groupGripper = None   # group of all gripper links
 
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
-plans  = []       # latest plan
+plan  = []       # latest plan
 
 def init():
   global groupArm,groupGripper, robot,plans,\
@@ -75,8 +76,7 @@ def init():
   groupArm.clear_pose_targets()
   groupArm.set_start_state_to_current_state()
   groupArm.set_joint_value_target(groupArm.get_current_joint_values())
-  plans = []
-  plans.append(groupArm.plan())
+  plan = groupArm.plan()
 
   # errors and messages
   msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
@@ -163,10 +163,41 @@ def getStatementIDByUID(uid):
     idx = idx + 1
   return -1
 
+#  return a merge of two trajectories of type moveit_msgs/RobotTrajectory
+def mergeRobotTrajectory(trajA,trajB):
+  result = copy.deepcopy(trajA);
+  # check compatibility
+  i = 0
+  for jointName in trajA.joint_trajectory.joint_names:
+    if jointName != trajB.joint_trajectory.joint_names[i]:
+      rospy.logerr("cannot merge two incompatible trajectories {0} {1}".format(str(trajA.joint_trajectory.joint_names), trajB.joint_trajectory.joint_names))
+      return None  
+    i = i+1
+
+  deltaTime = trajA.joint_trajectory.points[-1].time_from_start
+  for trajPoint in trajB.joint_trajectory.points:
+    result.joint_trajectory.points.append(copy.deepcopy(trajPoint))
+    lastTraj = result.joint_trajectory.points[-1]
+    lastTraj.time_from_start.secs =  lastTraj.time_from_start.secs + deltaTime.secs
+    lastTraj.time_from_start.nsecs =  lastTraj.time_from_start.nsecs + deltaTime.nsecs
+    if lastTraj.time_from_start.nsecs > 999999999:
+       lastTraj.time_from_start.secs = lastTraj.time_from_start.secs + 1
+       lastTraj.time_from_start.nsecs = lastTraj.time_from_start.nsecs - 1000000000
+
+  for mPoint in trajB.multi_dof_joint_trajectory.points:
+    result.multi_dof_joint_trajectory.points.append(copy.deepcopy(mPoint))
+    lastTraj = result.multi_dof_joint_trajectory.points[-1]
+    lastTraj.time_from_start.secs =  lastTraj.time_from_start.secs + deltaTime.secs
+    lastTraj.time_from_start.nsecs =  lastTraj.time_from_start.nsecs + deltaTime.nsecs
+    if lastTraj.time_from_start.nsecs > 999999999:
+       lastTraj.time_from_start.secs = lastTraj.time_from_start.secs + 1
+       lastTraj.time_from_start.nsecs = lastTraj.time_from_start.nsecs - 1000000000
+
+  return result
 
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, groupArm, robot,display_trajectory_publisher, plans
+  global statements, groupArm, robot,display_trajectory_publisher, plan
 
   # think positive
   response = PlanningActionResponse()
@@ -218,7 +249,7 @@ def handlePlanningAction(request):
       if fraction < 1.0:
         rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
     else:
-      plans = []
+      plan = None
       for idx in range(startID, endID):
         startRS  = getRobotState(statements[idx].pose_uid)
         endRS = getRobotState(statements[idx+1].pose_uid)
@@ -227,9 +258,15 @@ def handlePlanningAction(request):
         #groupArm.set_pose_target(copy.copy(endRS.pose), "tool0_link")
         groupArm.set_joint_value_target(copy.copy(endRS.jointState))
 
-        plan = groupArm.plan()
-        plans.append(plan)
-        display_trajectory.trajectory.append(plan)
+        if idx == startID:           
+          plan = groupArm.plan()
+        else:
+          planTmp = groupArm.plan()
+          plan = mergeRobotTrajectory(plan, planTmp)
+
+      plan= groupArm.retime_trajectory(robot.get_current_state(), plan, 1.0)
+      display_trajectory.trajectory.append(plan)
+
 
       ## visualization is done by plan/compute cartesian path
     display_trajectory_publisher.publish(display_trajectory);
@@ -241,12 +278,9 @@ def handlePlanningAction(request):
     groupArm.set_start_state_to_current_state()
     groupArm.set_joint_value_target(groupArm.get_current_joint_values())
     plan = groupArm.plan()
-    plans = []
-    plans.append(plan)
 
   if request.action.type == Action.SIMULATE_PLAN:
-    for plan in plans:
-      groupArm.execute(plan, wait=True)
+    groupArm.execute(plan, wait=True)
 
   return response
 
