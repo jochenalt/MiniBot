@@ -190,12 +190,52 @@
           kinematicsPanel.switchAngleUnit(Utils.currentAngleUnitIsGrad());
         }
 
+        function switchToPlan() {
+            document.getElementById('settigsPanel').classList.add('d-none')
+            document.getElementById('settigsPanel').classList.remove('d-flex')
+
+            document.getElementById('kinematicsPanel').classList.remove('d-none')
+            document.getElementById('kinematicsPanel').classList.add('d-flex')
+
+            document.getElementById('posePanel').classList.remove('d-none')
+            document.getElementById('posePanel').classList.add('d-flex')
+
+            document.getElementById('planningPanel').classList.remove('d-none')
+            document.getElementById('planningPanel').classList.add('d-flex')
+        }
+        function switchToSettings() {
+            document.getElementById('settigsPanel').classList.remove('d-none');
+            document.getElementById('settigsPanel').classList.add('d-flex');
+
+            document.getElementById('kinematicsPanel').classList.add('d-none');
+            document.getElementById('kinematicsPanel').classList.remove('d-flex');
+
+            document.getElementById('posePanel').classList.add('d-none');
+            document.getElementById('posePanel').classList.remove('d-flex');
+
+            document.getElementById('planningPanel').classList.add('d-none');
+            document.getElementById('planningPanel').classList.remove('d-flex');
+        }
+
+        function setTheme(event) {
+            switch (event.target.id) {
+                case "cyborgTheme":
+                    break;
+                case "slateTheme":
+                    break;
+                case "sandstoneTheme":
+                    break;
+                default:
+                    break;
+            }
+        }
+
        </script>
 </head>
 
 <body onload="init()">
 
-    <div id="root" class="container-fluid  d-flex flex-column  m-0 p-0" style="height:98vh;width:98vw;" >
+    <div id="root" class="container-fluid  d-flex flex-column m-0 p-0" style="height:98vh;width:98vw;" >
         <div class="row">
             <div class="col m-0 p-0">
                 <nav id="navbar" class="navbar navbar-expand-md navbar-dark m-0 pl-4 p-0 bg-light">
@@ -205,13 +245,13 @@
                     <div class="navbar-collapse collapse w-100 order-3 m-0 dual-collapse2">
                         <ul class="navbar-nav ml-auto m-0 ">
                             <li class="nav-item">
-                                <a class="nav-link" href="#">Plan</a>
+                                <a class="nav-link" href="#" onclick="switchToPlan()">Plan</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="#">Execute</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#">Settings</a>
+                                <a class="nav-link" href="#" onclick="switchToSettings()">Settings</a>
                             </li>
                         </ul>
                     </div>
@@ -219,7 +259,7 @@
             </div>
         </div>
 
-        <div class="row flex-grow-1 m-0">
+        <div class="row flex-grow-1 m-0 p-0">
             <div id="RobotViewOuter" class="col-6 d-flex p-0 m-0">
                 <div  id="RobotView" class="col bg-light border my-1 ml-0 mr-1 p-0">
                     <div id="urdf" class=" p-0 m-0" ></div>
@@ -509,6 +549,69 @@
                     </div>
                 </div>
             </div>
+
+            <div id="settigsPanel" class="d-none col mx-0 p-0 pl-0"  >
+                <div class="row d-flex flex-grow-1 bg-light border my-1 ml-0 mr-0 p-0">
+                    <div class="col d-flex w-100 p-0 m-0 ">
+                        <div class="w-100 mx-1 mt-1 mb-0 pl-2 " >
+                            <div class='w-100 my-0 py-0' 
+                                id='settingsAlertHeadline' role='alert'/>Settings</div>
+                            <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
+                                 id='settingsAlertSuccess' role='alert'/></div>
+                            <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                 id='settingsAlertError' role='alert'/></div>
+                            <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
+                                 id='settingsAlertWarning' role='alert'/></div>
+                        </div>
+                    </div>
+                    <div id="settingsButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
+                        <div class="w-100 p-0 my-3 w-100" >
+                            <div class="col p-0 "><small>Themes</small>
+                            </div>
+                                <div class='form-check form-check-inline w-100'>
+                                    <div class="custom-control custom-radio w-100">
+                                        <input id="cyborgTheme" type="radio" class="custom-control-input"  onchange='setTheme(event)' checked/>
+                                        <label class="custom-control-label" for="cyborgTheme">Cyborg</label>
+                                    </div>
+                                    <div class="custom-control custom-radio  w-100">
+                                        <input id="darklyTheme" type="radio" class="custom-control-input"  onchange='setTheme(event)'/>
+                                        <label class="custom-control-label" for="darklyTheme">Darkly</label>
+                                    </div>
+                                    <div class="custom-control custom-radio  w-100">
+                                        <input id="slateTheme"  type="radio" class="custom-control-input"   
+                                                oninput="setTheme(event)"/>
+                                        <label class="custom-control-label" for="slateTheme">Slate</label>
+                                    </div>
+                                    <div class="custom-control custom-radio  w-100">
+                                        <input id="bootstrapTheme"  type="radio" class="custom-control-input"  
+                                                oninput="setTheme(event)"/>
+                                        <label class="custom-control-label" for="bootstrapTheme">Bootstrap</label>
+                                    </div>
+                                    <div class="custom-control custom-radio  w-100">
+                                        <input id="simplexTheme"  type="radio" class="custom-control-input"  
+                                                oninput="setTheme(event)"/>
+                                        <label class="custom-control-label" for="simplexTheme">Simplex</label>
+                                    </div>
+                                    <div class="custom-control custom-radio  w-100">
+                                        <input id="sandstoneTheme"  type="radio" class="custom-control-input"  
+                                                oninput="setTheme(event)"/>
+                                        <label class="custom-control-label" for="sandstoneTheme">Sandstone</label>
+                                    </div>
+                                </div>
+                        </div> 
+                        <div class="col w-100 m-0 p-0">
+                            <div class="col p-0"><small>Danger Zone</small></div>
+                            <div class="btn-group col p-0">
+                              <button type="button" class="btn-sm btn-secondary w-100" >OK</button>
+                            </div>
+                            <div class="btn-group col p-0 mb-3">
+                               <button type="button" class="btn-sm btn-danger w-100" >Factory Reset</button>
+                            </div>   
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
