@@ -41,11 +41,10 @@ groupGripper = None   # group of all gripper links
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
 plan  = None      # latest plan
-db = None         # MessageStoreProxy
 
 def init():
   global groupArm,groupGripper, robot,plan,\
-         display_trajectory_publisher, scene, db, \
+         display_trajectory_publisher, scene,  \
          msgErrorPub,msgInfoPub, msgWarnPub
 
   #  initialize moveit pyhton interface, needs to happenn before .init_node
@@ -86,7 +85,6 @@ def init():
   planning_action = rospy.Service('planning_action', PlanningAction, handlePlanningAction)
 
   # database service capable of managing the PosePanel and the ProgrammePanel
-  db = MessageStoreProxy()
   database = rospy.Service('database', Database, handleDatabaseAction)
 
   # in case the database is empty, initialize
@@ -95,7 +93,8 @@ def init():
   rospy.loginfo("minibot planning node initialized")
 
 def initDatabase ():
-  global statements, robotstates, db
+  global statements, robotstates
+  db = MessageStoreProxy()
   (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
   if poseStorage is None:
     poseStorage = PoseStorage()
@@ -110,7 +109,9 @@ def initDatabase ():
  
 
 def handleDatabaseAction (request):
-  global statements, robotstates, db
+  global statements, robotstates
+  db = MessageStoreProxy()
+
   response = DatabaseResponse()
   response.error_code.val = ErrorCodes.SUCCESS
 
@@ -124,6 +125,7 @@ def handleDatabaseAction (request):
 
   if request.type == DatabaseRequest.READ_PROGRAMME:
     (programme, meta) = db.query_named("default_programme", Programme._type)
+
     if programme:
       response.programme_store = programme
       statements = programme.statements
