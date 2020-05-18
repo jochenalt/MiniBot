@@ -4,6 +4,7 @@
 import sys
 import copy
 import rospy
+import array
 
 # import mongodb
 import mongodb_store_msgs.srv as db_srv
@@ -40,10 +41,10 @@ groupGripper = None   # group of all gripper links
 
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
-plan  = None      # latest plan
+plans  = []       # latest plan
 
 def init():
-  global groupArm,groupGripper, robot,plan,\
+  global groupArm,groupGripper, robot,plans,\
          display_trajectory_publisher, scene,  \
          msgErrorPub,msgInfoPub, msgWarnPub
 
@@ -74,7 +75,8 @@ def init():
   groupArm.clear_pose_targets()
   groupArm.set_start_state_to_current_state()
   groupArm.set_joint_value_target(groupArm.get_current_joint_values())
-  plan = groupArm.plan()
+  plans = []
+  plans.append(groupArm.plan())
 
   # errors and messages
   msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
@@ -164,7 +166,7 @@ def getStatementIDByUID(uid):
 
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, groupArm, robot,display_trajectory_publisher, plan
+  global statements, groupArm, robot,display_trajectory_publisher, plans
 
   # think positive
   response = PlanningActionResponse()
@@ -216,6 +218,7 @@ def handlePlanningAction(request):
       if fraction < 1.0:
         rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
     else:
+      plans = []
       for idx in range(startID, endID):
         startRS  = getRobotState(statements[idx].pose_uid)
         endRS = getRobotState(statements[idx+1].pose_uid)
@@ -225,6 +228,7 @@ def handlePlanningAction(request):
         groupArm.set_joint_value_target(copy.copy(endRS.jointState))
 
         plan = groupArm.plan()
+        plans.append(plan)
         display_trajectory.trajectory.append(plan)
 
       ## visualization is done by plan/compute cartesian path
@@ -237,9 +241,12 @@ def handlePlanningAction(request):
     groupArm.set_start_state_to_current_state()
     groupArm.set_joint_value_target(groupArm.get_current_joint_values())
     plan = groupArm.plan()
+    plans = []
+    plans.append(plan)
 
   if request.action.type == Action.SIMULATE_PLAN:
-    groupArm.execute(plan, wait=True)
+    for plan in plans:
+      groupArm.execute(plan, wait=True)
 
   return response
 

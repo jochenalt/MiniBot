@@ -25,7 +25,7 @@
        coming from web page and publish in /joint_states -->
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
     <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
-    <rosparam param="rate">20</rosparam>
+    <rosparam param="rate">10</rosparam>
   </node>
 
   <!-- Run the main MoveIt executable without trajectory execution
