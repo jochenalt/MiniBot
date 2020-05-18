@@ -12,7 +12,7 @@ KinematicsPanel.Init = function(options) {
   var readTopicName               = '/joint_states';                              // 20Hz topic that gives the current state of the joints, publish constantly
   var jointInputTopicName         = '/move_group/fake_controller_joint_states'    // topic that gives changes of the joint values, published only when a change occurs
   var receiveTcpTopicName         = '/tcp/update'                                 // topic to receive the tcp out joint states (coming from core.py)
-  var tcpInputTopicName           = '/tcp/input/update'
+  var tcpInputTopicName           = '/tcp/input/update'                           // tcp sliders publish the change here
   
   var sliders = [];
   var inputs = [];
@@ -62,9 +62,9 @@ KinematicsPanel.Init = function(options) {
                   textInput.setAttribute('value', Utils.rad2View(val));
                   textInput.setAttribute('step', Utils.angleSteps());
 
-                  textInput.onblur = callbackJointInput;
-                  textInput.onChange = callbackJointInput;
-                  textInput.onkeyup  = callbackJointInput;
+                  textInput.onblur = callBackJointInput;
+                  textInput.onChange = callBackJointInput;
+                  textInput.onkeyup  = callBackJointInput;
                   inputs[ inputs.length ] = textInput;
 
                   // fetch slider element, set callbacks and common properties
@@ -76,7 +76,7 @@ KinematicsPanel.Init = function(options) {
                   sliderInput.setAttribute('step', Utils.angleSteps());
                   sliderInput.setAttribute('value', Utils.rad2View(val));
 
-                  sliderInput.oninput  = callbackJointInput;
+                  sliderInput.oninput  = callBackJointInput;
                   sliders[ sliders.length ] = sliderInput;
 
                   // store the limits
@@ -258,7 +258,7 @@ KinematicsPanel.Init = function(options) {
   }
 
   // callback when a slider/input changes
-  var callbackJointInput = function(event) {
+  var callBackJointInput = function(event) {
     var name = event.target.name;
     var target;
     if( name.indexOf('_text') >= 0) {

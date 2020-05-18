@@ -1,15 +1,15 @@
 #!/bin/bash
 
-rosservice find /rosout
-status=$$
-if [ $status -ne 0 ]; then
+rosservice find /rosout 2> /dev/null
+status=$?
+if [ $status -eq 0 ]; then
    echo "roscore is running already"
 else
    echo "starting roscore"
-   roscore &
+   roscore -w 16 &
    sleep 1
    rosservice find /rosout
-   while [ $$ -ne 0 ]
+   while [ $? -ne 0 ]
    do
       echo "not yet up"
       sleep 1

@@ -252,11 +252,12 @@ if __name__=="__main__":
     rospy.Subscriber('/move_group/fake_controller_joint_states', JointState, jointStatesInputCallback, queue_size=1);
 
     # input from moveit planning comes in via this controller
+    # compute and publish online tcp 
     #rospy.Subscriber('/move_group/fake_controller_joint_states', JointState, moveGroupJointStatesInputCallback, queue_size=1);
 
     # with any input, post updated joints and tcp  
-    jointPositionPub = rospy.Publisher('/move_group/fake_controller_joint_states',JointState, queue_size=10)
-    tcpPub  = rospy.Publisher('/tcp/update',PoseStamped, queue_size=10)
+    jointPositionPub = rospy.Publisher('/move_group/fake_controller_joint_states',JointState, queue_size=1)
+    tcpPub  = rospy.Publisher('/tcp/update',PoseStamped, queue_size=1)
 
     # errors and messages
     msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
