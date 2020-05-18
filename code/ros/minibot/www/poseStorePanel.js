@@ -284,7 +284,8 @@ PoseStorePanel.Init = function(options) {
       var poseItem = getPoseItem(id);
       poseItem.name = event.target.value
       cancelEditMode();
-      updateWidgets;
+      updateWidgets();
+
       storeInDatabase();
 
     // the name is mentioned in the programme panel, so update that as well

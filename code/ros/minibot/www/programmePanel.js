@@ -623,6 +623,9 @@ ProgrammePanel.Init = function(options) {
 
       statement.widget.scrollIntoView();
       updateWidgets();
+
+      // immediately store in database
+      storeInDatabase();
     } else
       displayErr('selected statement is first already')
   }
