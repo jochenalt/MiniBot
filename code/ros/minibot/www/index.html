@@ -33,21 +33,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
 
-    <!-- dont use default bootstrap color schema but a special one from https://bootstrap.build/ -->
-    <!--<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">-->
-    <!--
-    <link rel="stylesheet" href="/minibot/bootstrap-slate.min.css">
-    <link rel="stylesheet" href="/minibot/bootstrap-darkly.min.css">
-    <link rel="stylesheet" href="/minibot/bootstrap-simplex.min.css">
-    <link rel="stylesheet" href="/minibot/bootstrap-sandstone.min.css">    
-    <link rel="stylesheet" href="/minibot/bootstrap-darkly.min.css">
--->
-
     <link rel="stylesheet" href="/minibot/bootstrap-cyborg.min.css">
     
 
     <script>
-        var ros;
         var botUrdfView;        // view of URDF
         var kinematicsPanel;    // panel for  kinematics
         var poseStorePanel;     // panel for managing poses
@@ -55,17 +44,25 @@
         var kinematics;         // kinematics library
         var tfClient;
         var urdfClient;
+
+        // Connect to ROS.
+        var serverName = window.location.href.replace("http://","").split(":")[0]
+        var ros = new ROSLIB.Ros({
+            url: 'ws://' + serverName + ':9090'
+        });
+
+            var settings = Utils.readConfiguration(
+                function(settings) {
+                    setTheme("slateTheme"); 
+                }, 
+                function (result) { 
+                    alert (result)
+                });
         /**
          * Setup all visualization elements when the page is loaded.
          */
-        var serverName = window.location.href.replace("http://","").split(":")[0]
 
         function initRobotView(backgroundColor) {
-            // Connect to ROS.
-            ros = new ROSLIB.Ros({
-                url: 'ws://' + serverName + ':9090'
-            });
-
             // Setup a client to listen to TFs.
             tfClient = new ROSLIB.TFClient({
                 ros: ros,
@@ -121,22 +118,23 @@
               rootObject : botUrdfView.selectableObjects
             });
         }
+
+
         function init() {
-
-            setTheme("cyborgTheme");
-            // initRobotView("#222222");
             kinematics = new Kinematics.Init({
-              ros: ros
+               ros: ros
             });
 
-            kinematicsPanel = new KinematicsPanel.Init({
-              ros: ros
-            });
 
 
             // ugly: the first invokation on the webserver requires all topics to be published
             // wait 1s until this is sure before initiating the bot view
             setTimeout(function() {
+
+
+                kinematicsPanel = new KinematicsPanel.Init({
+                  ros: ros
+                });
 
                 poseStorePanel  = new PoseStorePanel.Init({
                   ros: ros,
@@ -155,6 +153,7 @@
 
                 kinematicsPanel.refresh();
 
+               
             }, 1500);
 
             window.addEventListener("resize", resize);
@@ -225,10 +224,6 @@
             var robotViewColor;
  
             switch (str) {
-                case "cyborgTheme":
-                    robotViewColor = '#222222'; 
-                    cssfile = "/minibot/bootstrap-cyborg.min.css"
-                    break;
                 case "simplexTheme":
                     robotViewColor = '#FFFFFF';
                     cssfile = "/minibot/bootstrap-simplex.min.css";
@@ -247,6 +242,8 @@
                     break;
 
                 default:
+                    robotViewColor = '#222222'; 
+                    cssfile = "/minibot/bootstrap-cyborg.min.css"
                     break;
             }
             var fileref=document.createElement("link")
@@ -255,13 +252,14 @@
             fileref.setAttribute("href", cssfile)
             if (typeof fileref!="undefined")
                 document.getElementsByTagName("head")[0].appendChild(fileref)
-            var w = document.getElementById("RobotView").offsetWidth ;
-            var h = document.getElementById("RobotView").offsetHeight;
 
             // delete the old robotview (unless it is the first call)
-            viewer = document.getElementById("urdf").childNodes[0];
-            if (viewer != null)
-                document.getElementById("urdf").removeChild(viewer);
+            urdfView = document.getElementById("urdf")
+            if (urdfView != null) {
+                viewer = urdfView.childNodes[0];
+                if (viewer != null)
+                    urdfView.removeChild(viewer);
+            }
 
             // re instantiate it
             initRobotView(robotViewColor);
@@ -273,8 +271,8 @@
 <body onload="init()">
 
     <div id="root" class="container-fluid  d-flex flex-column m-0 p-0" style="height:98vh;width:98vw;" >
-        <div class="row">
-            <div class="col m-0 p-0">
+        <div class="row  m-0 p-0">
+           <div class="col m-0 p-0">
                 <nav id="navbar" class="navbar navbar-expand-md navbar-dark m-0 pl-4 p-0 bg-light">
                    <div class="mx-auto order-0">
                         <big><a class="navbar-brand mx-auto" href="#">Minibot</a></big>

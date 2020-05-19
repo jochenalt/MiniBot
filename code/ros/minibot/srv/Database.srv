@@ -4,10 +4,14 @@ uint8 READ_POSES=0
 uint8 READ_PROGRAMME=1
 uint8 WRITE_POSES=2
 uint8 WRITE_PROGRAMME=3
+uint8 READ_SETTINGS=4
+uint8 WRITE_SETTINGS=5
 
 minibot/Programme programme_store
 minibot/PoseStorage pose_store
+minibot/Configuration configuration
 ---
 minibot/ErrorCodes error_code
 minibot/PoseStorage pose_store
 minibot/Programme programme_store
+minibot/Configuration configuration

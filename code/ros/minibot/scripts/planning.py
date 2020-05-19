@@ -30,6 +30,7 @@ from minibot.msg import ErrorCodes
 from minibot.msg import Action
 from minibot.msg import MinibotState
 from minibot.msg import PoseStorage
+from minibot.msg import Configuration
 from minibot.srv import PlanningAction, PlanningActionRequest, PlanningActionResponse
 from minibot.srv import Database, DatabaseRequest, DatabaseResponse
 
@@ -43,6 +44,7 @@ groupGripper = None   # group of all gripper links
 robot = None      # RobotCommander Object
 scene = None      # Planing scene Object
 plan  = []       # latest plan
+configuration = None  # settings
 
 def init():
   global groupArm,groupGripper, robot,plans,\
@@ -108,6 +110,13 @@ def initDatabase ():
     programme = Programme()
     db.insert_named("default_programme",programme)
   statements = programme.statements
+
+  (configuration, meta) = db.query_named("default_configuration", Configuration._type)
+  if configuration is None:
+    configuration = Configuration()
+    configuration.theme="cyborgTheme"
+    db.insert_named("default_configuration",configuration)
+  
  
 
 def handleDatabaseAction (request):
@@ -141,6 +150,14 @@ def handleDatabaseAction (request):
   if request.type == DatabaseRequest.WRITE_PROGRAMME:
     db.update_named("default_programme", request.programme_store)
     statements = request.programme_store.statements
+
+  if request.type == DatabaseRequest.READ_SETTINGS:
+    db.update_named("default_configuration",request.configuration)
+    configuration = request.configuration
+
+  if request.type == DatabaseRequest.WRITE_SETTINGS:
+    db.update_named("default_programme", request.configuration)
+    configuration = request.configuration
 
   return response;
 
@@ -267,8 +284,7 @@ def handlePlanningAction(request):
       plan= groupArm.retime_trajectory(robot.get_current_state(), plan, 1.0)
       display_trajectory.trajectory.append(plan)
 
-
-      ## visualization is done by plan/compute cartesian path
+    ## visualization of plan
     display_trajectory_publisher.publish(display_trajectory);
 
   if request.action.type == Action.CLEAR_PLAN:
