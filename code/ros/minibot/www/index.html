@@ -42,6 +42,7 @@
     <link rel="stylesheet" href="/minibot/bootstrap-sandstone.min.css">    
     <link rel="stylesheet" href="/minibot/bootstrap-darkly.min.css">
 -->
+
     <link rel="stylesheet" href="/minibot/bootstrap-cyborg.min.css">
     
 
@@ -52,25 +53,27 @@
         var poseStorePanel;     // panel for managing poses
         var programmePanel;
         var kinematics;         // kinematics library
+        var tfClient;
+        var urdfClient;
         /**
          * Setup all visualization elements when the page is loaded.
          */
         var serverName = window.location.href.replace("http://","").split(":")[0]
-        function init() {
+
+        function initRobotView(backgroundColor) {
             // Connect to ROS.
             ros = new ROSLIB.Ros({
                 url: 'ws://' + serverName + ':9090'
             });
 
             // Setup a client to listen to TFs.
-            var tfClient = new ROSLIB.TFClient({
+            tfClient = new ROSLIB.TFClient({
                 ros: ros,
                 angularThres: 0.0001,    // [rad] angular threshold for rotations before th UI reacts
                 transThres: 0.0001,       // [m] translation threshold, 0.1 mm
                 fixedFrame : 'base_link', // all coordinates are relative to world
                 rate : 10.0               // update frequency [Hz]
             });
-
             var w = document.getElementById("RobotView").offsetWidth ;
             var h = document.getElementById("RobotView").offsetHeight;
             botUrdfView = new ROS3D.Viewer({
@@ -78,11 +81,7 @@
                 width: w,
                 height: h,
                 antialias: true,
-                // background: '#ecf0f1', // theme "slate"
-                // background: '#F8F5F0', // theme "sandstone"
-                // background: '#FFFFFF', // theme "simplex"
-                // background: '#ADB5BD', // theme "darkly"
-                background: '#222222',  // theme "simplex"
+                background: backgroundColor,  
                 cameraPose: {
                     x: 0.6,
                     y: 0.6,
@@ -93,6 +92,7 @@
                 antialias : true
             });
 
+
             // Add a grid.
             botUrdfView.addObject(new ROS3D.Grid({
               num_cells: 5,
@@ -101,6 +101,30 @@
               cellSize: 0.1
             }));
 
+            // Setup the direct kinematics panel
+            urdfClient = new ROS3D.UrdfClient({
+               ros: ros,
+               tfClient: tfClient,
+               path: 'http://' + serverName + ':8085/',
+               rootObject: botUrdfView.scene,
+               loader: ROS3D.COLLADA_LOADER
+            });
+
+
+            // Setup the marker client.
+            var startMarkerClient = new ROS3D.InteractiveMarkerClient({
+              ros : ros,
+              tfClient : tfClient,
+              // hidden : true,
+              topic : '/markers',
+              camera : botUrdfView.camera,
+              rootObject : botUrdfView.selectableObjects
+            });
+        }
+        function init() {
+
+            setTheme("cyborgTheme");
+            // initRobotView("#222222");
             kinematics = new Kinematics.Init({
               ros: ros
             });
@@ -108,7 +132,6 @@
             kinematicsPanel = new KinematicsPanel.Init({
               ros: ros
             });
-
 
 
             // ugly: the first invokation on the webserver requires all topics to be published
@@ -129,26 +152,6 @@
                 });
 
                 poseStorePanel.setProgrammePanel(programmePanel);
-
-                // Setup the direct kinematics panel
-                var urdfClient = new ROS3D.UrdfClient({
-                  ros: ros,
-                  tfClient: tfClient,
-                  path: 'http://' + serverName + ':8085/',
-                  rootObject: botUrdfView.scene,
-                  loader: ROS3D.COLLADA_LOADER
-                });
-
-
-                // Setup the marker client.
-                var startMarkerClient = new ROS3D.InteractiveMarkerClient({
-                  ros : ros,
-                  tfClient : tfClient,
-                  // hidden : true,
-                  topic : '/markers',
-                  camera : botUrdfView.camera,
-                  rootObject : botUrdfView.selectableObjects
-                });
 
                 kinematicsPanel.refresh();
 
@@ -217,17 +220,51 @@
             document.getElementById('planningPanel').classList.remove('d-flex');
         }
 
-        function setTheme(event) {
-            switch (event.target.id) {
+        function setTheme(str) {
+            var cssfile;
+            var robotViewColor;
+ 
+            switch (str) {
                 case "cyborgTheme":
+                    robotViewColor = '#222222'; 
+                    cssfile = "/minibot/bootstrap-cyborg.min.css"
+                    break;
+                case "simplexTheme":
+                    robotViewColor = '#FFFFFF';
+                    cssfile = "/minibot/bootstrap-simplex.min.css";
                     break;
                 case "slateTheme":
+                    robotViewColor = '#ECF0F1';
+                    cssfile = "/minibot/bootstrap-slate.min.css";
                     break;
                 case "sandstoneTheme":
+                    robotViewColor = '#F8F5F0';
+                    cssfile = "/minibot/bootstrap-sandstone.min.css";
                     break;
+                case "darklyTheme":
+                    robotViewColor = '#ADB5BD';
+                    cssfile = "/minibot/bootstrap-darkly.min.css","css";
+                    break;
+
                 default:
                     break;
             }
+            var fileref=document.createElement("link")
+            fileref.setAttribute("rel", "stylesheet")
+            fileref.setAttribute("type", "text/css")
+            fileref.setAttribute("href", cssfile)
+            if (typeof fileref!="undefined")
+                document.getElementsByTagName("head")[0].appendChild(fileref)
+            var w = document.getElementById("RobotView").offsetWidth ;
+            var h = document.getElementById("RobotView").offsetHeight;
+
+            // delete the old robotview (unless it is the first call)
+            viewer = document.getElementById("urdf").childNodes[0];
+            if (viewer != null)
+                document.getElementById("urdf").removeChild(viewer);
+
+            // re instantiate it
+            initRobotView(robotViewColor);
         }
 
        </script>
@@ -570,31 +607,26 @@
                             </div>
                                 <div class='form-check form-check-inline w-100'>
                                     <div class="custom-control custom-radio w-100">
-                                        <input id="cyborgTheme" type="radio" class="custom-control-input"  onchange='setTheme(event)' checked/>
+                                        <input id="cyborgTheme" type="radio" class="custom-control-input"  name="themeSwitcher" onchange='setTheme(event.target.id)' checked/>
                                         <label class="custom-control-label" for="cyborgTheme">Cyborg</label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
-                                        <input id="darklyTheme" type="radio" class="custom-control-input"  onchange='setTheme(event)'/>
+                                        <input id="darklyTheme" type="radio" class="custom-control-input" name="themeSwitcher" onchange='setTheme(event.target.id)'/>
                                         <label class="custom-control-label" for="darklyTheme">Darkly</label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
-                                        <input id="slateTheme"  type="radio" class="custom-control-input"   
-                                                oninput="setTheme(event)"/>
+                                        <input id="slateTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"  
+                                                oninput="setTheme(event.target.id)"/>
                                         <label class="custom-control-label" for="slateTheme">Slate</label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
-                                        <input id="bootstrapTheme"  type="radio" class="custom-control-input"  
-                                                oninput="setTheme(event)"/>
-                                        <label class="custom-control-label" for="bootstrapTheme">Bootstrap</label>
-                                    </div>
-                                    <div class="custom-control custom-radio  w-100">
-                                        <input id="simplexTheme"  type="radio" class="custom-control-input"  
-                                                oninput="setTheme(event)"/>
+                                        <input id="simplexTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"
+                                                oninput="setTheme(event.target.id)"/>
                                         <label class="custom-control-label" for="simplexTheme">Simplex</label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
-                                        <input id="sandstoneTheme"  type="radio" class="custom-control-input"  
-                                                oninput="setTheme(event)"/>
+                                        <input id="sandstoneTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"
+                                                oninput="setTheme(event.target.id)"/>
                                         <label class="custom-control-label" for="sandstoneTheme">Sandstone</label>
                                     </div>
                                 </div>
