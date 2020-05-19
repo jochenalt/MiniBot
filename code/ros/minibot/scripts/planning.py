@@ -111,11 +111,11 @@ def initDatabase ():
     db.insert_named("default_programme",programme)
   statements = programme.statements
 
-  (configuration, meta) = db.query_named("default_configuration", Configuration._type)
-  if configuration is None:
+  (config, meta) = db.query_named("default_settings", Configuration._type)
+  if config is None:
     configuration = Configuration()
     configuration.theme="cyborgTheme"
-    db.insert_named("default_configuration",configuration)
+    db.insert_named("default_settings",configuration)
   
  
 
@@ -132,7 +132,7 @@ def handleDatabaseAction (request):
       response.pose_store = poseStorage
       robotstates = poseStorage.states
     else:
-      rospy.logerror("pose storage is not initialized");
+      rospy.logerr("pose storage is not initialized");
 
   if request.type == DatabaseRequest.READ_PROGRAMME:
     (programme, meta) = db.query_named("default_programme", Programme._type)
@@ -141,7 +141,7 @@ def handleDatabaseAction (request):
       response.programme_store = programme
       statements = programme.statements
     else:
-      rospy.logerror("programme storage is not initialized");
+      rospy.logerr("programme storage is not initialized");
 
   if request.type == DatabaseRequest.WRITE_POSES:
     db.update_named("default_pose_storage",request.pose_store)
@@ -152,11 +152,15 @@ def handleDatabaseAction (request):
     statements = request.programme_store.statements
 
   if request.type == DatabaseRequest.READ_SETTINGS:
-    db.update_named("default_configuration",request.configuration)
-    configuration = request.configuration
+    (config, meta) = db.query_named("default_settings",Configuration._type)
+    if config:
+      response.configuration = config
+      configuration = config
+    else:
+      rospy.logerr("settings are not initialized");
 
   if request.type == DatabaseRequest.WRITE_SETTINGS:
-    db.update_named("default_programme", request.configuration)
+    db.update_named("default_settings", request.configuration)
     configuration = request.configuration
 
   return response;

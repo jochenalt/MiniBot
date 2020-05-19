@@ -27,6 +27,7 @@
     <script language="JavaScript" src="/minibot/kinematicsPanel.js"></script>
     <script language="JavaScript" src="/minibot/poseStorePanel.js"></script>
     <script language="JavaScript" src="/minibot/programmePanel.js"></script>
+    <script language="JavaScript" src="/minibot/settingsPanel.js"></script>
 
     <!-- bootstrap4 -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -40,7 +41,8 @@
         var botUrdfView;        // view of URDF
         var kinematicsPanel;    // panel for  kinematics
         var poseStorePanel;     // panel for managing poses
-        var programmePanel;
+        var programmePanel;     // panel for pro<gramme
+        var settingsPanel;      // panel for configuration
         var kinematics;         // kinematics library
         var tfClient;
         var urdfClient;
@@ -51,13 +53,19 @@
             url: 'ws://' + serverName + ':9090'
         });
 
-            var settings = Utils.readConfiguration(
-                function(settings) {
-                    setTheme("slateTheme"); 
-                }, 
-                function (result) { 
-                    alert (result)
-                });
+        settingsPanel = new SettingsPanel.Init({
+            ros: ros
+        });
+
+
+        var settings = settingsPanel.readConfiguration(
+            function(settings) {
+                setTheme(settings.theme); 
+            }, 
+            function (result) { 
+                alert ("could not read the configuration from database : " + result)
+            });
+
         /**
          * Setup all visualization elements when the page is loaded.
          */
@@ -131,7 +139,6 @@
             // wait 1s until this is sure before initiating the bot view
             setTimeout(function() {
 
-
                 kinematicsPanel = new KinematicsPanel.Init({
                   ros: ros
                 });
@@ -192,37 +199,37 @@
           kinematicsPanel.switchAngleUnit(Utils.currentAngleUnitIsGrad());
         }
 
+        function switchVisibility (widget, on) {
+            var cl = document.getElementById(widget).classList;
+            if (on) {
+                cl.add('d-none');
+                cl.remove('d-flex');
+            } 
+            else {
+                cl.add('d-flex');
+                cl.remove('d-none');                
+            }
+        }
+
         function switchToPlan() {
-            document.getElementById('settigsPanel').classList.add('d-none')
-            document.getElementById('settigsPanel').classList.remove('d-flex')
-
-            document.getElementById('kinematicsPanel').classList.remove('d-none')
-            document.getElementById('kinematicsPanel').classList.add('d-flex')
-
-            document.getElementById('posePanel').classList.remove('d-none')
-            document.getElementById('posePanel').classList.add('d-flex')
-
-            document.getElementById('planningPanel').classList.remove('d-none')
-            document.getElementById('planningPanel').classList.add('d-flex')
+            switchVisibility('settingsPanel', true);
+            switchVisibility('kinematicsPanel', false);
+            switchVisibility('posePanel', false);
+            switchVisibility('planningPanel', false);
         }
         function switchToSettings() {
-            document.getElementById('settigsPanel').classList.remove('d-none');
-            document.getElementById('settigsPanel').classList.add('d-flex');
-
-            document.getElementById('kinematicsPanel').classList.add('d-none');
-            document.getElementById('kinematicsPanel').classList.remove('d-flex');
-
-            document.getElementById('posePanel').classList.add('d-none');
-            document.getElementById('posePanel').classList.remove('d-flex');
-
-            document.getElementById('planningPanel').classList.add('d-none');
-            document.getElementById('planningPanel').classList.remove('d-flex');
+            switchVisibility('settingsPanel', false);
+            switchVisibility('kinematicsPanel', true);
+            switchVisibility('posePanel', true);
+            switchVisibility('planningPanel', true);
         }
 
+
+        // set the theme by loading the css file and reinstatitation the robotview with a proper background
         function setTheme(str) {
             var cssfile;
             var robotViewColor;
- 
+            var theme = str;
             switch (str) {
                 case "simplexTheme":
                     robotViewColor = '#FFFFFF';
@@ -244,6 +251,7 @@
                 default:
                     robotViewColor = '#222222'; 
                     cssfile = "/minibot/bootstrap-cyborg.min.css"
+                    theme = "cyborgTheme";
                     break;
             }
             var fileref=document.createElement("link")
@@ -261,8 +269,11 @@
                     urdfView.removeChild(viewer);
             }
 
-            // re instantiate it
+            // re instantiate robot view
             initRobotView(robotViewColor);
+
+            // tell the panel
+            settingsPanel.setTheme(theme);
         }
 
        </script>
@@ -270,7 +281,7 @@
 
 <body onload="init()">
 
-    <div id="root" class="container-fluid  d-flex flex-column m-0 p-0" style="height:98vh;width:98vw;" >
+    <div id="root" class="container-fluid  d-flex flex-column m-0 ml-3 p-0" style="height:98vh;width:98vw;" >
         <div class="row  m-0 p-0">
            <div class="col m-0 p-0">
                 <nav id="navbar" class="navbar navbar-expand-md navbar-dark m-0 pl-4 p-0 bg-light">
@@ -585,7 +596,7 @@
                 </div>
             </div>
 
-            <div id="settigsPanel" class="d-none col mx-0 p-0 pl-0"  >
+            <div id="settingsPanel" class="d-none col mx-0 p-0 pl-0"  >
                 <div class="row d-flex flex-grow-1 bg-light border my-1 ml-0 mr-0 p-0">
                     <div class="col d-flex w-100 p-0 m-0 ">
                         <div class="w-100 mx-1 mt-1 mb-0 pl-2 " >
@@ -606,37 +617,40 @@
                                 <div class='form-check form-check-inline w-100'>
                                     <div class="custom-control custom-radio w-100">
                                         <input id="cyborgTheme" type="radio" class="custom-control-input"  name="themeSwitcher" onchange='setTheme(event.target.id)' checked/>
-                                        <label class="custom-control-label" for="cyborgTheme">Cyborg</label>
+                                        <label class="custom-control-label" for="cyborgTheme">Cyborg<br><small>clunky and dangerous</small></label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
                                         <input id="darklyTheme" type="radio" class="custom-control-input" name="themeSwitcher" onchange='setTheme(event.target.id)'/>
-                                        <label class="custom-control-label" for="darklyTheme">Darkly</label>
+                                        <label class="custom-control-label" for="darklyTheme">Darkly<br><small>an evil theme</small></label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
                                         <input id="slateTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"  
                                                 oninput="setTheme(event.target.id)"/>
-                                        <label class="custom-control-label" for="slateTheme">Slate</label>
+                                        <label class="custom-control-label" for="slateTheme">Slate<br><small>life-affirming grey</small></label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
                                         <input id="simplexTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"
                                                 oninput="setTheme(event.target.id)"/>
-                                        <label class="custom-control-label" for="simplexTheme">Simplex</label>
+                                        <label class="custom-control-label" for="simplexTheme">Simplex<br><small>clear and plain</small></label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
                                         <input id="sandstoneTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"
                                                 oninput="setTheme(event.target.id)"/>
-                                        <label class="custom-control-label" for="sandstoneTheme">Sandstone</label>
+                                        <label class="custom-control-label" for="sandstoneTheme">Sandstone<br><small>dry like a desert</small></label>
                                     </div>
                                 </div>
                         </div> 
                         <div class="col w-100 m-0 p-0">
                             <div class="col p-0"><small>Danger Zone</small></div>
                             <div class="btn-group col p-0">
-                              <button type="button" class="btn-sm btn-secondary w-100" >OK</button>
+                               <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.apply()">Apply</button>
                             </div>
-                            <div class="btn-group col p-0 mb-3">
-                               <button type="button" class="btn-sm btn-danger w-100" >Factory Reset</button>
-                            </div>   
+                            <div class="btn-group col p-0">
+                               <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.factoryReset()">Factory Reset</button>
+                            </div>
+                            <div class="btn-group col p-0">
+                               <button type="button" class="btn-sm btn-primary w-100" onclick="settingsPanel.save()" >Save</button>
+                            </div>
                         </div>
                     </div>
                 </div>
