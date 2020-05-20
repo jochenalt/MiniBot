@@ -37,33 +37,50 @@
             var robotPanel;            // panel for the robot
             var kinematics;            // kinematics library
             
-            // Connect to ROS.
-            var serverName = window.location.href.replace("http://","").split(":")[0]
-            var ros = new ROSLIB.Ros({
-                 url: 'ws://' + serverName + ':9090'
-            });
+                        // set the theme by loading the css file and reinstatitation the robotview with a proper background
+            function setGlobalTheme(str) {
+                 var cssfile;
+                 var robotViewColor;
+                 var theme = str.replace("Theme", "");
+                  for (var i = 0;i<Constants.Themes.Name.length;i++) {
+                    if (theme == Constants.Themes.Name[i]) {
+                        robotViewColor = Constants.Themes.BackgroundColor[i];
+                        cssfile = "/minibot/bootstrap-" + theme + ".min.css";
+                        break;
+                    }
+                 }
+
+                 if (cssfile == null) {
+                    robotViewColor = '#222222'; 
+                    cssfile = "/minibot/bootstrap-cyborg.min.css"
+                    theme = "cyborgTheme";
+                 }
+
+                 var fileref=document.createElement("link")
+                 fileref.setAttribute("rel", "stylesheet")
+                 fileref.setAttribute("type", "text/css")
+                 fileref.setAttribute("href", cssfile)
+                 if (typeof fileref!="undefined")
+                      document.getElementsByTagName("head")[0].appendChild(fileref)
             
-            settingsPanel = new SettingsPanel.Init({
-                 ros: ros
-            });
+                 // delete the old robotview (unless it is the first call)
+                 urdfView = document.getElementById("urdf")
+                 if (urdfView != null) {
+                      viewer = urdfView.childNodes[0];
+                      if (viewer != null)
+                            urdfView.removeChild(viewer);
+                 }
             
-            robotPanel = new RobotPanel.Init( {
-                 ros : ros
-            })
-            var settings = settingsPanel.readConfiguration(
-                 function(settings) {
-                      setTheme(settings.theme); 
-                 }, 
-                 function (result) { 
-                      alert ("could not read the configuration from database : " + result)
-                 });
-            
+                 // re instantiate robot view
+                 robotPanel.initialize(robotViewColor);
+            }
+
+          
             // will be called after loading the DOM tree 
             function init() {
                  kinematics = new Kinematics.Init({
                      ros: ros
                  });
-            
             
                  kinematicsPanel = new KinematicsPanel.Init({
                     ros: ros
@@ -116,9 +133,7 @@
                  var w = document.getElementById("RobotView").offsetWidth;
                  var h = document.getElementById("RobotView").offsetHeight
                  // botUrdfView.resize(w, h); // leave some space for the border of the container
-            };
-            
-            
+            };        
             
             function switchVisibility (widget, on) {
                  var cl = document.getElementById(widget).classList;
@@ -144,59 +159,33 @@
                  switchVisibility('posePanel', true);
                  switchVisibility('planningPanel', true);
             }
+
+            // the following can be done before the body is loaded, since it does not require a full DOM tree
+
+            // estabish connection to ROS
+            var serverName = window.location.href.replace("http://","").split(":")[0]
+            var ros = new ROSLIB.Ros({
+                 url: 'ws://' + serverName + ':9090'
+            });
             
+            // initialize settings panel
+            settingsPanel = new SettingsPanel.Init({
+                 ros: ros
+            });
+            settingsPanel.setGlobalThemeFunction (setGlobalTheme);
             
-            // set the theme by loading the css file and reinstatitation the robotview with a proper background
-            function setTheme(str) {
-                 var cssfile;
-                 var robotViewColor;
-                 var theme = str;
-                 switch (str) {
-                      case "simplexTheme":
-                            robotViewColor = '#FFFFFF';
-                            cssfile = "/minibot/bootstrap-simplex.min.css";
-                            break;
-                      case "slateTheme":
-                            robotViewColor = '#ECF0F1';
-                            cssfile = "/minibot/bootstrap-slate.min.css";
-                            break;
-                      case "sandstoneTheme":
-                            robotViewColor = '#F8F5F0';
-                            cssfile = "/minibot/bootstrap-sandstone.min.css";
-                            break;
-                      case "darklyTheme":
-                            robotViewColor = '#ADB5BD';
-                            cssfile = "/minibot/bootstrap-darkly.min.css","css";
-                            break;
-            
-                      default:
-                            robotViewColor = '#222222'; 
-                            cssfile = "/minibot/bootstrap-cyborg.min.css"
-                            theme = "cyborgTheme";
-                            break;
-                 }
-                 var fileref=document.createElement("link")
-                 fileref.setAttribute("rel", "stylesheet")
-                 fileref.setAttribute("type", "text/css")
-                 fileref.setAttribute("href", cssfile)
-                 if (typeof fileref!="undefined")
-                      document.getElementsByTagName("head")[0].appendChild(fileref)
-            
-                 // delete the old robotview (unless it is the first call)
-                 urdfView = document.getElementById("urdf")
-                 if (urdfView != null) {
-                      viewer = urdfView.childNodes[0];
-                      if (viewer != null)
-                            urdfView.removeChild(viewer);
-                 }
-            
-                 // re instantiate robot view
-                 robotPanel.initialize(robotViewColor);
-            
-                 // tell the panel
-                 settingsPanel.setTheme(theme);
-            }
-            
+            robotPanel = new RobotPanel.Init( {
+                 ros : ros
+            })
+
+            var settings = settingsPanel.readConfiguration(
+                 function(settings) {
+                      setGlobalTheme(settings.theme); 
+                 }, 
+                 function (result) { 
+                      alert ("could not read the configuration from database : " + result)
+                 });  
+
         </script>
     </head>
     <body onload="init()">
@@ -540,32 +529,13 @@
                                 </div>
                             </div>
                             <div class="w-100 p-0 my-3 w-100" >
-                                <div class="col p-0 "><small>Themes</small>
-                                </div>
-                                <div class='form-check form-check-inline w-100'>
-                                    <div class="custom-control custom-radio w-100">
-                                        <input id="cyborgTheme" type="radio" class="custom-control-input"  name="themeSwitcher" onchange='setTheme(event.target.id)' checked/>
-                                        <label class="custom-control-label" for="cyborgTheme">Cyborg<br><small>clunky and dangerous</small></label>
-                                    </div>
-                                    <div class="custom-control custom-radio  w-100">
-                                        <input id="darklyTheme" type="radio" class="custom-control-input" name="themeSwitcher" onchange='setTheme(event.target.id)'/>
-                                        <label class="custom-control-label" for="darklyTheme">Darkly<br><small>an evil theme</small></label>
-                                    </div>
-                                    <div class="custom-control custom-radio  w-100">
-                                        <input id="slateTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"  
-                                            oninput="setTheme(event.target.id)"/>
-                                        <label class="custom-control-label" for="slateTheme">Slate<br><small>life-affirming grey</small></label>
-                                    </div>
-                                    <div class="custom-control custom-radio  w-100">
-                                        <input id="simplexTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"
-                                            oninput="setTheme(event.target.id)"/>
-                                        <label class="custom-control-label" for="simplexTheme">Simplex<br><small>clear and plain</small></label>
-                                    </div>
-                                    <div class="custom-control custom-radio  w-100">
-                                        <input id="sandstoneTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"
-                                            oninput="setTheme(event.target.id)"/>
-                                        <label class="custom-control-label" for="sandstoneTheme">Sandstone<br><small>dry like a desert</small></label>
-                                    </div>
+                                <div id="themesSettings" class="w-100 p-0 my-3 w-100" >
+                                    <div class="col p-0 "><small>Themes</small>
+                                       <input id="themeSlider" type="range" class="custom-range" name="range" min="1" max="6" step="1" oninput="settingsPanel.changeTheme(event)">
+                                       <div id="themeDescription" class="alert alert-primary p-3">
+                                            Lorem ipsum<br><small> dolor sit amet</small> 
+                                       </div>
+                                    </div>                         
                                 </div>
                             </div>
                             <div class="col w-100 m-0 p-0">

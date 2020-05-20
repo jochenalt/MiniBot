@@ -1,3 +1,4 @@
+                 // delete the old robotview (unless it is the first call)
 /**
  * @author Jochen Alt
  */
@@ -11,6 +12,7 @@ SettingsPanel.Init = function(options) {
 	var kinematicsPanel;
 	var poseStorePanel;
 	var programmePanel;
+	var setGlobalThemeFunc;
 
 	var readConfiguration = function(callbackSuccess, callbackFailure) {
 		var request = new ROSLIB.ServiceRequest({
@@ -77,12 +79,16 @@ SettingsPanel.Init = function(options) {
 		setTheme(configuration.theme);
 	}
 
+	var initialize = function() {
+		setThemeWidget();
+	}
+
 	var factoryReset = function() {
 		if (configuration == null) {
 			displayErr("Did not read configuration");
 			return;
 		}
-		configuration.theme = "cyborgTheme";
+		configuration.theme = "cyborg";
 		configuration.angle_unit = Constants.Database.ANGLE_UNIT_RAD;
 		apply();
 	}
@@ -96,16 +102,6 @@ SettingsPanel.Init = function(options) {
 			})
 	}
 
-	var setTheme = function(theme) {
-		if (configuration == null) {
-			displayErr("Did not read configuration");
-			return;
-		}
-		configuration.theme = theme;
-		document.getElementById(theme).checked = true;
-	}
-
-
 	var setKinematicsPanel = function(panel) {
 		kinematicsPanel = panel;
 	}
@@ -118,8 +114,21 @@ SettingsPanel.Init = function(options) {
 		programmePanel = panel;
 	}
 
+	var setThemeWidget = function() {
+		for (var idx = 0;idx < Constants.Themes.Name.length;idx++) {
+			if (Constants.Themes.Name[idx] == configuration.theme) {
+				var name = Constants.Themes.Name[idx];
+				var uppperName = name[0].toUpperCase() + name.substring(1);
+				document.getElementById("themeDescription").innerHTML = uppperName+ "<br><small>" + Constants.Themes.Description[idx];
+				document.getElementById("themeSlider").value = idx;
+				configuration.theme = Constants.Themes.Name[idx];
+				return;
+			}
+		}
+		displayErr("could not find theme " + configuration.theme);
+	}
+
 	var setWidgets = function() {
-		document.getElementById(configuration.theme).checked = true;
 		if (configuration.angle_unit == Constants.Database.ANGLE_UNIT_RAD) {
 			document.getElementById("radUnit").checked = true;
 			setRadUnit();
@@ -127,7 +136,7 @@ SettingsPanel.Init = function(options) {
 			document.getElementById("gradUnit").checked = true;
 			setGradUnit();
 		}
-
+		setThemeWidget();
 	}
 
 	function displayAlert(text, headlinewidget, widget) {
@@ -139,6 +148,23 @@ SettingsPanel.Init = function(options) {
 			widget.style.display = 'none';
 			headlinewidget.style.display = 'block';
 		}, text.length * 50);
+	}
+
+	var setGlobalThemeFunction = function(func) {
+		setGlobalThemeFunc = func;
+	}
+
+	var callSetGlobalTheme = function () {
+		setGlobalThemeFunc(configuration.theme);
+	}
+
+	var changeTheme = function(event) {
+		var themeIdx = parseInt(event.target.value);
+		configuration.theme =Constants.Themes.Name[themeIdx];
+		setThemeWidget();
+		Utils.callDelay ("theme", 1000, function() {
+			callSetGlobalTheme();
+		})
 	}
 
 	function displayInfo(t) {
@@ -160,7 +186,6 @@ SettingsPanel.Init = function(options) {
 		factoryReset: factoryReset,
 		apply: apply,
 		save: save,
-		setTheme: setTheme,
 
 		setKinematicsPanel: setKinematicsPanel,
 		setPoseStorePanel: setPoseStorePanel,
@@ -169,6 +194,10 @@ SettingsPanel.Init = function(options) {
 		setRadUnit: setRadUnit,
 		setGradUnit: setGradUnit,
 
-		setWidgets: setWidgets
+		setWidgets: setWidgets,
+		initialize : initialize,
+
+		setGlobalThemeFunction : setGlobalThemeFunction,
+		changeTheme : changeTheme
 	};
 };
