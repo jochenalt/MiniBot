@@ -46,6 +46,7 @@
         var kinematics;         // kinematics library
         var tfClient;
         var urdfClient;
+        var startMarkerClient;
 
         // Connect to ROS.
         var serverName = window.location.href.replace("http://","").split(":")[0]
@@ -60,6 +61,7 @@
 
         var settings = settingsPanel.readConfiguration(
             function(settings) {
+                settingsPanel.setWidgets();
                 setTheme(settings.theme); 
             }, 
             function (result) { 
@@ -81,6 +83,8 @@
             });
             var w = document.getElementById("RobotView").offsetWidth ;
             var h = document.getElementById("RobotView").offsetHeight;
+            if (botUrdfView)
+                botUrdfView.stop();
             botUrdfView = new ROS3D.Viewer({
                 divID: 'urdf',
                 width: w,
@@ -117,7 +121,7 @@
 
 
             // Setup the marker client.
-            var startMarkerClient = new ROS3D.InteractiveMarkerClient({
+            startMarkerClient = new ROS3D.InteractiveMarkerClient({
               ros : ros,
               tfClient : tfClient,
               // hidden : true,
@@ -149,13 +153,16 @@
                   kinematics: kinematics
                 });
 
+
                 programmePanel  = new ProgrammePanel.Init({
                   ros: ros,
                   kinematicsPanel: kinematicsPanel,
                   kinematics: kinematics,
                   poseStorePanel : poseStorePanel
                 });
-
+                settingsPanel.setKinematicsPanel(kinematicsPanel);
+                settingsPanel.setPoseStorePanel(poseStorePanel);
+                settingsPanel.setProgrammePanel(poseStorePanel);
                 poseStorePanel.setProgrammePanel(programmePanel);
 
                 kinematicsPanel.refresh();
@@ -188,16 +195,7 @@
             // botUrdfView.resize(w, h); // leave some space for the border of the container
         };
 
-        function unitChange() {
-          Utils.switchAngleUnit(1-Utils.currentAngleUnitIsGrad());
 
-          if (Utils.currentAngleUnitIsGrad())
-            document.getElementById("unitChangeButton").innerHTML = "[°]";
-          else 
-            document.getElementById("unitChangeButton").innerHTML = "[RAD]";
-
-          kinematicsPanel.switchAngleUnit(Utils.currentAngleUnitIsGrad());
-        }
 
         function switchVisibility (widget, on) {
             var cl = document.getElementById(widget).classList;
@@ -334,7 +332,7 @@
                                     <input type="range" class="custom-range" id="coord_x_slider">
                                 </div>
                                 <div class="col">
-                                    <small>x [rad]</small>
+                                    <small id="orientXUnitText">x [rad]</small>
                                     <div class="input-group input-group-sm m-0">
                                         <input type="text" class="form-control input-sm" id="orientation_x_text">
                                     </div>
@@ -350,7 +348,7 @@
                                     <input type="range" class="custom-range" id="coord_y_slider">
                                 </div>
                                 <div class="col ">
-                                    <small>y [rad]</small>
+                                    <small id="orientYUnitText" >y [rad]</small>
                                     <div class="input-group input-group-sm m-0">
                                         <input type="text" class="form-control input-sm" id="orientation_y_text">
                                     </div>
@@ -366,7 +364,7 @@
                                     <input type="range" class="custom-range" id="coord_z_slider">
                                 </div>
                                 <div class="col ">
-                                    <small>z [rad]</small>
+                                    <small id="orientZUnitText">z [rad]</small>
                                     <div class="input-group input-group-sm m-0">
                                         <input type="text" class="form-control input-sm" id="orientation_z_text">
                                     </div>
@@ -611,6 +609,20 @@
                         </div>
                     </div>
                     <div id="settingsButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
+                        <div class="w-100 p-0 my-3 w-100" >
+                            <div class="col p-0 "><small>Units</small>
+                                <div class='form-check form-check-inline w-100'>
+                                    <div class="custom-control custom-radio w-100">
+                                        <input id="radUnit" type="radio" class="custom-control-input"  name="unitSwitcher" onchange='settingsPanel.setRadUnit(event.target.id)' checked/>
+                                        <label class="custom-control-label" for="radUnit">RAD<br><small>use [radiant] for all angles</small></label>
+                                    </div>
+                                    <div class="custom-control custom-radio  w-100">
+                                        <input id="gradUnit" type="radio" class="custom-control-input" name="unitSwitcher" onchange='settingsPanel.setGradUnit(event.target.id)'/>
+                                        <label class="custom-control-label" for="gradUnit">GRAD<br><small>use [GRAD] for all angles</small></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="w-100 p-0 my-3 w-100" >
                             <div class="col p-0 "><small>Themes</small>
                             </div>

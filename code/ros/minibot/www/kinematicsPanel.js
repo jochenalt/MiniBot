@@ -194,10 +194,8 @@ KinematicsPanel.Init = function(options) {
   } 
 
   function switchAngleUnit(toGrad) {
-    refresh()
-
     Utils.switchAngleUnit(toGrad);
-    
+
     var min = -Math.PI/2;
     var max = Math.PI/2;
 
@@ -215,10 +213,24 @@ KinematicsPanel.Init = function(options) {
       inputs[idx].setAttribute('max', Utils.rad2View(maxVal[idx]));
     }
 
-    if (toGrad == 1)
+    if (toGrad == 1) {
+      document.getElementById("orientXUnitText").innerHTML = "x [GRAD]" 
+      document.getElementById("orientYUnitText").innerHTML = "y [GRAD]" 
+      document.getElementById("orientZUnitText").innerHTML = "z [GRAD]" 
+
       displayInfo ("unit of angles is grad now");
-    else
+
+    }
+    else {
+      document.getElementById("orientXUnitText").innerHTML = "x [RAD]" 
+      document.getElementById("orientYUnitText").innerHTML = "y [RAD]" 
+      document.getElementById("orientZUnitText").innerHTML = "z [RAD]" 
+
+
       displayInfo ("unit of angles is radian now");
+    }
+    // update the content of the input fields
+    refresh();
   }
 
   var setTcpView = function (tcpPose) {

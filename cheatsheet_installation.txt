@@ -216,3 +216,12 @@ in .bashrc
 rosparam set mongodb_port 62345
 rosparam set mongodb_host localhost
 rosrun mongodb_store mongodb_server.py
+
+----
+ToDos
+
+create trajectories with timewise constant waypoints: 
+  https://answers.ros.org/question/276995/fix-time-step-in-generated-moveit-trajectories/
+  https://github.com/ros-industrial/industrial_core/blob/kinetic-devel/industrial_trajectory_filters/planning_request_adapters_plugin_description.xml#L13
+
+adapt joint limits according to servos 

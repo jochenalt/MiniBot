@@ -111,11 +111,13 @@ def initDatabase ():
     db.insert_named("default_programme",programme)
   statements = programme.statements
 
-  (config, meta) = db.query_named("default_settings", Configuration._type)
+  (config, meta) = db.query_named("settings", Configuration._type)
   if config is None:
     configuration = Configuration()
-    configuration.theme="cyborgTheme"
-    db.insert_named("default_settings",configuration)
+    configuration.theme = "cyborgTheme"
+    configuration.angle_unit = Configuration.ANGLE_UNIT_RAD
+    db.insert_named("settings",configuration)
+
   
  
 
@@ -152,7 +154,7 @@ def handleDatabaseAction (request):
     statements = request.programme_store.statements
 
   if request.type == DatabaseRequest.READ_SETTINGS:
-    (config, meta) = db.query_named("default_settings",Configuration._type)
+    (config, meta) = db.query_named("settings",Configuration._type)
     if config:
       response.configuration = config
       configuration = config
@@ -160,7 +162,8 @@ def handleDatabaseAction (request):
       rospy.logerr("settings are not initialized");
 
   if request.type == DatabaseRequest.WRITE_SETTINGS:
-    db.update_named("default_settings", request.configuration)
+    print (request.configuration)
+    db.update_named("settings", request.configuration)
     configuration = request.configuration
 
   return response;

@@ -11,7 +11,9 @@ SettingsPanel.Init = function(options) {
   options = options || {};
   var ros = options.ros;
   var configuration;
-
+  var kinematicsPanel;
+  var poseStorePanel;
+  var programmePanel;
 
   var readConfiguration = function(callbackSuccess, callbackFailure) {
     var request = new ROSLIB.ServiceRequest({
@@ -64,13 +66,17 @@ SettingsPanel.Init = function(options) {
       });
   };
 
+   var setRadUnit = function() {
+		configuration.angle_unit = Constants.Database.ANGLE_UNIT_RAD;
+        Utils.switchAngleUnit(false);
+        kinematicsPanel.switchAngleUnit(Utils.currentAngleUnitIsGrad());
+   }
 
-  var loadSettings = function() {
-
-  }
-  var saveSettings = function() {
-
-  }
+   var setGradUnit = function() {
+		configuration.angle_unit = Constants.Database.ANGLE_UNIT_GRAD;
+          Utils.switchAngleUnit(true);
+          kinematicsPanel.switchAngleUnit(Utils.currentAngleUnitIsGrad());
+   }
 
   var apply = function() {
   	setTheme(configuration.theme);
@@ -82,6 +88,7 @@ SettingsPanel.Init = function(options) {
   		return;
   	}
   	configuration.theme = "cyborgTheme";
+  	configuration.angle_unit = Constants.Database.ANGLE_UNIT_RAD;
   	apply();
   }
 
@@ -103,6 +110,27 @@ SettingsPanel.Init = function(options) {
   	document.getElementById(theme).checked = true;
   }
 
+
+  	var setKinematicsPanel = function (panel) {
+	  	kinematicsPanel = panel;
+  	}
+
+	var setPoseStorePanel = function (panel) {
+  		poseStorePanel = panel;
+  	}
+
+	var setProgrammePanel = function (panel) {
+  		programmePanel = panel;
+  	}
+
+	var setWidgets = function() {
+	  	document.getElementById(configuration.theme).checked = true;
+	  	if (configuration.angle_unit = Constants.Database.ANGLE_UNIT_RAD)
+		  	document.getElementById("radUnit").checked = true;
+		  else
+		  	document.getElementById("gradUnit").checked = true;
+
+	} 
   function displayAlert(text, headlinewidget, widget) {
     widget.style.display = 'block';
     widget.innerHTML = text;
@@ -133,6 +161,15 @@ SettingsPanel.Init = function(options) {
   	factoryReset : factoryReset,
   	apply : apply,
   	save : save,
-  	setTheme : setTheme
+  	setTheme : setTheme,
+
+  	setKinematicsPanel : setKinematicsPanel,
+  	setPoseStorePanel : setPoseStorePanel,
+  	setProgrammePanel : setProgrammePanel,
+
+  	setRadUnit : setRadUnit,
+  	setGradUnit : setGradUnit,
+
+  	setWidgets : setWidgets
   };
 };
