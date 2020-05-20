@@ -217,17 +217,11 @@ KinematicsPanel.Init = function(options) {
       document.getElementById("orientXUnitText").innerHTML = "x [GRAD]" 
       document.getElementById("orientYUnitText").innerHTML = "y [GRAD]" 
       document.getElementById("orientZUnitText").innerHTML = "z [GRAD]" 
-
-      displayInfo ("unit of angles is grad now");
-
     }
     else {
       document.getElementById("orientXUnitText").innerHTML = "x [RAD]" 
       document.getElementById("orientYUnitText").innerHTML = "y [RAD]" 
       document.getElementById("orientZUnitText").innerHTML = "z [RAD]" 
-
-
-      displayInfo ("unit of angles is radian now");
     }
     // update the content of the input fields
     refresh();

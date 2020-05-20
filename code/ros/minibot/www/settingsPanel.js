@@ -125,10 +125,14 @@ SettingsPanel.Init = function(options) {
 
 	var setWidgets = function() {
 	  	document.getElementById(configuration.theme).checked = true;
-	  	if (configuration.angle_unit = Constants.Database.ANGLE_UNIT_RAD)
+	  	if (configuration.angle_unit == Constants.Database.ANGLE_UNIT_RAD) {
 		  	document.getElementById("radUnit").checked = true;
-		  else
+		  	setRadUnit();
+		  }
+		  else {
 		  	document.getElementById("gradUnit").checked = true;
+ 		  	setGradUnit();
+ 		  }
 
 	} 
   function displayAlert(text, headlinewidget, widget) {

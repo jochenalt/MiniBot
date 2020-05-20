@@ -61,7 +61,6 @@
 
         var settings = settingsPanel.readConfiguration(
             function(settings) {
-                settingsPanel.setWidgets();
                 setTheme(settings.theme); 
             }, 
             function (result) { 
@@ -131,43 +130,38 @@
             });
         }
 
-
+        // will be called after loading the DOM tree 
         function init() {
             kinematics = new Kinematics.Init({
                ros: ros
             });
 
 
+            kinematicsPanel = new KinematicsPanel.Init({
+              ros: ros
+            });
 
-            // ugly: the first invokation on the webserver requires all topics to be published
-            // wait 1s until this is sure before initiating the bot view
-            setTimeout(function() {
-
-                kinematicsPanel = new KinematicsPanel.Init({
-                  ros: ros
-                });
-
-                poseStorePanel  = new PoseStorePanel.Init({
+            poseStorePanel  = new PoseStorePanel.Init({
                   ros: ros,
                   kinematicsPanel: kinematicsPanel,
                   kinematics: kinematics
-                });
+            });
 
 
-                programmePanel  = new ProgrammePanel.Init({
+            programmePanel  = new ProgrammePanel.Init({
                   ros: ros,
                   kinematicsPanel: kinematicsPanel,
                   kinematics: kinematics,
                   poseStorePanel : poseStorePanel
-                });
-                settingsPanel.setKinematicsPanel(kinematicsPanel);
-                settingsPanel.setPoseStorePanel(poseStorePanel);
-                settingsPanel.setProgrammePanel(poseStorePanel);
-                poseStorePanel.setProgrammePanel(programmePanel);
+            });
+            settingsPanel.setKinematicsPanel(kinematicsPanel);
+            settingsPanel.setPoseStorePanel(poseStorePanel);
+            settingsPanel.setProgrammePanel(poseStorePanel);
+            poseStorePanel.setProgrammePanel(programmePanel);
 
-                kinematicsPanel.refresh();
-
-               
+            // kinematics panel needs to load the robot model first before the unit can be changed 
+            setTimeout(function() {
+                settingsPanel.setWidgets();               
             }, 1500);
 
             window.addEventListener("resize", resize);
