@@ -67,8 +67,10 @@
                  urdfView = document.getElementById("urdf")
                  if (urdfView != null) {
                       viewer = urdfView.childNodes[0];
-                      if (viewer != null)
+                      if (viewer != null) {
+                          viewer.stop();
                             urdfView.removeChild(viewer);
+                        }
                  }
             
                  // re instantiate robot view
