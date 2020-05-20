@@ -45,66 +45,65 @@ ProgrammePanel.Init = function(options) {
 
     // read the poses from the database
     var request = new ROSLIB.ServiceRequest({
-       type: Constants.Database.READ_PROGRAMME
+      type: Constants.Database.READ_PROGRAMME
     });
-   var databaseAction = new ROSLIB.Service({
-        ros : ros,
-        name : '/database',
-        serviceType : 'minibot/Database'
+    var databaseAction = new ROSLIB.Service({
+      ros: ros,
+      name: '/database',
+      serviceType: 'minibot/Database'
     });
 
-    databaseAction.callService(request, 
+    databaseAction.callService(request,
       function(result) {
         if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
           programmeItems = [];
-          for (var idx = 0;idx < result.programme_store.statements.length;idx ++) {
+          for (var idx = 0; idx < result.programme_store.statements.length; idx++) {
             var statementDB = result.programme_store.statements[idx];
             var stmt = newStatement();
             stmt.uid = statementDB.uid;
             stmt.name = statementDB.name;
-            if (statementDB.type  == StatementType.WayPoint) {
-              stmt.type  = StatementType.WayPoint;
+            if (statementDB.type == StatementType.WayPoint) {
+              stmt.type = StatementType.WayPoint;
               stmt.poseUID = statementDB.pose_uid;
               stmt.cartesicPath = statementDB.cartesic_path;
               stmt.collisionCheck = statementDB.collision_check;
               stmt.improvedPath = statementDB.improved_path;
             }
-            if (statementDB.type  == StatementType.Wait) {
-              stmt.type  = StatementType.Wait;
-              stmt.waitForSeconds = Math.floor((statementDB.kitkat.sec + minibotStatement.kitkat.nsec/1000000000)*1000)/1000;
-              minibotStatement.waitType  = statement.waitType;
+            if (statementDB.type == StatementType.Wait) {
+              stmt.type = StatementType.Wait;
+              stmt.waitForSeconds = Math.floor((statementDB.kitkat.sec + minibotStatement.kitkat.nsec / 1000000000) * 1000) / 1000;
+              minibotStatement.waitType = statement.waitType;
             }
-            if (statementDB.type  == StatementType.Comment) {
-              stmt.type  = StatementType.Comment;
+            if (statementDB.type == StatementType.Comment) {
+              stmt.type = StatementType.Comment;
               stmt.comment = statementDB.comment;
             }
           }
 
           // update DOM 
           updateWidgets();
-        }
-        else {
-          displayErr("reading programme from database failed "+ result.error_code.val);
+        } else {
+          displayErr("reading programme from database failed " + result.error_code.val);
         }
       },
-      function (result) {
-          displayErr("reading programme from database failed " + result);      
+      function(result) {
+        displayErr("reading programme from database failed " + result);
       })
   };
 
 
- var storeInDatabase = function() {
+  var storeInDatabase = function() {
 
     var statementsDB = [];
-    for (var idx = 0;idx < programmeItems.length;idx++) {
+    for (var idx = 0; idx < programmeItems.length; idx++) {
       var minibotState = new Object();
-      var statement  = programmeItems[idx];
+      var statement = programmeItems[idx];
       var statementDB = new Object();
       statementDB.uid = statement.uid;
       statementDB.name = statement.name;
-      
-      if (statement.type  == StatementType.WayPoint) {
-        statementDB.type  = StatementType.WayPoint;
+
+      if (statement.type == StatementType.WayPoint) {
+        statementDB.type = StatementType.WayPoint;
         // statementDB.pose = poseStorePanel.getPoseByUID(statement.poseUID).pose; 
         // statementDB.jointState = poseStorePanel.getJointStateByUID(statement.poseUID); 
         statementDB.pose_uid = statement.poseUID;
@@ -112,15 +111,15 @@ ProgrammePanel.Init = function(options) {
         statementDB.collision_check = statement.collisionCheck;
         statementDB.improved_path = statement.improvedPath;
       }
-      if (statement.type  == StatementType.WaitType) {
-        statementDB.type  = StatementType.WaitType;
+      if (statement.type == StatementType.WaitType) {
+        statementDB.type = StatementType.WaitType;
         statementDB.kitkat = new Object();
-        statementDB.kitkat.sec  = Math.floor(statement.waitForSeconds);
-        statementDB.kitkat.nsec  = (statement.waitForSeconds-statement.kitkat.sec)*1000000000;
-        statementDB.waitType  = statement.waitType;
+        statementDB.kitkat.sec = Math.floor(statement.waitForSeconds);
+        statementDB.kitkat.nsec = (statement.waitForSeconds - statement.kitkat.sec) * 1000000000;
+        statementDB.waitType = statement.waitType;
       }
-      if (statement.type  == StatementType.CommentType) {
-        statementDB.type  = StatementType.CommentType;
+      if (statement.type == StatementType.CommentType) {
+        statementDB.type = StatementType.CommentType;
         statementDB.comment = statement.comment;
       }
 
@@ -130,28 +129,27 @@ ProgrammePanel.Init = function(options) {
     // read the poses from the database
     var request = new ROSLIB.ServiceRequest({
       type: Constants.Database.WRITE_PROGRAMME,
-      programme_store: { 
+      programme_store: {
         statements: statementsDB
       }
     });
     var databaseAction = new ROSLIB.Service({
-        ros : ros,
-        name : '/database',
-        serviceType : 'minibot/Database'
+      ros: ros,
+      name: '/database',
+      serviceType: 'minibot/Database'
     });
 
-    databaseAction.callService(request, 
+    databaseAction.callService(request,
       function(result) {
         if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
-             displayInfo("saved");
+          displayInfo("saved");
+        } else {
+          displayErr("storing in database failed " + result.error_code.val);
         }
-        else {
-          displayErr("storing in database failed "+ result.error_code.val);
-        }
-      }, 
-      function (result) {
+      },
+      function(result) {
         displayErr("storing in database failed " + result.toString());
-    });
+      });
   }
 
 
@@ -176,8 +174,7 @@ ProgrammePanel.Init = function(options) {
     if (statement.error_code != null && statement.error_code != ErrorCode.PLANNING.SUCCESS) {
       badge.classList.remove("badge-success");
       badge.classList.add("badge-danger");
-    }
-    else {
+    } else {
       badge.classList.remove("badge-danger");
       badge.classList.add("badge-success");
     }
@@ -210,16 +207,16 @@ ProgrammePanel.Init = function(options) {
     if (statement.type == StatementType.WayPoint) {
       badge.classList.add('badge-primary');
       statement.widget.classList.add('list-group-item-success');
-      document.getElementById('cartesicPath').checked  = statement.cartesicPath;
-      document.getElementById('collisionCheck').checked  = statement.collisionCheck;
-      document.getElementById('improvedPath').checked  = statement.improvedPath;
+      document.getElementById('cartesicPath').checked = statement.cartesicPath;
+      document.getElementById('collisionCheck').checked = statement.collisionCheck;
+      document.getElementById('improvedPath').checked = statement.improvedPath;
       var waypointErrorWidget = document.getElementById('waypointError');
       if (statement.error_code != null && statement.error_code != ErrorCode.PLANNING.SUCCESS) {
-         waypointErrorWidget.style.display = 'block';
-         waypointErrorWidget.innerHTML = "Planning error " + statement.error_code;
+        waypointErrorWidget.style.display = 'block';
+        waypointErrorWidget.innerHTML = "Planning error " + statement.error_code;
       } else {
-         document.getElementById('waypointError').style.display = 'none';
-         waypointErrorWidget.innerHTML = "";
+        document.getElementById('waypointError').style.display = 'none';
+        waypointErrorWidget.innerHTML = "";
       }
     }
     if (statement.type == StatementType.Comment) {
@@ -473,7 +470,7 @@ ProgrammePanel.Init = function(options) {
   var activatePose = function(event) {
     var id = parseInt(event.target.parentNode.getAttribute('id'));
     poseStorePanel.setPoseByUID(programmeItems[id].poseUID);
-  } 
+  }
 
   // return id of active list item
   var getActiveId = function(event) {
@@ -543,8 +540,8 @@ ProgrammePanel.Init = function(options) {
       if (id < programmeItems.length)
         activateStatement(id);
       else
-        if (id > 0)
-          activateStatement(id - 1);
+      if (id > 0)
+        activateStatement(id - 1);
 
       // immediately store in database
       storeInDatabase();
@@ -841,19 +838,18 @@ ProgrammePanel.Init = function(options) {
 
   // return the id of the last continuous waypoint starting from the active statement
   var getNumberOfWaypoints = function() {
-    var id  = getActiveId();
+    var id = getActiveId();
     if (id != null && id >= 0 && programmeItems[id].type == StatementType.WayPoint) {
       var endID = -1;
-      for (var idx = id+1;idx < programmeItems.length;idx++) {
+      for (var idx = id + 1; idx < programmeItems.length; idx++) {
         if (programmeItems[idx].type == StatementType.WayPoint) {
           endID = idx;
-        }
-        else
+        } else
           break;
       }
       if (endID >= 0) {
         return endID;
-      }     
+      }
     }
     return -1;
   }
@@ -861,7 +857,7 @@ ProgrammePanel.Init = function(options) {
   // save  the programm to the server
   var planningAction = function() {
     // anything active?
-    var startID  = getActiveId();
+    var startID = getActiveId();
     if (startID == null || startID < 0 || programmeItems[startID].type != StatementType.WayPoint) {
       displayErr("select a statement first");
       return;
@@ -869,7 +865,7 @@ ProgrammePanel.Init = function(options) {
 
     var endID = getNumberOfWaypoints();
     var action = null;
-    if (endID == null || endID< 0) {
+    if (endID == null || endID < 0) {
       // only one waypoint, clear the plan
       action = new ROSLIB.Message({
         type: Constants.Planning.ACTION_CLEAR_PLAN,
@@ -877,10 +873,10 @@ ProgrammePanel.Init = function(options) {
     } else {
       // multiple waypoints, make  a plan
       action = new ROSLIB.Message({
-          type: Constants.Planning.ACTION_PLAN_PATH,
-          startStatementUID :programmeItems[startID].uid,
-          endStatementUID : programmeItems[endID].uid
-        });
+        type: Constants.Planning.ACTION_PLAN_PATH,
+        startStatementUID: programmeItems[startID].uid,
+        endStatementUID: programmeItems[endID].uid
+      });
     }
 
     var request = new ROSLIB.ServiceRequest({
@@ -888,36 +884,36 @@ ProgrammePanel.Init = function(options) {
     });
 
     var planningAction = new ROSLIB.Service({
-          ros : ros,
-          name : '/planning_action',
-          serviceType : 'minibot/PlanningAction'
+      ros: ros,
+      name: '/planning_action',
+      serviceType: 'minibot/PlanningAction'
     });
 
-    planningAction.callService(request, 
-      function(response) {     
+    planningAction.callService(request,
+      function(response) {
         var id = getActiveId();
-        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS) 
+        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS)
           programmeItems[id].error_code = response.error_code.val;
         else {
           programmeItems[id].error_code = response.error_code.val;
         }
-      }, 
-      function (response) {
-          var id = getActiveId();
-          programmeItems[id].error_code = ErrorCode.PLANNING.FAILURE;
+      },
+      function(response) {
+        var id = getActiveId();
+        programmeItems[id].error_code = ErrorCode.PLANNING.FAILURE;
       });
   }
 
 
   var simulatePlan = function() {
-    var startID  = getActiveId();
+    var startID = getActiveId();
     if (startID == null || startID < 0 || programmeItems[startID].type != StatementType.WayPoint) {
       displayErr("select a statement first");
       return;
     }
 
     var endID = getNumberOfWaypoints();
-    if (endID == null || endID< 0) {
+    if (endID == null || endID < 0) {
       displayErr("select a waypoint sequence first");
       return;
     }
@@ -927,41 +923,39 @@ ProgrammePanel.Init = function(options) {
 
     var request = new ROSLIB.ServiceRequest({
       action: {
-          type: Constants.Planning.ACTION_SIMULATE_PLAN,
-          startStatementUID :programmeItems[startID].uid,
-          endStatementUID : programmeItems[endID].uid
+        type: Constants.Planning.ACTION_SIMULATE_PLAN,
+        startStatementUID: programmeItems[startID].uid,
+        endStatementUID: programmeItems[endID].uid
       }
     });
 
     var planningAction = new ROSLIB.Service({
-          ros : ros,
-          name : '/planning_action',
-          serviceType : 'minibot/PlanningAction'
+      ros: ros,
+      name: '/planning_action',
+      serviceType: 'minibot/PlanningAction'
     });
 
-    planningAction.callService(request, 
-      function(response) {     
+    planningAction.callService(request,
+      function(response) {
         var id = getActiveId();
-        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS) 
+        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS)
           programmeItems[id].error_code = response.error_code.val;
         else {
           programmeItems[id].error_code = response.error_code.val;
         }
-      }, 
-      function (response) {
-          var id = getActiveId();
-          programmeItems[id].error_code = ErrorCode.PLANNING.FAILURE;
+      },
+      function(response) {
+        var id = getActiveId();
+        programmeItems[id].error_code = ErrorCode.PLANNING.FAILURE;
       });
   }
 
-  var forward = function(event) {
-  }
+  var forward = function(event) {}
 
-  var backward = function(event) {
-  }
+  var backward = function(event) {}
 
   var run = function(event) {
-      simulatePlan();
+    simulatePlan();
   }
 
   function displayAlert(text, headlinewidget, widget) {
@@ -984,7 +978,7 @@ ProgrammePanel.Init = function(options) {
   }
 
   function displayWarn(t) {
-    displayAlert(t, document.getElementById('programmeAlertHeadline'), document.getElementById('programmeAlertWarning'));
+    Alert(t, document.getElementById('programmeAlertHeadline'), document.getElementById('programmeAlertWarning'));
   }
 
   // call init in contructor
@@ -1000,8 +994,8 @@ ProgrammePanel.Init = function(options) {
     up: up,
     down: down,
 
-    getStatementIDByPoseUID : getStatementIDByPoseUID,
-    activateStatement :activateStatement,
+    getStatementIDByPoseUID: getStatementIDByPoseUID,
+    activateStatement: activateStatement,
 
     setCartesicPath: setCartesicPath,
     setCollisionCheck: setCollisionCheck,

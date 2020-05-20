@@ -1,323 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-
-    <link rel="icon" href="/minibot/favicon.ico" type="image/x-icon">
-    <meta charset="utf-8" />
-    <meta http-equiv="Cache-control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-    <!-- robotwebtools libraries -->
-    <script src="http://static.robotwebtools.org/threejs/current/three.min.js"></script>
-    <script src="http://static.robotwebtools.org/threejs/r89/ColladaLoader.js"></script>
-    <script src="http://static.robotwebtools.org/threejs/r89/STLLoader.js"></script>
-    <script src="http://static.robotwebtools.org/EventEmitter2/0.4.14/eventemitter2.js"></script>
-    <script src="http://static.robotwebtools.org/roslibjs/current/roslib.js"></script>
-    <script src="http://static.robotwebtools.org/ros3djs/current/ros3d.min.js"></script>
-
-    <!-- base libraries -->
-    <script language="JavaScript" src="/minibot/constants.js"></script>
-    <script language="JavaScript" src="/minibot/utils.js"></script>
-    <script language="JavaScript" src="/minibot/kinematics.js"></script>
-
-    <!-- Panels -->
-    <script language="JavaScript" src="/minibot/kinematicsPanel.js"></script>
-    <script language="JavaScript" src="/minibot/poseStorePanel.js"></script>
-    <script language="JavaScript" src="/minibot/programmePanel.js"></script>
-    <script language="JavaScript" src="/minibot/settingsPanel.js"></script>
-
-    <!-- bootstrap4 -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
-
-    <link rel="stylesheet" href="/minibot/bootstrap-cyborg.min.css">
-    
-
-    <script>
-        var botUrdfView;        // view of URDF
-        var kinematicsPanel;    // panel for  kinematics
-        var poseStorePanel;     // panel for managing poses
-        var programmePanel;     // panel for pro<gramme
-        var settingsPanel;      // panel for configuration
-        var kinematics;         // kinematics library
-        var tfClient;
-        var urdfClient;
-        var startMarkerClient;
-
-        // Connect to ROS.
-        var serverName = window.location.href.replace("http://","").split(":")[0]
-        var ros = new ROSLIB.Ros({
-            url: 'ws://' + serverName + ':9090'
-        });
-
-        settingsPanel = new SettingsPanel.Init({
-            ros: ros
-        });
-
-
-        var settings = settingsPanel.readConfiguration(
-            function(settings) {
-                setTheme(settings.theme); 
-            }, 
-            function (result) { 
-                alert ("could not read the configuration from database : " + result)
+    <head>
+        <link rel="icon" href="/minibot/favicon.ico" type="image/x-icon">
+        <meta charset="utf-8" />
+        <meta http-equiv="Cache-control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <!-- robotwebtools libraries -->
+        <script src="http://static.robotwebtools.org/threejs/current/three.min.js"></script>
+        <script src="http://static.robotwebtools.org/threejs/r89/ColladaLoader.js"></script>
+        <script src="http://static.robotwebtools.org/threejs/r89/STLLoader.js"></script>
+        <script src="http://static.robotwebtools.org/EventEmitter2/0.4.14/eventemitter2.js"></script>
+        <script src="http://static.robotwebtools.org/roslibjs/current/roslib.js"></script>
+        <script src="http://static.robotwebtools.org/ros3djs/current/ros3d.min.js"></script>
+        <!-- base libraries -->
+        <script language="JavaScript" src="/minibot/constants.js"></script>
+        <script language="JavaScript" src="/minibot/utils.js"></script>
+        <script language="JavaScript" src="/minibot/kinematics.js"></script>
+        <!-- Panels -->
+        <script language="JavaScript" src="/minibot/kinematicsPanel.js"></script>
+        <script language="JavaScript" src="/minibot/poseStorePanel.js"></script>
+        <script language="JavaScript" src="/minibot/programmePanel.js"></script>
+        <script language="JavaScript" src="/minibot/robotPanel.js"></script>
+        <script language="JavaScript" src="/minibot/settingsPanel.js"></script>
+        <!-- bootstrap4 -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="/minibot/bootstrap-cyborg.min.css">
+        <script>
+            var botUrdfView;          // view of URDF
+            var kinematicsPanel;     // panel for  kinematics
+            var poseStorePanel;      // panel for managing poses
+            var programmePanel;      // panel for pro<gramme
+            var settingsPanel;        // panel for configuration
+            var robotPanel;            // panel for the robot
+            var kinematics;            // kinematics library
+            
+            // Connect to ROS.
+            var serverName = window.location.href.replace("http://","").split(":")[0]
+            var ros = new ROSLIB.Ros({
+                 url: 'ws://' + serverName + ':9090'
             });
-
-        /**
-         * Setup all visualization elements when the page is loaded.
-         */
-
-        function initRobotView(backgroundColor) {
-            // Setup a client to listen to TFs.
-            tfClient = new ROSLIB.TFClient({
-                ros: ros,
-                angularThres: 0.0001,    // [rad] angular threshold for rotations before th UI reacts
-                transThres: 0.0001,       // [m] translation threshold, 0.1 mm
-                fixedFrame : 'base_link', // all coordinates are relative to world
-                rate : 10.0               // update frequency [Hz]
+            
+            settingsPanel = new SettingsPanel.Init({
+                 ros: ros
             });
-            var w = document.getElementById("RobotView").offsetWidth ;
-            var h = document.getElementById("RobotView").offsetHeight;
-            if (botUrdfView)
-                botUrdfView.stop();
-            botUrdfView = new ROS3D.Viewer({
-                divID: 'urdf',
-                width: w,
-                height: h,
-                antialias: true,
-                background: backgroundColor,  
-                cameraPose: {
-                    x: 0.6,
-                    y: 0.6,
-                    z: 0.8
-                },
-                displayPanAndZoomFrame : false, // no coord frame in the origin
-                lineTypePanAndZoomFrame : false,
-                antialias : true
-            });
-
-
-            // Add a grid.
-            botUrdfView.addObject(new ROS3D.Grid({
-              num_cells: 5,
-              color: '#343A30',
-              lineWidth: 1,
-              cellSize: 0.1
-            }));
-
-            // Setup the direct kinematics panel
-            urdfClient = new ROS3D.UrdfClient({
-               ros: ros,
-               tfClient: tfClient,
-               path: 'http://' + serverName + ':8085/',
-               rootObject: botUrdfView.scene,
-               loader: ROS3D.COLLADA_LOADER
-            });
-
-
-            // Setup the marker client.
-            startMarkerClient = new ROS3D.InteractiveMarkerClient({
-              ros : ros,
-              tfClient : tfClient,
-              // hidden : true,
-              topic : '/markers',
-              camera : botUrdfView.camera,
-              rootObject : botUrdfView.selectableObjects
-            });
-        }
-
-        // will be called after loading the DOM tree 
-        function init() {
-            kinematics = new Kinematics.Init({
-               ros: ros
-            });
-
-
-            kinematicsPanel = new KinematicsPanel.Init({
-              ros: ros
-            });
-
-            poseStorePanel  = new PoseStorePanel.Init({
-                  ros: ros,
-                  kinematicsPanel: kinematicsPanel,
-                  kinematics: kinematics
-            });
-
-
-            programmePanel  = new ProgrammePanel.Init({
-                  ros: ros,
-                  kinematicsPanel: kinematicsPanel,
-                  kinematics: kinematics,
-                  poseStorePanel : poseStorePanel
-            });
-            settingsPanel.setKinematicsPanel(kinematicsPanel);
-            settingsPanel.setPoseStorePanel(poseStorePanel);
-            settingsPanel.setProgrammePanel(poseStorePanel);
-            poseStorePanel.setProgrammePanel(programmePanel);
-
-            // kinematics panel needs to load the robot model first before the unit can be changed 
-            setTimeout(function() {
-                settingsPanel.setWidgets();               
-            }, 1500);
-
-            window.addEventListener("resize", resize);
-
-            // size of poseStore panel and programme panel is computed in resize
-            resize();
-        }
-
-        function resize() {
-            var outerBorder = document.getElementById("RobotViewOuter").offsetHeight;
-            var innerBorder= document.getElementById("RobotView").offsetHeight;
-            var spacer = (outerBorder-innerBorder)/2;
-
-            // resize the pose list
-            var hList = document.getElementById("posePanel").offsetHeight - document.getElementById("poseButtonPanel").offsetHeight - spacer*28;
-            document.getElementById("poseListGroup").style.height = hList.toString() +"px";
-
-            // resize the programme list
-            var hList = document.getElementById("planningPanel").offsetHeight - document.getElementById("programmButtonPanel").offsetHeight - spacer*24;
-            document.getElementById("statementListGroup").style.height = hList.toString() +"px";   
-
-            // resize robot view
-            var w = document.getElementById("RobotView").offsetWidth;
-            var h = document.getElementById("RobotView").offsetHeight
-            // botUrdfView.resize(w, h); // leave some space for the border of the container
-        };
-
-
-
-        function switchVisibility (widget, on) {
-            var cl = document.getElementById(widget).classList;
-            if (on) {
-                cl.add('d-none');
-                cl.remove('d-flex');
-            } 
-            else {
-                cl.add('d-flex');
-                cl.remove('d-none');                
+            
+            robotPanel = new RobotPanel.Init( {
+                 ros : ros
+            })
+            var settings = settingsPanel.readConfiguration(
+                 function(settings) {
+                      setTheme(settings.theme); 
+                 }, 
+                 function (result) { 
+                      alert ("could not read the configuration from database : " + result)
+                 });
+            
+            // will be called after loading the DOM tree 
+            function init() {
+                 kinematics = new Kinematics.Init({
+                     ros: ros
+                 });
+            
+            
+                 kinematicsPanel = new KinematicsPanel.Init({
+                    ros: ros
+                 });
+            
+                 poseStorePanel  = new PoseStorePanel.Init({
+                         ros: ros,
+                         kinematicsPanel: kinematicsPanel,
+                         kinematics: kinematics
+                 });
+            
+            
+            
+                 programmePanel  = new ProgrammePanel.Init({
+                         ros: ros,
+                         kinematicsPanel: kinematicsPanel,
+                         kinematics: kinematics,
+                         poseStorePanel : poseStorePanel
+                 });
+                 settingsPanel.setKinematicsPanel(kinematicsPanel);
+                 settingsPanel.setPoseStorePanel(poseStorePanel);
+                 settingsPanel.setProgrammePanel(poseStorePanel);
+                 poseStorePanel.setProgrammePanel(programmePanel);
+            
+                 // kinematics panel needs to load the robot model first before the unit can be changed 
+                 setTimeout(function() {
+                      settingsPanel.setWidgets();                    
+                 }, 1500);
+            
+                 window.addEventListener("resize", resize);
+            
+                 // size of poseStore panel and programme panel is computed in resize
+                 resize();
             }
-        }
-
-        function switchToPlan() {
-            switchVisibility('settingsPanel', true);
-            switchVisibility('kinematicsPanel', false);
-            switchVisibility('posePanel', false);
-            switchVisibility('planningPanel', false);
-        }
-        function switchToSettings() {
-            switchVisibility('settingsPanel', false);
-            switchVisibility('kinematicsPanel', true);
-            switchVisibility('posePanel', true);
-            switchVisibility('planningPanel', true);
-        }
-
-
-        // set the theme by loading the css file and reinstatitation the robotview with a proper background
-        function setTheme(str) {
-            var cssfile;
-            var robotViewColor;
-            var theme = str;
-            switch (str) {
-                case "simplexTheme":
-                    robotViewColor = '#FFFFFF';
-                    cssfile = "/minibot/bootstrap-simplex.min.css";
-                    break;
-                case "slateTheme":
-                    robotViewColor = '#ECF0F1';
-                    cssfile = "/minibot/bootstrap-slate.min.css";
-                    break;
-                case "sandstoneTheme":
-                    robotViewColor = '#F8F5F0';
-                    cssfile = "/minibot/bootstrap-sandstone.min.css";
-                    break;
-                case "darklyTheme":
-                    robotViewColor = '#ADB5BD';
-                    cssfile = "/minibot/bootstrap-darkly.min.css","css";
-                    break;
-
-                default:
-                    robotViewColor = '#222222'; 
-                    cssfile = "/minibot/bootstrap-cyborg.min.css"
-                    theme = "cyborgTheme";
-                    break;
+            
+            function resize() {
+                 var outerBorder = document.getElementById("RobotViewOuter").offsetHeight;
+                 var innerBorder= document.getElementById("RobotView").offsetHeight;
+                 var spacer = (outerBorder-innerBorder)/2;
+            
+                 // resize the pose list
+                 var hList = document.getElementById("posePanel").offsetHeight - document.getElementById("poseButtonPanel").offsetHeight - spacer*28;
+                 document.getElementById("poseListGroup").style.height = hList.toString() +"px";
+            
+                 // resize the programme list
+                 var hList = document.getElementById("planningPanel").offsetHeight - document.getElementById("programmButtonPanel").offsetHeight - spacer*24;
+                 document.getElementById("statementListGroup").style.height = hList.toString() +"px";    
+            
+                 // resize robot view
+                 var w = document.getElementById("RobotView").offsetWidth;
+                 var h = document.getElementById("RobotView").offsetHeight
+                 // botUrdfView.resize(w, h); // leave some space for the border of the container
+            };
+            
+            
+            
+            function switchVisibility (widget, on) {
+                 var cl = document.getElementById(widget).classList;
+                 if (on) {
+                      cl.add('d-none');
+                      cl.remove('d-flex');
+                 } 
+                 else {
+                      cl.add('d-flex');
+                      cl.remove('d-none');                     
+                 }
             }
-            var fileref=document.createElement("link")
-            fileref.setAttribute("rel", "stylesheet")
-            fileref.setAttribute("type", "text/css")
-            fileref.setAttribute("href", cssfile)
-            if (typeof fileref!="undefined")
-                document.getElementsByTagName("head")[0].appendChild(fileref)
-
-            // delete the old robotview (unless it is the first call)
-            urdfView = document.getElementById("urdf")
-            if (urdfView != null) {
-                viewer = urdfView.childNodes[0];
-                if (viewer != null)
-                    urdfView.removeChild(viewer);
+            
+            function switchToPlan() {
+                 switchVisibility('settingsPanel', true);
+                 switchVisibility('kinematicsPanel', false);
+                 switchVisibility('posePanel', false);
+                 switchVisibility('planningPanel', false);
             }
-
-            // re instantiate robot view
-            initRobotView(robotViewColor);
-
-            // tell the panel
-            settingsPanel.setTheme(theme);
-        }
-
-       </script>
-</head>
-
-<body onload="init()">
-
-    <div id="root" class="container-fluid  d-flex flex-column m-0 ml-3 p-0" style="height:98vh;width:98vw;" >
-        <div class="row  m-0 p-0">
-           <div class="col m-0 p-0">
-                <nav id="navbar" class="navbar navbar-expand-md navbar-dark m-0 pl-4 p-0 bg-light">
-                   <div class="mx-auto order-0">
-                        <big><a class="navbar-brand mx-auto" href="#">Minibot</a></big>
-                    </div>
-                    <div class="navbar-collapse collapse w-100 order-3 m-0 dual-collapse2">
-                        <ul class="navbar-nav ml-auto m-0 ">
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" onclick="switchToPlan()">Plan</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#">Execute</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" onclick="switchToSettings()">Settings</a>
-                            </li>
-                        </ul>
-                    </div>
-                </nav>
-            </div>
-        </div>
-
-        <div class="row flex-grow-1 m-0 p-0">
-            <div id="RobotViewOuter" class="col-6 d-flex p-0 m-0">
-                <div  id="RobotView" class="col bg-light border my-1 ml-0 mr-1 p-0">
-                    <div id="urdf" class=" p-0 m-0" ></div>
+            function switchToSettings() {
+                 switchVisibility('settingsPanel', false);
+                 switchVisibility('kinematicsPanel', true);
+                 switchVisibility('posePanel', true);
+                 switchVisibility('planningPanel', true);
+            }
+            
+            
+            // set the theme by loading the css file and reinstatitation the robotview with a proper background
+            function setTheme(str) {
+                 var cssfile;
+                 var robotViewColor;
+                 var theme = str;
+                 switch (str) {
+                      case "simplexTheme":
+                            robotViewColor = '#FFFFFF';
+                            cssfile = "/minibot/bootstrap-simplex.min.css";
+                            break;
+                      case "slateTheme":
+                            robotViewColor = '#ECF0F1';
+                            cssfile = "/minibot/bootstrap-slate.min.css";
+                            break;
+                      case "sandstoneTheme":
+                            robotViewColor = '#F8F5F0';
+                            cssfile = "/minibot/bootstrap-sandstone.min.css";
+                            break;
+                      case "darklyTheme":
+                            robotViewColor = '#ADB5BD';
+                            cssfile = "/minibot/bootstrap-darkly.min.css","css";
+                            break;
+            
+                      default:
+                            robotViewColor = '#222222'; 
+                            cssfile = "/minibot/bootstrap-cyborg.min.css"
+                            theme = "cyborgTheme";
+                            break;
+                 }
+                 var fileref=document.createElement("link")
+                 fileref.setAttribute("rel", "stylesheet")
+                 fileref.setAttribute("type", "text/css")
+                 fileref.setAttribute("href", cssfile)
+                 if (typeof fileref!="undefined")
+                      document.getElementsByTagName("head")[0].appendChild(fileref)
+            
+                 // delete the old robotview (unless it is the first call)
+                 urdfView = document.getElementById("urdf")
+                 if (urdfView != null) {
+                      viewer = urdfView.childNodes[0];
+                      if (viewer != null)
+                            urdfView.removeChild(viewer);
+                 }
+            
+                 // re instantiate robot view
+                 robotPanel.initialize(robotViewColor);
+            
+                 // tell the panel
+                 settingsPanel.setTheme(theme);
+            }
+            
+        </script>
+    </head>
+    <body onload="init()">
+        <div id="root" class="container-fluid  d-flex flex-column m-0 ml-3 p-0" style="height:98vh;width:98vw;" >
+            <div class="row  m-0 p-0">
+                <div class="col m-0 p-0">
+                    <nav id="navbar" class="navbar navbar-expand-md navbar-dark m-0 pl-4 p-0 bg-light">
+                        <div class="mx-auto order-0">
+                            <big><a class="navbar-brand mx-auto" href="#">Minibot</a></big>
+                        </div>
+                        <div class="navbar-collapse collapse w-100 order-3 m-0 dual-collapse2">
+                            <ul class="navbar-nav ml-auto m-0 ">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="switchToPlan()">Plan</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#">Execute</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="switchToSettings()">Settings</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
                 </div>
             </div>
-
-            <div id="kinematicsPanel" class="row d-flex col-2 mx-0 p-0">
-                <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
-                    <div class="w-100  mx-1 mt-1 mb-0 px-2">
-                        <div class='w-100 my-0 py-0' id='kinematicsAlertHeadline' role='alert'>Kinematics</div>
-                        <!-- <button id="unitChangeButton" type="button" class="btn-sm btn-light" onclick="unitChange()">[RAD]</button>-->
-                        <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
-                             id='kinematicsAlertSuccess' role='alert'/></div>
-                        <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
-                             id='kinematicsAlertError' role='alert'/></div>
-                        <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
-                             id='kinematicsAlertWarning' role='alert'/></div>
+            <div class="row flex-grow-1 m-0 p-0">
+                <div id="RobotViewOuter" class="col-6 d-flex p-0 m-0">
+                    <div  id="RobotView" class="col bg-light border my-1 ml-0 mr-1 p-0">
+                        <div id="urdf" class=" p-0 m-0" ></div>
                     </div>
-                    <div class="container w-100">
-                        <div class="row ">
+                </div>
+                <div id="kinematicsPanel" class="row d-flex col-2 mx-0 p-0">
+                    <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
+                        <div class="w-100  mx-1 mt-1 mb-0 px-2">
+                            <div class='w-100 my-0 py-0' id='kinematicsAlertHeadline' role='alert'>Kinematics</div>
+                            <!-- <button id="unitChangeButton" type="button" class="btn-sm btn-light" onclick="unitChange()">[RAD]</button>-->
+                            <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
+                                id='kinematicsAlertSuccess' role='alert'/></div>
+                            <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                id='kinematicsAlertError' role='alert'/></div>
+                            <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
+                                id='kinematicsAlertWarning' role='alert'/></div>
+                        </div>
+                        <div class="container w-100">
+                            <div class="row ">
                                 <div class="col">
                                     <small>x [mm]</small>
                                     <div class="input-group input-group-sm m-0">
@@ -332,8 +257,8 @@
                                     </div>
                                     <input type="range" class="custom-range" id="orientation_x_slider">
                                 </div>
-                        </div>
-                        <div class="row ">
+                            </div>
+                            <div class="row ">
                                 <div class="col">
                                     <small>y [mm]</small>
                                     <div class="input-group input-group-sm m-0">
@@ -348,8 +273,8 @@
                                     </div>
                                     <input type="range" class="custom-range" id="orientation_y_slider">
                                 </div>
-                        </div>
-                        <div class="row">
+                            </div>
+                            <div class="row">
                                 <div class="col ">
                                     <small>z [mm]</small>
                                     <div class="input-group input-group-sm m-0">
@@ -364,262 +289,259 @@
                                     </div>
                                     <input type="range" class="custom-range" id="orientation_z_slider">
                                 </div>
-                        </div>
-                    </div>
-                    <div class="container w-100">
-                        <div class="w-100">
-                            <div class="row">
-                                <div class="col ">
-                                    <small>Base</small>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control input-sm" id="base_joint_text">
-                                    </div>
-                                    <input type="range" class="custom-range" id="base_joint_slider">
-                                </div>
-                                <div class="col">
-                                    <small>Shoulder</small>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control input-sm" id="shoulder_joint_text">
-                                    </div>
-                                    <input type="range" class="custom-range" id="shoulder_joint_slider">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col">
-                                    <small>Upperarm</small>
-                                    <div class="input-group  input-group-sm">
-                                        <input type="text" class="form-control input-sm" id="upperarm_joint_text">
-                                    </div>
-                                    <input type="range" class="custom-range" id="upperarm_joint_slider">
-                                </div>
-                                <div class="col">
-                                    <small>Elbow</small>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control input-sm" id="elbow_joint_text">
-                                    </div>
-                                    <input type="range" class="custom-range" id="elbow_joint_slider">
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col">
-                                    <small>Forearm</small>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control input-sm" id="forearm_joint_text">
-                                    </div>
-                                    <input type="range" class="custom-range" id="forearm_joint_slider">
-                                </div>
-                                <div class="col">
-                                    <small>Wrist</small>
-                                    <div class="input-group  input-group-sm">
-                                        <input type="text" class="form-control input-sm" id="wrist_joint_text">
-                                    </div>
-                                    <input type="range" class="custom-range" id="wrist_joint_slider">
-                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="container w-100">
-                        <div class="w-100">
-                            <div class="row">
-                                <div class="col w-100">
-                                    <small>Knuckle</small>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control input-sm" id="knuckle_joint_text">
+                        <div class="container w-100">
+                            <div class="w-100">
+                                <div class="row">
+                                    <div class="col ">
+                                        <small>Base</small>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control input-sm" id="base_joint_text">
+                                        </div>
+                                        <input type="range" class="custom-range" id="base_joint_slider">
                                     </div>
-                                    <input type="range" class="custom-range" id="knuckle_joint_slider">
+                                    <div class="col">
+                                        <small>Shoulder</small>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control input-sm" id="shoulder_joint_text">
+                                        </div>
+                                        <input type="range" class="custom-range" id="shoulder_joint_slider">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="col">
-                                    <small>Grip</small>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control input-sm" id="finger_joint_text">
+                                <div class="row">
+                                    <div class="col">
+                                        <small>Upperarm</small>
+                                        <div class="input-group  input-group-sm">
+                                            <input type="text" class="form-control input-sm" id="upperarm_joint_text">
+                                        </div>
+                                        <input type="range" class="custom-range" id="upperarm_joint_slider">
                                     </div>
-                                    <input type="range" class="custom-range" id="finger_joint_slider">
+                                    <div class="col">
+                                        <small>Elbow</small>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control input-sm" id="elbow_joint_text">
+                                        </div>
+                                        <input type="range" class="custom-range" id="elbow_joint_slider">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <small>Forearm</small>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control input-sm" id="forearm_joint_text">
+                                        </div>
+                                        <input type="range" class="custom-range" id="forearm_joint_slider">
+                                    </div>
+                                    <div class="col">
+                                        <small>Wrist</small>
+                                        <div class="input-group  input-group-sm">
+                                            <input type="text" class="form-control input-sm" id="wrist_joint_text">
+                                        </div>
+                                        <input type="range" class="custom-range" id="wrist_joint_slider">
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="w-100 row  p-0 m-0 mb-3 d-flex btn-group ">
-                        <div class="col align-self-end w-100 m-0 p-0">
-                            <div class="btn-group col  ">
-                                <button type="button" class="btn-sm btn-primary w-100" onclick="kinematicsPanel.setZeroPosition()">Zero Position</button>
+                        <div class="container w-100">
+                            <div class="w-100">
+                                <div class="row">
+                                    <div class="col w-100">
+                                        <small>Knuckle</small>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control input-sm" id="knuckle_joint_text">
+                                        </div>
+                                        <input type="range" class="custom-range" id="knuckle_joint_slider">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <small>Grip</small>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control input-sm" id="finger_joint_text">
+                                        </div>
+                                        <input type="range" class="custom-range" id="finger_joint_slider">
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="posePanel" class="row d-flex col-2 mx-0 p-0">
-                <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
-                    <div class="col w-100 p-0 m-0 ">
-                        <div class="w-100 mx-1 mt-1 mb-0 px-2 " >
-                            <div class='w-100 my-0 py-0' 
-                                 id='poseStorageAlertHeadline' role='alert'/>Posing</div>
-                            <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
-                                 id='poseStorageAlertSuccess' role='alert'/></div>
-                            <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
-                                 id='poseStorageAlertError' role='alert'/></div>
-                            <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
-                                 id='poseStorageAlertWarning' role='alert'/></div>
-                        </div>
-                        <div id="poseListGroup" class="overflow-auto  mt-4 mx-2" >
-                            <ul class="list-group "  id="poseStoreList">
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="w-100 row p-0 m-0 mb-3 d-flex align-self-end ">
-                        <div id="poseButtonPanel" class="col  w-100 m-0 p-0">
-                            <div class="btn-group col  ">
-                              <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.newPose()">New</button>
-                              <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.storePose()">Store</button>
-                              <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.deletePose()">Delete</button>
-                            </div>
-                            <div class="btn-group col">
-                              <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.renamePose()">Rename</button>
-                              <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.up()">Up</button>
-                              <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.down()">Down</button>
+                        <div class="w-100 row  p-0 m-0 mb-3 d-flex btn-group ">
+                            <div class="col align-self-end w-100 m-0 p-0">
+                                <div class="btn-group col  ">
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="kinematicsPanel.setZeroPosition()">Zero Position</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div id="planningPanel" class="row d-flex col-2 mx-0 p-0">
-                <div class="row d-flex bg-light border my-1 ml-0 mr-0 p-0">
-                    <div class="col w-100 p-0 m-0 ">
-                        <div class="w-100 mx-1 mt-1 mb-0 px-2 " >
-                            <div class='w-100 my-0 py-0' 
-                                id='programmeAlertHeadline' role='alert'/>Programme</div>
-                            <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
-                                 id='programmeAlertSuccess' role='alert'/></div>
-                            <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
-                                 id='programmeAlertError' role='alert'/></div>
-                            <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
-                                 id='programmeAlertWarning' role='alert'/></div>
+                <div id="posePanel" class="row d-flex col-2 mx-0 p-0">
+                    <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
+                        <div class="col w-100 p-0 m-0 ">
+                            <div class="w-100 mx-1 mt-1 mb-0 px-2 " >
+                                <div class='w-100 my-0 py-0' 
+                                    id='poseStorageAlertHeadline' role='alert'/>Posing</div>
+                                <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
+                                    id='poseStorageAlertSuccess' role='alert'/></div>
+                                <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                    id='poseStorageAlertError' role='alert'/></div>
+                                <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
+                                    id='poseStorageAlertWarning' role='alert'/></div>
+                            </div>
+                            <div id="poseListGroup" class="overflow-auto  mt-4 mx-2" >
+                                <ul class="list-group "  id="poseStoreList">
+                                </ul>
+                            </div>
                         </div>
-                        <div id="statementListGroup" class=" overflow-auto mt-4 mx-2" >
-                            <ul class="list-group "  id="programmeList">
-                            </ul>
-                        </div>
-                    </div>
-                    <div id="programmButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
-                        <div class="w-100 p-0 my-3" style='height:25vh;' >
-                            <div class="p-0 m-0" id='detailsWaypointStatement'  style="display:none;">
-                                <small>Waypoint</small>
-                                <div class="mt-2 p-0">
-                                    <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
-                                         id='waypointError' role='alert'/></div>
-                                    <div class="custom-control custom-checkbox custom-control-inline">
-                                      <input id="cartesicPath" type="checkbox" class="custom-control-input" onclick="programmePanel.setCartesicPath(event)">
-                                      <label class="custom-control-label" for="cartesicPath">cartesic</label>
-                                    </div>
-                                    <div class="custom-control custom-checkbox custom-control-inline">
-                                      <input id="collisionCheck" type="checkbox" class="custom-control-input" onclick="programmePanel.setCollisionCheck(event)">
-                                      <label class="custom-control-label" for="collisionCheck">collision check</label>
-                                    </div>
-                                    <div class="custom-control custom-checkbox custom-control-inline">
-                                      <input id="improvedPath" type="checkbox" class="custom-control-input" onclick="programmePanel.setImprovedPath(event)">
-                                      <label class="custom-control-label" for="improvedPath">improved</label>
-                                    </div>
-                                  <div class="btn-group col my-2 p-0">
-                                    <button type="button" class="btn-sm btn-primary w-100" onclick='programmePanel.assignActivePose()'>Assign active pose</button>
-                                  </div>
+                        <div class="w-100 row p-0 m-0 mb-3 d-flex align-self-end ">
+                            <div id="poseButtonPanel" class="col  w-100 m-0 p-0">
+                                <div class="btn-group col  ">
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.newPose()">New</button>
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.storePose()">Store</button>
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.deletePose()">Delete</button>
+                                </div>
+                                <div class="btn-group col">
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.renamePose()">Rename</button>
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.up()">Up</button>
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.down()">Down</button>
                                 </div>
                             </div>
-                            <div class='p-0 m-0' id='detailsWaitStatement' style="display:none;">
-                                <small>Wait</small>
-                                <div class='form-check'>
-                                    <div class="custom-control custom-radio">
-                                        <input id="dontWait" type="radio" class="custom-control-input"  name="WaitStatementType" onchange='programmePanel.setWaitTypeNoWait(event)' checked/>
-                                        <label class="custom-control-label" for="dontWait">No Wait</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="planningPanel" class="row d-flex col-2 mx-0 p-0">
+                    <div class="row d-flex bg-light border my-1 ml-0 mr-0 p-0">
+                        <div class="col w-100 p-0 m-0 ">
+                            <div class="w-100 mx-1 mt-1 mb-0 px-2 " >
+                                <div class='w-100 my-0 py-0' 
+                                    id='programmeAlertHeadline' role='alert'/>Programme</div>
+                                <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
+                                    id='programmeAlertSuccess' role='alert'/></div>
+                                <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                    id='programmeAlertError' role='alert'/></div>
+                                <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
+                                    id='programmeAlertWarning' role='alert'/></div>
+                            </div>
+                            <div id="statementListGroup" class=" overflow-auto mt-4 mx-2" >
+                                <ul class="list-group "  id="programmeList">
+                                </ul>
+                            </div>
+                        </div>
+                        <div id="programmButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
+                            <div class="w-100 p-0 my-3" style='height:25vh;' >
+                                <div class="p-0 m-0" id='detailsWaypointStatement'  style="display:none;">
+                                    <small>Waypoint</small>
+                                    <div class="mt-2 p-0">
+                                        <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                            id='waypointError' role='alert'/></div>
+                                        <div class="custom-control custom-checkbox custom-control-inline">
+                                            <input id="cartesicPath" type="checkbox" class="custom-control-input" onclick="programmePanel.setCartesicPath(event)">
+                                            <label class="custom-control-label" for="cartesicPath">cartesic</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox custom-control-inline">
+                                            <input id="collisionCheck" type="checkbox" class="custom-control-input" onclick="programmePanel.setCollisionCheck(event)">
+                                            <label class="custom-control-label" for="collisionCheck">collision check</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox custom-control-inline">
+                                            <input id="improvedPath" type="checkbox" class="custom-control-input" onclick="programmePanel.setImprovedPath(event)">
+                                            <label class="custom-control-label" for="improvedPath">improved</label>
+                                        </div>
+                                        <div class="btn-group col my-2 p-0">
+                                            <button type="button" class="btn-sm btn-primary w-100" onclick='programmePanel.assignActivePose()'>Assign active pose</button>
+                                        </div>
                                     </div>
-                                    <div class="custom-control custom-radio">
-                                        <input id="waitForSeconds" type="radio" class="custom-control-input"  name="WaitStatementType" onchange='programmePanel.setWaitTypeWaitForSeconds(event)'/>
-                                        <label class="custom-control-label" for="waitForSeconds">Wait for </label>
-                                        <div class="input-group">
-                                            <input id="secondsToWait" type="text" class="form-control w-2" placeholder="how many" onkeydown='programmePanel.setWaitingSeconds(event)'/>
-                                            <div class="input-group-append">
-                                                <span class="input-group-text">seconds</span>
+                                </div>
+                                <div class='p-0 m-0' id='detailsWaitStatement' style="display:none;">
+                                    <small>Wait</small>
+                                    <div class='form-check'>
+                                        <div class="custom-control custom-radio">
+                                            <input id="dontWait" type="radio" class="custom-control-input"  name="WaitStatementType" onchange='programmePanel.setWaitTypeNoWait(event)' checked/>
+                                            <label class="custom-control-label" for="dontWait">No Wait</label>
+                                        </div>
+                                        <div class="custom-control custom-radio">
+                                            <input id="waitForSeconds" type="radio" class="custom-control-input"  name="WaitStatementType" onchange='programmePanel.setWaitTypeWaitForSeconds(event)'/>
+                                            <label class="custom-control-label" for="waitForSeconds">Wait for </label>
+                                            <div class="input-group">
+                                                <input id="secondsToWait" type="text" class="form-control w-2" placeholder="how many" onkeydown='programmePanel.setWaitingSeconds(event)'/>
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">seconds</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="custom-control custom-radio">
+                                            <input id="waitForConfirmation"  type="radio" class="custom-control-input"  name="WaitStatementType" 
+                                                oninput="programmePanel.setWaitTypeWaitForConfirmation(event)"/>
+                                            <label class="custom-control-label" for="waitForConfirmation">Wait for confirmation </label>
+                                            <div class="input-group">
+                                                <textarea id ='waitConfirmationText' class='form-control' placeholder='valuable advice' onkeydown='programmePanel.setConfirmationText(event)'></textarea>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="custom-control custom-radio">
-                                        <input id="waitForConfirmation"  type="radio" class="custom-control-input"  name="WaitStatementType" 
-                                                oninput="programmePanel.setWaitTypeWaitForConfirmation(event)"/>
-                                        <label class="custom-control-label" for="waitForConfirmation">Wait for confirmation </label>
-                                        <div class="input-group">
-                                            <textarea id ='waitConfirmationText' class='form-control' placeholder='valuable advice' onkeydown='programmePanel.setConfirmationText(event)'></textarea>
+                                </div>
+                                <div class="p-0 m-0" id='detailsCommentStatement' style="display:none;">
+                                    <small>Comment</small>
+                                    <div class="input-group">
+                                        <textarea id="commentStatement" class="form-control input-sm" placeholder="valuable advice" oninput="programmePanel.setComment(event)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col w-100 m-0 p-0">
+                                <div class="col p-0"><small>Action Management</small></div>
+                                <div class="btn-group col p-0">
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWaypoint()">Waypoint</button>
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWait()" >Wait</button>
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newComment()">Comment</button>
+                                </div>
+                                <div class="btn-group col p-0">
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.deleteStatement()">Delete</button>
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.rename()">Rename</button>
+                                </div>
+                                <div class="btn-group col p-0">
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.up()">Up</button>
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.down()">Down</button>
+                                </div>
+                                <div class="col p-0"><small>Simulation</small></div>
+                                <div class="btn-group col p-0 mb-3">
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.forward()">Forward</button>
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.backward()">Back</button>
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.run()">Run</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="settingsPanel" class="d-none col mx-0 p-0 pl-0"  >
+                    <div class="row d-flex flex-grow-1 bg-light border my-1 ml-0 mr-0 p-0">
+                        <div class="col d-flex w-100 p-0 m-0 ">
+                            <div class="w-100 mx-1 mt-1 mb-0 pl-2 " >
+                                <div class='w-100 my-0 py-0' 
+                                    id='settingsAlertHeadline' role='alert'/>Settings</div>
+                                <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
+                                    id='settingsAlertSuccess' role='alert'/></div>
+                                <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                    id='settingsAlertError' role='alert'/></div>
+                                <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
+                                    id='settingsAlertWarning' role='alert'/></div>
+                            </div>
+                        </div>
+                        <div id="settingsButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
+                            <div class="w-100 p-0 my-3 w-100" >
+                                <div class="col p-0 ">
+                                    <small>Units</small>
+                                    <div class='form-check form-check-inline w-100'>
+                                        <div class="custom-control custom-radio w-100">
+                                            <input id="radUnit" type="radio" class="custom-control-input"  name="unitSwitcher" onchange='settingsPanel.setRadUnit(event.target.id)' checked/>
+                                            <label class="custom-control-label" for="radUnit">RAD<br><small>use [radiant] for all angles</small></label>
+                                        </div>
+                                        <div class="custom-control custom-radio  w-100">
+                                            <input id="gradUnit" type="radio" class="custom-control-input" name="unitSwitcher" onchange='settingsPanel.setGradUnit(event.target.id)'/>
+                                            <label class="custom-control-label" for="gradUnit">GRAD<br><small>use [GRAD] for all angles</small></label>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="p-0 m-0" id='detailsCommentStatement' style="display:none;">
-                                <small>Comment</small>
-                                <div class="input-group">
-                                  <textarea id="commentStatement" class="form-control input-sm" placeholder="valuable advice" oninput="programmePanel.setComment(event)"></textarea>
+                            <div class="w-100 p-0 my-3 w-100" >
+                                <div class="col p-0 "><small>Themes</small>
                                 </div>
-                            </div>
-                        </div> 
-                        <div class="col w-100 m-0 p-0">
-                            <div class="col p-0"><small>Action Management</small></div>
-                            <div class="btn-group col p-0">
-                              <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWaypoint()">Waypoint</button>
-                              <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWait()" >Wait</button>
-                              <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newComment()">Comment</button>
-                            </div>
-                            <div class="btn-group col p-0">
-                                <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.deleteStatement()">Delete</button>
-                                <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.rename()">Rename</button>
-                            </div>
-                            <div class="btn-group col p-0">
-                              <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.up()">Up</button>
-                              <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.down()">Down</button>
-                            </div>
-                            <div class="col p-0"><small>Simulation</small></div>
-                            <div class="btn-group col p-0 mb-3">
-                              <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.forward()">Forward</button>
-                              <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.backward()">Back</button>
-                              <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.run()">Run</button>
-                            </div>   
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="settingsPanel" class="d-none col mx-0 p-0 pl-0"  >
-                <div class="row d-flex flex-grow-1 bg-light border my-1 ml-0 mr-0 p-0">
-                    <div class="col d-flex w-100 p-0 m-0 ">
-                        <div class="w-100 mx-1 mt-1 mb-0 pl-2 " >
-                            <div class='w-100 my-0 py-0' 
-                                id='settingsAlertHeadline' role='alert'/>Settings</div>
-                            <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
-                                 id='settingsAlertSuccess' role='alert'/></div>
-                            <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
-                                 id='settingsAlertError' role='alert'/></div>
-                            <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
-                                 id='settingsAlertWarning' role='alert'/></div>
-                        </div>
-                    </div>
-                    <div id="settingsButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
-                        <div class="w-100 p-0 my-3 w-100" >
-                            <div class="col p-0 "><small>Units</small>
-                                <div class='form-check form-check-inline w-100'>
-                                    <div class="custom-control custom-radio w-100">
-                                        <input id="radUnit" type="radio" class="custom-control-input"  name="unitSwitcher" onchange='settingsPanel.setRadUnit(event.target.id)' checked/>
-                                        <label class="custom-control-label" for="radUnit">RAD<br><small>use [radiant] for all angles</small></label>
-                                    </div>
-                                    <div class="custom-control custom-radio  w-100">
-                                        <input id="gradUnit" type="radio" class="custom-control-input" name="unitSwitcher" onchange='settingsPanel.setGradUnit(event.target.id)'/>
-                                        <label class="custom-control-label" for="gradUnit">GRAD<br><small>use [GRAD] for all angles</small></label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="w-100 p-0 my-3 w-100" >
-                            <div class="col p-0 "><small>Themes</small>
-                            </div>
                                 <div class='form-check form-check-inline w-100'>
                                     <div class="custom-control custom-radio w-100">
                                         <input id="cyborgTheme" type="radio" class="custom-control-input"  name="themeSwitcher" onchange='setTheme(event.target.id)' checked/>
@@ -631,39 +553,37 @@
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
                                         <input id="slateTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"  
-                                                oninput="setTheme(event.target.id)"/>
+                                            oninput="setTheme(event.target.id)"/>
                                         <label class="custom-control-label" for="slateTheme">Slate<br><small>life-affirming grey</small></label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
                                         <input id="simplexTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"
-                                                oninput="setTheme(event.target.id)"/>
+                                            oninput="setTheme(event.target.id)"/>
                                         <label class="custom-control-label" for="simplexTheme">Simplex<br><small>clear and plain</small></label>
                                     </div>
                                     <div class="custom-control custom-radio  w-100">
                                         <input id="sandstoneTheme"  type="radio" class="custom-control-input"  name="themeSwitcher"
-                                                oninput="setTheme(event.target.id)"/>
+                                            oninput="setTheme(event.target.id)"/>
                                         <label class="custom-control-label" for="sandstoneTheme">Sandstone<br><small>dry like a desert</small></label>
                                     </div>
                                 </div>
-                        </div> 
-                        <div class="col w-100 m-0 p-0">
-                            <div class="col p-0"><small>Danger Zone</small></div>
-                            <div class="btn-group col p-0">
-                               <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.apply()">Apply</button>
                             </div>
-                            <div class="btn-group col p-0">
-                               <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.factoryReset()">Factory Reset</button>
-                            </div>
-                            <div class="btn-group col p-0">
-                               <button type="button" class="btn-sm btn-primary w-100" onclick="settingsPanel.save()" >Save</button>
+                            <div class="col w-100 m-0 p-0">
+                                <div class="col p-0"><small>Danger Zone</small></div>
+                                <div class="btn-group col p-0">
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.apply()">Apply</button>
+                                </div>
+                                <div class="btn-group col p-0">
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.factoryReset()">Factory Reset</button>
+                                </div>
+                                <div class="btn-group col p-0">
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="settingsPanel.save()" >Save</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
-    </div>
-
-</body>
+    </body>
 </html>
