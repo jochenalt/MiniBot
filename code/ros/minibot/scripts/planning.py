@@ -27,7 +27,6 @@ from constants import Constants
 from minibot.msg import Statement
 from minibot.msg import Programme
 from minibot.msg import ErrorCodes
-from minibot.msg import Action
 from minibot.msg import MinibotState
 from minibot.msg import PoseStorage
 from minibot.msg import Configuration
@@ -271,16 +270,16 @@ def handlePlanningAction(request):
   response = PlanningActionResponse()
   response.error_code.val = ErrorCodes.SUCCESS;
 
-  if request.action.type == Action.PLAN_PATH:
+  if request.type == PlanningActionRequest.PLAN_PATH:
   
-    startID = getStatementIDByUID(request.action.startStatementUID)
-    endID = getStatementIDByUID(request.action.endStatementUID)
+    startID = getStatementIDByUID(request.startStatementUID)
+    endID = getStatementIDByUID(request.endStatementUID)
     if startID == -1:
-      rospy.logerr("statement with uid={0} does not exist".format(request.action.startStatementUID) )
+      rospy.logerr("statement with uid={0} does not exist".format(request.startStatementUID) )
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
     if endID == -1:
-      rospy.logerr("statement with uid={0} does not exist".format(request.action.endStatementUID))
+      rospy.logerr("statement with uid={0} does not exist".format(request.endStatementUID))
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
 
@@ -291,7 +290,7 @@ def handlePlanningAction(request):
     display_trajectory.trajectory.append(localPlan)
     display_trajectory_publisher.publish(display_trajectory);
 
-  if request.action.type == Action.CLEAR_PLAN:
+  if request.type == PlanningActionRequest.CLEAR_PLAN:
     # dont know how to delete a plan and remove the displayed trajectory!?
     # so set start and end point to current position
     groupArm.clear_pose_targets()
@@ -299,7 +298,7 @@ def handlePlanningAction(request):
     groupArm.set_joint_value_target(groupArm.get_current_joint_values())
     localPlan = groupArm.plan()
 
-  if request.action.type == Action.SIMULATE_PLAN:
+  if request.type == PlanningActionRequest.SIMULATE_PLAN:
     groupArm.execute(localPlan, wait=True)
 
   return response

@@ -865,23 +865,23 @@ ProgrammePanel.Init = function(options) {
 
     var endID = getNumberOfWaypoints();
     var action = null;
+
+    var request = null;
+
     if (endID == null || endID < 0) {
       // only one waypoint, clear the plan
-      action = new ROSLIB.Message({
+      request = new ROSLIB.ServiceRequest({
         type: Constants.Planning.ACTION_CLEAR_PLAN,
       });
     } else {
       // multiple waypoints, make  a plan
-      action = new ROSLIB.Message({
+      request = new ROSLIB.ServiceRequest({
         type: Constants.Planning.ACTION_PLAN_PATH,
         startStatementUID: programmeItems[startID].uid,
         endStatementUID: programmeItems[endID].uid
       });
     }
 
-    var request = new ROSLIB.ServiceRequest({
-      action: action
-    });
 
     var planningAction = new ROSLIB.Service({
       ros: ros,

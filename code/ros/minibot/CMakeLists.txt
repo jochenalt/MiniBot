@@ -54,7 +54,6 @@ add_message_files(
    FILES
    Statement.msg
    Programme.msg
-   Action.msg
    ErrorCodes.msg
    MinibotState.msg
    PoseStorage.msg
