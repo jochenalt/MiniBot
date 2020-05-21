@@ -18,6 +18,8 @@ import moveit_msgs.msg
 import geometry_msgs.msg
 from std_msgs.msg import String
 from moveit_msgs.msg import RobotState
+from moveit_msgs.msg import RobotTrajectory
+
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 
@@ -33,6 +35,10 @@ from minibot.msg import Configuration
 from minibot.srv import PlanningAction, PlanningActionRequest, PlanningActionResponse
 from minibot.srv import Database, DatabaseRequest, DatabaseResponse
 
+class GlobalPlanItem:
+  start_id = 0
+  end_id = 0
+  localPlan = None
 
 statements = []   # memory cache of all programme statements
 robotstates = []  # memory cache of all poses
@@ -42,8 +48,8 @@ groupGripper = None   # group of all gripper links
 
 robot = None          # RobotCommander Object
 scene = None          # Planing scene Object
-localPlan  = None     # latest plan
-globalPlans = [];
+localPlan  = None     # latest plan on a local sequence of waypoints, contains the currently computed plan
+globalPlan = [];      # entire plan of the full programme 
 configuration = None  # settings
 
 def init():
@@ -94,6 +100,10 @@ def init():
   # in case the database is empty, initialize
   initDatabase()
 
+  # initiate a global planning process
+  rospy.loginfo("create a global plan")
+  createGlobalPlan()
+
   rospy.loginfo("minibot planning node initialized")
 
 def initDatabase ():
@@ -119,7 +129,6 @@ def initDatabase ():
     db.insert_named("settings",configuration)
 
   
- 
 
 def handleDatabaseAction (request):
   global statements, robotstates
@@ -219,7 +228,30 @@ def mergeRobotTrajectory(trajA,trajB):
 
   return result
 
+# creates a plan of the entire programme
+def createGlobalPlan():
+  global statements, globalPlan
+  startID = None
+  globalPlan = [];
+  for idx in range(0,len(statements)):
+    if startID is None and statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
+      startID = idx
+    elif startID is not None and statements[idx].type != Statement.STATEMENT_TYPE_WAYPOINT and idx == startID+1:
+      # we have only one waypoint
+      startID = None
+    elif startID is not None and statements[idx].type != Statement.STATEMENT_TYPE_WAYPOINT and idx > startID+1:
+      # we found a local sequence of waypoints
+      localPlan = createLocalPlan(startID, idx-1)
+      globalPlan = GlobalPlanItem()
+      globalPlan.start_id = startID
+      globalPlan.end_id = idx-1
+      globalPlan.plan = localPlan;
 
+      # be ready for the next plan
+      startID = None
+
+
+# returns a local plan for all waypoints between startID and endID
 def createLocalPlan(startID, endID):
   global statements, groupArm
 
@@ -300,6 +332,9 @@ def handlePlanningAction(request):
 
   if request.type == PlanningActionRequest.SIMULATE_PLAN:
     groupArm.execute(localPlan, wait=True)
+
+  if request.type == PlanningActionRequest.GLOBAL_PLAN:
+    createGlobalPlan()
 
   return response
 

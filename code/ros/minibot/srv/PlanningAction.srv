@@ -1,9 +1,10 @@
-uint8 FORWARD=0
-uint8 BACKWARD=1
-uint8 RUN=2
-uint8 PLAN_PATH=3
-uint8 CLEAR_PLAN=4
-uint8 SIMULATE_PLAN=5
+uint8 FORWARD=0         # simulate one waypoint forward
+uint8 BACKWARD=1        # simulate one waypoint backward
+uint8 RUN=2             # run a local plan
+uint8 PLAN_PATH=3       # compute a local plan
+uint8 CLEAR_PLAN=4      # delete a local plan
+uint8 SIMULATE_PLAN=5   # simulate a local plan
+uint8 GLOBAL_PLAN=6    	# initiate a global plan
 uint8 type
 
 uint8 startStatementUID

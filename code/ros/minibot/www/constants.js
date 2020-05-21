@@ -51,7 +51,9 @@ Constants.Planning = {
 		FIXED_FRAME : 'base_link', 			// first link 
 		ACTION_PLAN_PATH : 3,				// plan and display the path		
 		ACTION_CLEAR_PLAN : 4,				// clear the last plan		
-		ACTION_SIMULATE_PLAN : 5			// simulate the last plan
+		ACTION_SIMULATE_PLAN : 5,			// simulate the last plan
+		ACTION_GLOBAL_PLAN : 6				// create a plan of the entire programm
+
 };
 
 Constants.Database = {
