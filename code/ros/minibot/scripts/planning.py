@@ -41,9 +41,10 @@ robotstates = []  # memory cache of all poses
 groupArm = None       # group of all arm links
 groupGripper = None   # group of all gripper links
 
-robot = None      # RobotCommander Object
-scene = None      # Planing scene Object
-plan  = []       # latest plan
+robot = None          # RobotCommander Object
+scene = None          # Planing scene Object
+localPlan  = None     # latest plan
+globalPlans = [];
 configuration = None  # settings
 
 def init():
@@ -78,7 +79,7 @@ def init():
   groupArm.clear_pose_targets()
   groupArm.set_start_state_to_current_state()
   groupArm.set_joint_value_target(groupArm.get_current_joint_values())
-  plan = groupArm.plan()
+  localPlan = groupArm.plan()
 
   # errors and messages
   msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
@@ -219,9 +220,52 @@ def mergeRobotTrajectory(trajA,trajB):
 
   return result
 
+
+def createLocalPlan(startID, endID):
+  global statements, groupArm
+
+  robotState = RobotState()
+  robotState.joint_state.header = Header()
+  robotState.joint_state.header.stamp = rospy.Time.now()
+
+  startRS = getRobotState(statements[startID].pose_uid)
+  endRS = getRobotState(statements[endID].pose_uid)
+
+  # compute waypoints, but leave out the first one, which is the start state
+  groupArm.clear_pose_targets()
+  if statements[startID].cartesic_path:
+    waypoints = []
+    robotState.joint_state = startRS.jointState
+    groupArm.set_start_state(copy.copy(robotState))
+    for idx in range(startID, endID+1):
+      waypointRS = getRobotState(statements[idx].pose_uid)
+      waypoints.append(copy.copy(waypointRS.pose))
+
+    (localPlan,fraction) = groupArm.compute_cartesian_path(waypoints,0.01,0)
+    if fraction < 1.0:
+      rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
+  else:
+    localPlan = None
+    for idx in range(startID, endID):
+      startRS  = getRobotState(statements[idx].pose_uid)
+      endRS = getRobotState(statements[idx+1].pose_uid)
+      robotState.joint_state = copy.copy(startRS.jointState)
+      groupArm.set_start_state(copy.copy(robotState))
+      groupArm.set_joint_value_target(copy.copy(endRS.jointState))
+
+      if idx == startID:           
+        localPlan = groupArm.plan()
+      else:
+        planTmp = groupArm.plan()
+        localPlan = mergeRobotTrajectory(localPlan, planTmp)
+
+    localPlan= groupArm.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
+    return localPlan
+
+
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, groupArm, robot,display_trajectory_publisher, plan
+  global statements, groupArm, robot,display_trajectory_publisher, localPlan
 
   # think positive
   response = PlanningActionResponse()
@@ -240,58 +284,11 @@ def handlePlanningAction(request):
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
 
-    robotState = RobotState()
-    robotState.joint_state.header = Header()
-    robotState.joint_state.header.stamp = rospy.Time.now()
-
-    startRS = getRobotState(statements[startID].pose_uid)
-    endRS = getRobotState(statements[endID].pose_uid)
-
-    if startRS is None:
-      rospy.logerr("pose with uid {0} does not exist".format(statements[startID].pose_uid))
-      response.error_code.val = ErrorCodes.UNKNOWN_POSE_UID
-      return None
-    if endRS is None:
-      rospy.logerr("pose with uid {0} does not exist".format(statements[endID].pose_uid))
-      response.error_code.val = ErrorCodes.UNKNOWN_POSE_UID
-      return None
-
-    # compute waypoints, but leave out the first one, which is the start state
-    groupArm.clear_pose_targets()
-    waypoints = []
-
     display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-
-    if statements[startID].cartesic_path:
-      robotState.joint_state = startRS.jointState
-      groupArm.set_start_state(copy.copy(robotState))
-      for idx in range(startID, endID+1):
-        waypointRS = getRobotState(statements[idx].pose_uid)
-        waypoints.append(copy.copy(waypointRS.pose))
-
-      (plan,fraction) = groupArm.compute_cartesian_path(waypoints,0.01,0)
-      if fraction < 1.0:
-        rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
-    else:
-      plan = None
-      for idx in range(startID, endID):
-        startRS  = getRobotState(statements[idx].pose_uid)
-        endRS = getRobotState(statements[idx+1].pose_uid)
-        robotState.joint_state = copy.copy(startRS.jointState)
-        groupArm.set_start_state(copy.copy(robotState))
-        #groupArm.set_pose_target(copy.copy(endRS.pose), "tool0_link")
-        groupArm.set_joint_value_target(copy.copy(endRS.jointState))
-
-        if idx == startID:           
-          plan = groupArm.plan()
-        else:
-          planTmp = groupArm.plan()
-          plan = mergeRobotTrajectory(plan, planTmp)
-
-      plan= groupArm.retime_trajectory(robot.get_current_state(), plan, 1.0)
-      display_trajectory.trajectory.append(plan)
+    localPlan = createLocalPlan(startID, endID); 
 
     ## visualization of plan
+    display_trajectory.trajectory.append(localPlan)
     display_trajectory_publisher.publish(display_trajectory);
 
   if request.action.type == Action.CLEAR_PLAN:
@@ -300,10 +297,10 @@ def handlePlanningAction(request):
     groupArm.clear_pose_targets()
     groupArm.set_start_state_to_current_state()
     groupArm.set_joint_value_target(groupArm.get_current_joint_values())
-    plan = groupArm.plan()
+    localPlan = groupArm.plan()
 
   if request.action.type == Action.SIMULATE_PLAN:
-    groupArm.execute(plan, wait=True)
+    groupArm.execute(localPlan, wait=True)
 
   return response
 
