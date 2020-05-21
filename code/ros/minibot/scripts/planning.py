@@ -162,7 +162,6 @@ def handleDatabaseAction (request):
       rospy.logerr("settings are not initialized");
 
   if request.type == DatabaseRequest.WRITE_SETTINGS:
-    print (request.configuration)
     db.update_named("settings", request.configuration)
     configuration = request.configuration
 
@@ -188,6 +187,7 @@ def getStatementIDByUID(uid):
   return -1
 
 #  return a merge of two trajectories of type moveit_msgs/RobotTrajectory
+# timeing (i.e. time_from_start) is adapted accordingly 
 def mergeRobotTrajectory(trajA,trajB):
   result = copy.deepcopy(trajA);
   # check compatibility

@@ -68,7 +68,6 @@
                  if (urdfView != null) {
                       viewer = urdfView.childNodes[0];
                       if (viewer != null) {
-                          viewer.stop();
                             urdfView.removeChild(viewer);
                         }
                  }
@@ -151,13 +150,11 @@
             
             function switchToPlan() {
                  switchVisibility('settingsPanel', true);
-                 switchVisibility('kinematicsPanel', false);
                  switchVisibility('posePanel', false);
                  switchVisibility('planningPanel', false);
             }
             function switchToSettings() {
                  switchVisibility('settingsPanel', false);
-                 switchVisibility('kinematicsPanel', true);
                  switchVisibility('posePanel', true);
                  switchVisibility('planningPanel', true);
             }
@@ -502,8 +499,8 @@
                 </div>
                 <div id="settingsPanel" class="d-none col mx-0 p-0 pl-0"  >
                     <div class="row d-flex flex-grow-1 bg-light border my-1 ml-0 mr-0 p-0">
-                        <div class="col d-flex w-100 p-0 m-0 ">
-                            <div class="w-100 mx-1 mt-1 mb-0 pl-2 " >
+                        <div class="w-100 p-0 m-0 ">
+                            <div class="row w-100 mx-1 mt-1 mb-0 px-2 " >
                                 <div class='w-100 my-0 py-0' 
                                     id='settingsAlertHeadline' role='alert'/>Settings</div>
                                 <div class='col alert alert-success w-100 my-0 py-0' style='display:none;' 
@@ -513,11 +510,39 @@
                                 <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
                                     id='settingsAlertWarning' role='alert'/></div>
                             </div>
+                             <div id="calibrationPanel" class="w-100 mt-4 p-3" >
+                                 <div class='my-0 py-0'> <small>Calibration</small></div>
+                                    <div class="text-nowrap">
+                                        For calibrating the robot <br>
+                                        <div class="pl-3">- turn on connection<br></div>
+                                        <div class="pl-3">- turn on power<br></div>
+                                        <div class="pl-3">- use the sliders to adapt the zero position<br></div>
+                                        <div class="pl-3">- set the current position<br></div>
+                                    </div>
+                                    <div class="row my-3">
+                                        <div class="form-check form-check-inline px-3">
+                                            <input id="calibrationConnection" class="form-check-input" type="checkbox" value="0">
+                                            <label class="form-check-label" for="calibrationConnection">
+                                                Connect 
+                                            </label>                                
+                                        </div>
+                                        <div class="form-check form-check-inline px-3">
+                                            <input id="calibrationPower" class="form-check-input" type="checkbox"  value="0" disabled>
+                                            <label class="form-check-label" for="calibrationPower">
+                                                Power 
+                                            </label>                                
+                                        </div>
+                                        <div class="btn-group col xp-3 w-100">
+                                            <button type="button" class="btn-sm btn-secondary w-100" disabled>Set current position as zero position</button>
+                                        </div>
+                                    </div>
+                            </div>
                         </div>
-                        <div id="settingsButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
+
+                        <div id="settingsButtonPanel" class="w-100 row p-0 mx-2 pb-3 d-flex align-self-end ">
                             <div class="w-100 p-0 my-3 w-100" >
                                 <div class="col p-0 ">
-                                    <small>Units</small>
+                                    <small>UI Units</small>
                                     <div class='form-check form-check-inline w-100'>
                                         <div class="custom-control custom-radio w-100">
                                             <input id="radUnit" type="radio" class="custom-control-input"  name="unitSwitcher" onchange='settingsPanel.setRadUnit(event.target.id)' checked/>
@@ -532,8 +557,8 @@
                             </div>
                             <div class="w-100 p-0 my-3 w-100" >
                                 <div id="themesSettings" class="w-100 p-0 my-3 w-100" >
-                                    <div class="col p-0 "><small>Themes</small>
-                                       <input id="themeSlider" type="range" class="custom-range" name="range" min="1" max="6" step="1" oninput="settingsPanel.changeTheme(event)">
+                                    <div class="col p-0 "><small>UI theme</small>
+                                       <input id="themeSlider" type="range" class="custom-range" name="range" min="1" max="5" step="1" oninput="settingsPanel.changeTheme(event)">
                                        <div id="themeDescription" class="alert alert-primary p-3">
                                             Lorem ipsum<br><small> dolor sit amet</small> 
                                        </div>
@@ -541,7 +566,7 @@
                                 </div>
                             </div>
                             <div class="col w-100 m-0 p-0">
-                                <div class="col p-0"><small>Danger Zone</small></div>
+                                <div class="col p-0"><small>UI changes</small></div>
                                 <div class="btn-group col p-0">
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.apply()">Apply</button>
                                 </div>
