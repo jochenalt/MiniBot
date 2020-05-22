@@ -922,11 +922,9 @@ ProgrammePanel.Init = function(options) {
     poseStorePanel.setPoseByUID(programmeItems[startID].poseUID);
 
     var request = new ROSLIB.ServiceRequest({
-      action: {
-        type: Constants.Planning.ACTION_SIMULATE_PLAN,
-        startStatementUID: programmeItems[startID].uid,
-        endStatementUID: programmeItems[endID].uid
-      }
+      type: Constants.Planning.ACTION_SIMULATE_PLAN,
+      startStatementUID: programmeItems[startID].uid,
+      endStatementUID: programmeItems[endID].uid
     });
 
     var planningAction = new ROSLIB.Service({
