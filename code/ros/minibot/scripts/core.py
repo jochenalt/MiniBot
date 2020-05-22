@@ -50,6 +50,9 @@ jointNames = []
 linkNames = []
 
 
+serviceComputeIK = None     # service compute_ik
+serviceComputeFK = None     # service compute_fk
+
 def initData():
     global robot, jointNames, jointStates,jointURDFMapping
     robot = URDF.from_parameter_server()
@@ -98,17 +101,21 @@ def tcpInputCallback(tcpPoseStamped):
 # callback for joint changes coming from website sliders
 # invoke and post forward kinematics
 def jointStatesInputCallback(msgJointState):
-    tcpPose = computeFK(msgJointState)
-    if tcpPose != None:
-        tcpPub.publish(tcpPose)
+    # some joint messages contain the gripper only
+    if len(msgJointState.position) >= 6:
+        tcpPose = computeFK(msgJointState)
+        if tcpPose != None:
+            tcpPub.publish(tcpPose)
 
 # callback for joint changes coming from movegroup planning
 # invoke and post forward kinematics
 def moveGroupJointStatesInputCallback(msgJointState):
-    jointPositionPub.publish(msgJointState)
-    tcpPose = computeFK(msgJointState)
-    if tcpPose != None:
-        tcpPub.publish(tcpPose)
+    # some joint messages contain the gripper only
+    if len(msgJointState.position) >= 6:
+        jointPositionPub.publish(msgJointState)
+        tcpPose = computeFK(msgJointState)
+        if tcpPose != None:
+            tcpPub.publish(tcpPose)
 
 
 # callback for joint changes, store the data globally in jointStates for later use 
@@ -155,10 +162,8 @@ def plannedPathCallback(msgDisplayTrajectory):
 
 
 def computeFK (msgJointState):
-    global jointNames
-    rospy.wait_for_service('compute_fk')
+    global serviceComputeFK
     try:
-        service = rospy.ServiceProxy('compute_fk', GetPositionFK)
         request = GetPositionFKRequest()
 
         # build robot state of current joint positions of kinematic chain 
@@ -186,7 +191,7 @@ def computeFK (msgJointState):
         request.header = header
 
         # do the call to /compute_fk
-        response = service(request)
+        response = serviceComputeFK(request)
         if response.error_code.val == MoveItErrorCodes.SUCCESS:
             return response.pose_stamped[-1]
         else:
@@ -198,8 +203,7 @@ def computeFK (msgJointState):
         return None
 
 def computeIK (msgTcpPose):
-    rospy.wait_for_service('compute_ik')
-    service = rospy.ServiceProxy('compute_ik', GetPositionIK)
+    global jointNames,jointStates,serviceComputeIK
     request = GetPositionIKRequest()
     request.ik_request.group_name = Constants.ARM_GROUP
     request.ik_request.timeout = rospy.Duration.from_sec(0.0001)
@@ -221,7 +225,7 @@ def computeIK (msgTcpPose):
     request.ik_request.pose_stamped = pose_stamped
 
     try:
-        response = service(request)
+        response = serviceComputeIK(request)
         if response.error_code.val == MoveItErrorCodes.SUCCESS:
             return response.solution.joint_state
         else:
@@ -236,12 +240,20 @@ def computeIK (msgTcpPose):
 
 if __name__=="__main__":
 
-    global jointPositionPub,tcpPub, msgErrorPub,msgInfoPub, msgWarnPub,plannedTCPPath
+    global jointPositionPub,tcpPub, msgErrorPub,msgInfoPub, msgWarnPub,plannedTCPPath,serviceComputeIK, serviceComputeFK
 
     rospy.init_node("core")
 
     # read robot description and init global variables 
     initData()
+
+    # wait until services are up
+    rospy.wait_for_service('compute_fk')
+    rospy.wait_for_service('compute_ik')
+
+    serviceComputeIK = rospy.ServiceProxy('compute_ik', GetPositionIK)
+    serviceComputeFK = rospy.ServiceProxy('compute_fk', GetPositionFK)
+
 
     # listen to current joint states
     rospy.Subscriber('/joint_states', JointState, jointStatesCallback, queue_size=1);
