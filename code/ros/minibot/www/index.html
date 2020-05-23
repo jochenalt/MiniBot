@@ -448,7 +448,7 @@
                                             <input id="waitForSeconds" type="radio" class="custom-control-input"  name="WaitStatementType" onchange='programmePanel.setWaitTypeWaitForSeconds(event)'/>
                                             <label class="custom-control-label" for="waitForSeconds">Wait for </label>
                                             <div class="input-group">
-                                                <input id="secondsToWait" type="text" class="form-control w-2" placeholder="how many" onkeydown='programmePanel.setWaitingSeconds(event)'/>
+                                                <input id="secondsToWait" type="text" class="form-control w-2" placeholder="0" oninput='programmePanel.setWaitingSeconds(event)'/>
                                                 <div class="input-group-append">
                                                     <span class="input-group-text">seconds</span>
                                                 </div>

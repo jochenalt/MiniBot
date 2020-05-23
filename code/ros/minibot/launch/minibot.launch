@@ -8,7 +8,8 @@
   <!-- start marker node -->
   <node pkg="interactive_marker_proxy" type="proxy" name="marker_proxy" 
         args="topic_ns:=/markers target_frame:=base_link" />
-  <node pkg="minibot" type="markers.py" name="marker_server"/>
+
+  <node pkg="minibot" type="markers.py" name="marker_server" output="screen"/>
 
   <!-- launch web server
        index: use minibot package to delegate pathless calls to /minibot/index.html -->
@@ -21,6 +22,7 @@
 
   <!-- start the trajectory planning node --> 
   <node pkg="minibot" type="planning.py" name="planning" output="screen"/>
+
 
    <!-- Run Rviz -->
    <!--
