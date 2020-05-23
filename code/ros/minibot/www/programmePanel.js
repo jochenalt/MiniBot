@@ -90,6 +90,36 @@ ProgrammePanel.Init = function(options) {
       function(result) {
         displayErr("reading programme from database failed " + result);
       })
+
+      var listenToClientActions   = new ROSLIB.Topic({
+        ros : ros,
+        name : '/client_action',
+        messageType : 'minibot/ClientAction'
+      });
+
+      listenToClientActions.subscribe(function(clientAction) {
+        if (clientAction.type == Constants.Planning.ACTIVATE_STATEMENT) {
+          var block = clientAction.statement_block_no;
+          var blockCounter = 0;
+          var inblock = false; 
+          for (var idx = 0; idx < programmeItems.length; idx++) {
+            if (!inblock) {
+              if (programmeItems[idx].type == StatementType.WayPoint) {
+                  blockCounter = blockCounter +1;
+                  inblock = true;
+                  if (blockCounter == block) {
+                    activateStatement(idx);
+                    break;
+                  }
+              } 
+            } else {
+              if (programmeItems[idx].type != StatementType.WayPoint) {
+                  inblock = false;
+              }
+            } 
+          }
+       }
+      });
   };
 
 
@@ -444,7 +474,6 @@ ProgrammePanel.Init = function(options) {
 
   // activate the passed list item
   var activateStatement = function(id) {
-    var activeID = getActiveId();
     id = parseFloat(id); // passed id might be a string
     if (id >= 0) {
       for (var idx = 0; idx < getProgrammeLength(); idx++) {

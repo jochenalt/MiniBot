@@ -16,10 +16,10 @@ from moveit_msgs.msg import DisplayTrajectory
 from constants import Constants
 from threading import Timer
 
+from minibot.msg import ClientAction
+
 server = None
 interactiveMarker = None
-intMarkerLocalTrajectory = None
-intMarkerGlobalTrajectory = None
 
 lastMarkerPose = None           # last Marker Pose published (necessary, since Marker also publishes no changes )
 
@@ -64,7 +64,7 @@ def queueUpUpdate( tcp ):
 
 
 def callbackMarkerChange( marker ):
-    global pub,lastMarkerPose
+    global gearWheelPosePublisher,lastMarkerPose,clientActionPublisher
     
     blockUpdate()
 
@@ -80,6 +80,10 @@ def callbackMarkerChange( marker ):
 
     if marker.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
         rospy.loginfo( s + ": button click" + mp + "." )
+        clientAction = ClientAction()
+        clientAction.type = ClientAction.ACTIVATE_STATEMENT
+        clientAction.statement_block_no = int(marker.marker_name.split("-",1)[1])
+        clientActionPublisher.publish(clientAction)
     elif marker.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
         if (lastMarkerPose is None or poseIsDifferent(lastMarkerPose, marker.pose)):
             rospy.loginfo( s + ": pose changed")
@@ -88,7 +92,7 @@ def callbackMarkerChange( marker ):
             gearwheelPose.pose = copy.copy(marker.pose)
             lastMarkerPose = copy.copy(marker.pose)
             inCallback = 1;
-            pub.publish(gearwheelPose);
+            gearWheelPosePublisher.publish(gearwheelPose);
             inCallback = 0;
 
     elif marker.event_type == InteractiveMarkerFeedback.MOUSE_DOWN:
@@ -222,9 +226,10 @@ def displayGlobalTrajectoryCallback(displayTrajectory):
 # with every succeeding number the  main color changes 
 def globalTrajectoryColor(no):
     color = ColorRGBA()
-    color.r = no/6 if (no % 3) == 2 else 1-no/6
-    color.g = no/6 if (no % 3) == 1 else 1-no/6
-    color.b = no/6 if (no % 3) == 0 else 1-no/6
+    pendulung = no/7.0 % 1.0
+    color.r = 0.2
+    color.g = 1-no/4 if (no % 2) == 0 else no/4
+    color.b = 1-no/4 if (no % 2) == 1 else no/4
     color.a = 1.0
 
     return color
@@ -232,37 +237,49 @@ def globalTrajectoryColor(no):
 # create little balls along a trajectory of a pose list 
 def makeTrajectoryMarker( displayTrajectory, isGlobal, markerName):
     global server
-    server.erase(markerName)
 
-    intMarkerGlobalTrajectory = InteractiveMarker()
-    intMarkerGlobalTrajectory.header.frame_id = "base_link"
-    intMarkerGlobalTrajectory.scale = 0.01
-    intMarkerGlobalTrajectory.name = markerName
-
-    # insert a sphere list control, currently empty
-    control =  InteractiveMarkerControl()
-    control.always_visible = True
-    control.interaction_mode = InteractiveMarkerControl.NONE
-
+   
     # add the sphere list
     counter = 1
     for traj in displayTrajectory.trajectory:
+        trajectoryName = markerName + "-" + str(counter)
+        server.erase(trajectoryName)
+
+        intMarkerGlobalTrajectory = InteractiveMarker()
+        intMarkerGlobalTrajectory.header.frame_id = "base_link"
+        intMarkerGlobalTrajectory.scale = 0.01
+        intMarkerGlobalTrajectory.name =trajectoryName
+
+        # insert a sphere list control, currently empty
+        control =  InteractiveMarkerControl()
+        control.always_visible = True
+        control.interaction_mode = InteractiveMarkerControl.BUTTON
+
         pointCounter = 1
         marker = None
         for p in traj.joint_trajectory.points:
             if (pointCounter == 1) or (pointCounter == len(traj.joint_trajectory.points)):
                 marker = Marker()
                 marker.type = Marker.SPHERE_LIST
-                marker.color = globalTrajectoryColor(counter)
-                marker.scale.x = marker.scale.y = marker.scale.z = 0.008
+                if isGlobal:
+                    marker.color = globalTrajectoryColor(counter)
+                    marker.scale.x = marker.scale.y = marker.scale.z = 0.008
+                else:
+                    marker.color = globalTrajectoryColor(0)
+                    marker.scale.x = marker.scale.y = marker.scale.z = 0.005
+
                 control.markers.append( marker )                
             else:
                 if pointCounter == 2:
                     marker = Marker()
                     marker.type = Marker.SPHERE_LIST
-                    marker.scale.x = marker.scale.y = marker.scale.z = 0.003
-                    marker.color = globalTrajectoryColor(counter)
-                    marker.color.a = 0.5
+                    if isGlobal:
+                        marker.scale.x = marker.scale.y = marker.scale.z = 0.003
+                        marker.color = globalTrajectoryColor(counter)
+                    else:
+                        marker.scale.x = marker.scale.y = marker.scale.z = 0.005
+                        marker.color = globalTrajectoryColor(0)
+
                     control.markers.append( marker )                
 
             jointState = JointState()
@@ -274,14 +291,14 @@ def makeTrajectoryMarker( displayTrajectory, isGlobal, markerName):
 
         intMarkerGlobalTrajectory.controls.append( control )
         counter = counter + 1
+        server.insert(intMarkerGlobalTrajectory, callbackMarkerChange)
 
-    server.insert(intMarkerGlobalTrajectory, callbackMarkerChange)
     server.applyChanges();
  
 
 
 if __name__=="__main__":
-    global pub;
+    global gearWheelPosePublisher, clientActionPublisher
     rospy.init_node("markers")
 
     core.initialize()
@@ -298,7 +315,10 @@ if __name__=="__main__":
     rospy.Subscriber('/tcp/update', PoseStamped, queueUpUpdate, queue_size=1);
 
     # publish the new position of the marker
-    pub = rospy.Publisher('/tcp/gearwheel/update',PoseStamped, queue_size=1)
+    gearWheelPosePublisher = rospy.Publisher('/tcp/gearwheel/update',PoseStamped, queue_size=1)
+
+    # publish new actions
+    clientActionPublisher   = rospy.Publisher('/client_action',ClientAction, queue_size=1)
 
     # create gearwheel at origin, update happens right afterwards
     position = Point(0.0, 0.0, 0.0)

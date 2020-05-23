@@ -58,6 +58,7 @@ add_message_files(
    MinibotState.msg
    PoseStorage.msg
    Configuration.msg
+   ClientAction.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -59,7 +59,6 @@ visualizeLocalPlan = False    # publish the local plan (for marker.py)
 def init():
   global groupArm,groupGripper, robot,plans,\
          displayGlobalPlanPublisher, scene,  \
-         msgErrorPub,msgInfoPub, msgWarnPub, \
          displayLocalPlanPublisher
 
   #  initialize moveit pyhton interface, needs to happenn before .init_node
@@ -96,11 +95,6 @@ def init():
   groupArm.set_joint_value_target(groupArm.get_current_joint_values())
   localPlan = groupArm.plan()
 
-  # errors and messages
-  msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
-  msgInfoPub  = rospy.Publisher('/messages/info',String, queue_size=1)
-  msgWarnPub  = rospy.Publisher('/messages/warn',String, queue_size=1)
-
   # minibot planning services
   planning_action = rospy.Service('planning_action', PlanningAction, handlePlanningAction)
 
@@ -116,8 +110,9 @@ def init():
   displayGlobalPlan()
 
 
+
 def initDatabase ():
-  global statements, robotstates
+  global statements, robotstates, configuration
   db = MessageStoreProxy()
   (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
   if poseStorage is None:
@@ -131,8 +126,8 @@ def initDatabase ():
     db.insert_named("default_programme",programme)
   statements = programme.statements
 
-  (config, meta) = db.query_named("settings", Configuration._type)
-  if config is None:
+  (configuration, meta) = db.query_named("settings", Configuration._type)
+  if configuration is None:
     configuration = Configuration()
     configuration.theme = "cyborgTheme"
     configuration.angle_unit = Configuration.ANGLE_UNIT_RAD
@@ -263,9 +258,9 @@ def createGlobalPlan():
 
 
 def displayGlobalPlan():
-  global displayGlobalPlanPublisher,globalPlan,visualizeGlobalPlan
+  global displayGlobalPlanPublisher,globalPlan,configuration
   display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-  if visualizeGlobalPlan:
+  if configuration.vis_global_plan:
     for idx in range(0,len(globalPlan)):
       display_trajectory.trajectory.append(globalPlan[idx].plan)
 
@@ -273,9 +268,9 @@ def displayGlobalPlan():
 
 
 def displayLocalPlan():
-  global displayLocalPlanPublisher, localPlan, visualizeLocalPlan
+  global displayLocalPlanPublisher, localPlan, configuration
   display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-  if visualizeLocalPlan:
+  if configuration.vis_local_plan:
     display_trajectory.trajectory.append(localPlan)
 
   displayLocalPlanPublisher.publish(display_trajectory);
@@ -328,7 +323,7 @@ def createLocalPlan(startID, endID):
 
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, groupArm, robot,displayGlobalPlanPublisher, localPlan, visualizeGlobalPlan, visualizeLocalPlan
+  global statements, groupArm, robot,displayGlobalPlanPublisher, localPlan,visualizeGlobalPlan, visualizeLocalPlan
 
   rospy.loginfo("handle planning Action {0}".format (request.type))
   # think positive
@@ -369,14 +364,13 @@ def handlePlanningAction(request):
     displayGlobalPlan()
 
   if request.type == PlanningActionRequest.VIS_GLOBAL_PLAN:
-    visualizeGlobalPlan = request.jfdi
+    configuration.vis_global_plan = request.jfdi
     rospy.loginfo("visualize global plan: {0}".format(visualizeGlobalPlan))
     displayGlobalPlan()
 
   if request.type == PlanningActionRequest.VIS_LOCAL_PLAN:
-    visualizeLocalPlan = request.jfdi
+    configuration.vis_local_plan = request.jfdi
     rospy.loginfo("visualize local plan: {0}".format(visualizeLocalPlan))
-
     displayLocalPlan()
 
   return response
