@@ -71,8 +71,8 @@ ProgrammePanel.Init = function(options) {
             }
             if (statementDB.type == StatementType.Wait) {
               stmt.type = StatementType.Wait;
-              stmt.waitForSeconds = Math.floor((statementDB.kitkat.sec + minibotStatement.kitkat.nsec / 1000000000) * 1000) / 1000;
-              minibotStatement.waitType = statement.waitType;
+              stmt.waitForSeconds = Math.floor((statementDB.kitkat.secs + statementDB.kitkat.nsecs / 1000000000) * 1000) / 1000;
+              stmt.waitType = statementDB.waitType;
             }
             if (statementDB.type == StatementType.Comment) {
               stmt.type = StatementType.Comment;
@@ -93,10 +93,13 @@ ProgrammePanel.Init = function(options) {
 
 
   var storeInDatabase = function() {
+      Utils.callDelay("storedatabase", 3000, function() { rawStoreInDatabase() }); 
+  }
+
+  var rawStoreInDatabase = function() {
 
     var statementsDB = [];
     for (var idx = 0; idx < programmeItems.length; idx++) {
-      var minibotState = new Object();
       var statement = programmeItems[idx];
       var statementDB = new Object();
       statementDB.uid = statement.uid;
@@ -104,29 +107,27 @@ ProgrammePanel.Init = function(options) {
 
       if (statement.type == StatementType.WayPoint) {
         statementDB.type = StatementType.WayPoint;
-        // statementDB.pose = poseStorePanel.getPoseByUID(statement.poseUID).pose; 
-        // statementDB.jointState = poseStorePanel.getJointStateByUID(statement.poseUID); 
         statementDB.pose_uid = statement.poseUID;
         statementDB.cartesic_path = statement.cartesicPath;
         statementDB.collision_check = statement.collisionCheck;
         statementDB.improved_path = statement.improvedPath;
       }
-      if (statement.type == StatementType.WaitType) {
-        statementDB.type = StatementType.WaitType;
+      if (statement.type == StatementType.Wait) {
+        statementDB.type = StatementType.Wait;
         statementDB.kitkat = new Object();
-        statementDB.kitkat.sec = Math.floor(statement.waitForSeconds);
-        statementDB.kitkat.nsec = (statement.waitForSeconds - statement.kitkat.sec) * 1000000000;
+        statementDB.kitkat.secs = Math.floor(statement.waitForSeconds);
+        statementDB.kitkat.nsecs = (statement.waitForSeconds - statementDB.kitkat.secs) * 1000000000;
         statementDB.waitType = statement.waitType;
       }
-      if (statement.type == StatementType.CommentType) {
-        statementDB.type = StatementType.CommentType;
+      if (statement.type == StatementType.Comment) {
+        statementDB.type = StatementType.Comment;
         statementDB.comment = statement.comment;
       }
 
       statementsDB[idx] = statementDB;
     }
 
-    // read the poses from the database
+    // read the poses from the database:q
     var request = new ROSLIB.ServiceRequest({
       type: Constants.Database.WRITE_PROGRAMME,
       programme_store: {
@@ -190,7 +191,7 @@ ProgrammePanel.Init = function(options) {
 
       // even if a different radio button is on, display the other fields
       document.getElementById('waitConfirmationText').value = statement.comment;
-      document.getElementById('secondsToWait').value = parseFloat(statement.waitForSeconds);
+      document.getElementById('secondsToWait').value = statement.waitForSeconds;
 
       document.getElementById('waitForSeconds').checked = false;
       document.getElementById('waitForConfirmation').checked = false;
@@ -322,7 +323,10 @@ ProgrammePanel.Init = function(options) {
   var updateWait = function(uid, name, waitType, waitForSeconds, waitForComment) {
     var statement = updateStatement(uid, name, StatementType.Wait);
     statement.waitType = waitType;
-    statement.waitForSeconds = waitForSeconds;
+    if (waitForSeconds == "")
+      statement.waitForSeconds = 0;
+    else
+      statement.waitForSeconds = parseFloat(waitForSeconds);
     statement.comment = waitForComment;
     return statement;
   }
@@ -700,22 +704,23 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.waitType = waitType;
       updateWidget(id);
-
-      // immediately store in database
       storeInDatabase();
     }
   }
 
   function setWaitTypeNoWait(event) {
-    return setWaitType(WaitType.NoWait);
+    setWaitType(WaitType.NoWait);
+    storeInDatabase();
   }
 
   function setWaitTypeWaitForConfirmation(event) {
-    return setWaitType(WaitType.WaitForConfirmation);
+    setWaitType(WaitType.WaitForConfirmation);
+    storeInDatabase();
   }
 
   function setWaitTypeWaitForSeconds(event) {
-    return setWaitType(WaitType.WaitForSeconds);
+    setWaitType(WaitType.WaitForSeconds);
+    storeInDatabase();
   }
 
 
@@ -723,8 +728,9 @@ ProgrammePanel.Init = function(options) {
     var id = getActiveId();
     if (id >= 0) {
       var statement = programmeItems[id];
-      statement.waitForSeconds = parseFloat(event.target.value);
+      statement.waitForSeconds = Utils.makeFloatString(event.target.value);
       updateWidget(id);
+      storeInDatabase();
     }
   }
 
@@ -734,8 +740,6 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.comment = event.target.value;
       updateWidget(id);
-
-      // immediately store in database
       storeInDatabase();
     }
   }
@@ -746,8 +750,6 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.comment = event.target.value;
       updateWidget(id);
-
-      // immediately store in database
       storeInDatabase();
     }
   }
@@ -995,7 +997,9 @@ ProgrammePanel.Init = function(options) {
 
 
 
-  var forward = function(event) {}
+  var forward = function(event) {
+
+  }
 
   var plan = function(event) {
     createPlan();
