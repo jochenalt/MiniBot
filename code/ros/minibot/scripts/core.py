@@ -53,7 +53,8 @@ linkNames = []
 serviceComputeIK = None     # service compute_ik
 serviceComputeFK = None     # service compute_fk
 
-def initData():
+
+def initialize():
     global robot, jointNames, jointStates,jointURDFMapping
     robot = URDF.from_parameter_server()
     count = 0
@@ -80,8 +81,9 @@ def initData():
     if kinematicGroupLinks == None:
         rospy.logerr("group definition of {0} not found".format(kinematicGroup))
 
-    # done
-    rospy.loginfo("minibot core node initialized")
+    # wait until services are up
+    rospy.wait_for_service('compute_fk')
+    rospy.wait_for_service('compute_ik')
 
 
 def tcpGearwheelCallback(tcpPoseStamped):
@@ -143,15 +145,15 @@ def plannedPathCallback(msgDisplayTrajectory):
         jointNames = []
         for jointName in trajectory.joint_trajectory.joint_names:
             jointNames.append(jointName)
-        rospy.logdebug ("jointNames:")
-        rospy.logdebug(jointNames)
+        #rospy.logdebug ("jointNames:")
+        #rospy.logdebug(jointNames)
 
         # work through the path and compute forward kinematics  
         # collect the result in PoseArray
         jointPosition = []
         for point in trajectory.joint_trajectory.points:
-            rospy.logdebug ("point:")
-            rospy.logdebug( point)
+            #rospy.logdebug ("point:")
+            #rospy.logdebug( point)
             jointState = JointState()
             jointState.name = copy.copy(jointNames)
             jointState.position = copy.copy(point.positions)
@@ -162,8 +164,9 @@ def plannedPathCallback(msgDisplayTrajectory):
 
 
 def computeFK (msgJointState):
-    global serviceComputeFK
     try:
+        serviceComputeFK = rospy.ServiceProxy('compute_fk', GetPositionFK)
+
         request = GetPositionFKRequest()
 
         # build robot state of current joint positions of kinematic chain 
@@ -184,7 +187,6 @@ def computeFK (msgJointState):
                 
             kinematicChainIdx = kinematicChainIdx + 1
         request.robot_state = robotState
-
         # header
         header = Header()
         header.frame_id = 'base_link'
@@ -195,15 +197,16 @@ def computeFK (msgJointState):
         if response.error_code.val == MoveItErrorCodes.SUCCESS:
             return response.pose_stamped[-1]
         else:
-           msgErrorPub.publish("forward kinematics failed ({0})".format(response.error_code.val))
+           rospy.logerr("forward kinematics failed ({0})".format(response.error_code.val))
            return None
     except rospy.ServiceException, e:
         rospy.logerr("service call compute_fk failed with %s",e)
-        msgErrorPub.publish("forward kinematics failed")
         return None
 
 def computeIK (msgTcpPose):
-    global jointNames,jointStates,serviceComputeIK
+    global jointNames,jointStates
+    serviceComputeIK = rospy.ServiceProxy('compute_ik', GetPositionIK)
+
     request = GetPositionIKRequest()
     request.ik_request.group_name = Constants.ARM_GROUP
     request.ik_request.timeout = rospy.Duration.from_sec(0.0001)
@@ -229,7 +232,7 @@ def computeIK (msgTcpPose):
         if response.error_code.val == MoveItErrorCodes.SUCCESS:
             return response.solution.joint_state
         else:
-            msgErrorPub.publish("inverse kinematics failed ({0})".format(response.error_code.val))
+            rospy.logerr("inverse kinematics failed ({0})".format(response.error_code.val))
             return None
 
     except rospy.ServiceException, e:
@@ -239,21 +242,12 @@ def computeIK (msgTcpPose):
 
 
 if __name__=="__main__":
-
-    global jointPositionPub,tcpPub, msgErrorPub,msgInfoPub, msgWarnPub,plannedTCPPath,serviceComputeIK, serviceComputeFK
+    global jointPositionPub,tcpPub,plannedTCPPath
 
     rospy.init_node("core")
 
     # read robot description and init global variables 
-    initData()
-
-    # wait until services are up
-    rospy.wait_for_service('compute_fk')
-    rospy.wait_for_service('compute_ik')
-
-    serviceComputeIK = rospy.ServiceProxy('compute_ik', GetPositionIK)
-    serviceComputeFK = rospy.ServiceProxy('compute_fk', GetPositionFK)
-
+    initialize()
 
     # listen to current joint states
     rospy.Subscriber('/joint_states', JointState, jointStatesCallback, queue_size=1);
@@ -271,14 +265,11 @@ if __name__=="__main__":
     jointPositionPub = rospy.Publisher('/move_group/fake_controller_joint_states',JointState, queue_size=1)
     tcpPub  = rospy.Publisher('/tcp/update',PoseStamped, queue_size=1)
 
-    # errors and messages
-    msgErrorPub  = rospy.Publisher('/messages/err',String, queue_size=1)
-    msgInfoPub  = rospy.Publisher('/messages/info',String, queue_size=1)
-    msgWarnPub  = rospy.Publisher('/messages/warn',String, queue_size=1)
-
     # listen to trajectory poses
     plannedTCPPath = rospy.Publisher('/move_group/display_planned_path/tcp', PoseArray, queue_size=10); # 10 seconds contingency,path planning happens in steps of 0.1s 
     rospy.Subscriber('/move_group/display_planned_path', DisplayTrajectory, plannedPathCallback, queue_size=1);
+
+    rospy.loginfo("minibot core node initialized")
 
     # and go
     rospy.spin()

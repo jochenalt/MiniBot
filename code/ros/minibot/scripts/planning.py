@@ -25,6 +25,7 @@ from std_msgs.msg import Header
 
 # import minibot stuff
 import constants
+import core
 from constants import Constants
 from minibot.msg import Statement
 from minibot.msg import Programme
@@ -40,22 +41,26 @@ class GlobalPlanItem:
   end_id = 0
   localPlan = None
 
-statements = []   # memory cache of all programme statements
-robotstates = []  # memory cache of all poses
+statements = []               # memory cache of all programme statements
+robotstates = []              # memory cache of all poses
 
-groupArm = None       # group of all arm links
-groupGripper = None   # group of all gripper links
+groupArm = None               # group of all arm links
+groupGripper = None           # group of all gripper links
 
-robot = None          # RobotCommander Object
-scene = None          # Planing scene Object
-localPlan  = None     # latest plan on a local sequence of waypoints, contains the currently computed plan
-globalPlan = [];      # entire plan of the full programme 
-configuration = None  # settings
+robot = None                  # RobotCommander Object
+scene = None                  # Planing scene Object
+localPlan  = None             # latest plan on a local sequence of waypoints, contains the currently computed plan
+globalPlan = [];              # entire plan of the full programme 
+configuration = None          # settings
+
+visualizeGlobalPlan = False    # publish the global plan (for marker.py)
+visualizeLocalPlan = False    # publish the local plan (for marker.py)
 
 def init():
   global groupArm,groupGripper, robot,plans,\
-         display_trajectory_publisher, scene,  \
-         msgErrorPub,msgInfoPub, msgWarnPub
+         displayGlobalPlanPublisher, scene,  \
+         msgErrorPub,msgInfoPub, msgWarnPub, \
+         displayLocalPlanPublisher
 
   #  initialize moveit pyhton interface, needs to happenn before .init_node
   moveit_commander.roscpp_initialize(sys.argv)
@@ -75,8 +80,13 @@ def init():
   scene = moveit_commander.PlanningSceneInterface()
 
   ## publisher of trajectories to be displayed
-  display_trajectory_publisher = rospy.Publisher(
-                                      '/move_group/display_planned_path',
+    ## publisher of trajectories to be displayed
+  displayLocalPlanPublisher = rospy.Publisher(
+                                      '/minibot/local_plan',
+                                      moveit_msgs.msg.DisplayTrajectory, queue_size=1)
+
+  displayGlobalPlanPublisher = rospy.Publisher(
+                                      '/minibot/global_plan',
                                       moveit_msgs.msg.DisplayTrajectory, queue_size=1)
 
 
@@ -101,10 +111,10 @@ def init():
   initDatabase()
 
   # initiate a global planning process
-  rospy.loginfo("create a global plan")
+  rospy.loginfo("creating a global plan")
   createGlobalPlan()
+  displayGlobalPlan()
 
-  rospy.loginfo("minibot planning node initialized")
 
 def initDatabase ():
   global statements, robotstates
@@ -242,18 +252,38 @@ def createGlobalPlan():
     elif startID is not None and statements[idx].type != Statement.STATEMENT_TYPE_WAYPOINT and idx > startID+1:
       # we found a local sequence of waypoints
       localPlan = createLocalPlan(startID, idx-1)
-      globalPlan = GlobalPlanItem()
-      globalPlan.start_id = startID
-      globalPlan.end_id = idx-1
-      globalPlan.plan = localPlan;
+      globalPlanItem =  GlobalPlanItem()
+      globalPlanItem.start_id = startID
+      globalPlanItem.end_id = idx-1
+      globalPlanItem.plan = localPlan
+      globalPlan.append(globalPlanItem)
 
       # be ready for the next plan
       startID = None
 
 
+def displayGlobalPlan():
+  global displayGlobalPlanPublisher,globalPlan,visualizeGlobalPlan
+  display_trajectory = moveit_msgs.msg.DisplayTrajectory()
+  if visualizeGlobalPlan:
+    for idx in range(0,len(globalPlan)):
+      display_trajectory.trajectory.append(globalPlan[idx].plan)
+
+  displayGlobalPlanPublisher.publish(display_trajectory);
+
+
+def displayLocalPlan():
+  global displayLocalPlanPublisher, localPlan, visualizeLocalPlan
+  display_trajectory = moveit_msgs.msg.DisplayTrajectory()
+  if visualizeLocalPlan:
+    display_trajectory.trajectory.append(localPlan)
+
+  displayLocalPlanPublisher.publish(display_trajectory);
+
+
 # returns a local plan for all waypoints between startID and endID
 def createLocalPlan(startID, endID):
-  global statements, groupArm
+  global statements, groupArm, localPlan
 
   robotState = RobotState()
   robotState.joint_state.header = Header()
@@ -291,21 +321,24 @@ def createLocalPlan(startID, endID):
         localPlan = mergeRobotTrajectory(localPlan, planTmp)
 
     localPlan= groupArm.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
+
+    displayLocalPlan()
     return localPlan
 
 
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, groupArm, robot,display_trajectory_publisher, localPlan
+  global statements, groupArm, robot,displayGlobalPlanPublisher, localPlan, visualizeGlobalPlan, visualizeLocalPlan
 
+  rospy.loginfo("handle planning Action {0}".format (request.type))
   # think positive
   response = PlanningActionResponse()
   response.error_code.val = ErrorCodes.SUCCESS;
 
   if request.type == PlanningActionRequest.PLAN_PATH:
-  
     startID = getStatementIDByUID(request.startStatementUID)
     endID = getStatementIDByUID(request.endStatementUID)
+    rospy.loginfo("create local plan between {0}-{1}".format (startID, startID));
     if startID == -1:
       rospy.logerr("statement with uid={0} does not exist".format(request.startStatementUID) )
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
@@ -315,14 +348,10 @@ def handlePlanningAction(request):
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
 
-    display_trajectory = moveit_msgs.msg.DisplayTrajectory()
     localPlan = createLocalPlan(startID, endID); 
 
-    ## visualization of plan
-    display_trajectory.trajectory.append(localPlan)
-    display_trajectory_publisher.publish(display_trajectory);
-
   if request.type == PlanningActionRequest.CLEAR_PLAN:
+    rospy.loginfo("clear  plan");
     # dont know how to delete a plan and remove the displayed trajectory!?
     # so set start and end point to current position
     groupArm.clear_pose_targets()
@@ -331,10 +360,24 @@ def handlePlanningAction(request):
     localPlan = groupArm.plan()
 
   if request.type == PlanningActionRequest.SIMULATE_PLAN:
+    rospy.loginfo("simulate plan");
     groupArm.execute(localPlan, wait=True)
 
   if request.type == PlanningActionRequest.GLOBAL_PLAN:
+    rospy.loginfo("create global plan");
     createGlobalPlan()
+    displayGlobalPlan()
+
+  if request.type == PlanningActionRequest.VIS_GLOBAL_PLAN:
+    visualizeGlobalPlan = request.jfdi
+    rospy.loginfo("visualize global plan: {0}".format(visualizeGlobalPlan))
+    displayGlobalPlan()
+
+  if request.type == PlanningActionRequest.VIS_LOCAL_PLAN:
+    visualizeLocalPlan = request.jfdi
+    rospy.loginfo("visualize local plan: {0}".format(visualizeLocalPlan))
+
+    displayLocalPlan()
 
   return response
 
@@ -342,6 +385,7 @@ def handlePlanningAction(request):
 if __name__=='__main__':
   try:
     init()
+    rospy.loginfo("minibot planning node initialized")
 
     rospy.spin()
   except rospy.ROSInterruptException:

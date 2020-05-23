@@ -3,20 +3,27 @@
 import rospy
 import copy
 
-
+import core
 from interactive_markers.interactive_marker_server import *
 from visualization_msgs.msg import *
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseArray
 from geometry_msgs.msg import PoseStamped
+from sensor_msgs.msg import JointState
+from std_msgs.msg import ColorRGBA
+
+from moveit_msgs.msg import DisplayTrajectory
 from constants import Constants
 from threading import Timer
 
 server = None
 interactiveMarker = None
-intMarkerTrajectory = None
+intMarkerLocalTrajectory = None
+intMarkerGlobalTrajectory = None
+
 lastMarkerPose = None           # last Marker Pose published (necessary, since Marker also publishes no changes )
 
+# returns true if two geometry_msgs/Pose are different (with a little wiggle room)
 def poseIsDifferent (a,b):
     return ((abs(a.position.x - b.position.x) > Constants.POSITION_RESOLUTION) or 
             (abs(a.position.y - b.position.y) > Constants.POSITION_RESOLUTION) or 
@@ -29,6 +36,8 @@ def poseIsDifferent (a,b):
 mutexTimer = None
 mutextLastData = None
 mutexBlockUpdate = False
+
+
 def blockUpdate():
     global mutexBlockUpdate
     mutexBlockUpdate = True
@@ -99,7 +108,6 @@ def make6DofMarker( fixed, interaction_mode, position, show_rot  = False, show_t
     interactiveMarker.scale = 0.03
     interactiveMarker.name ="gearwheel"
 
-    # insert a sphere
     # insert a sphere
     control =  InteractiveMarkerControl()
     control.always_visible = True
@@ -187,7 +195,7 @@ def make6DofMarker( fixed, interaction_mode, position, show_rot  = False, show_t
 
     changeGearWheelAppearance()
 
-# receive tcp pose
+# called whenever the tcp (PoseStamped) changes
 def tcpPoseCallback(tcpPoseStamped):
     result = server.setPose("gearwheel", tcpPoseStamped.pose, tcpPoseStamped.header);
     if result:
@@ -201,22 +209,35 @@ def changeGearWheelAppearance():
     server.insert(interactiveMarker, callbackMarkerChange)
     server.applyChanges()
 
+# called whenever a local DisplayTrajectory is published, draws the trajectory with colorfull little balls
+def displayLocalTrajectoryCallback(displayTrajectory):
+    makeTrajectoryMarker(displayTrajectory, False, "localtrajectory")
 
-def trajectoryCallback(msgPoseArray):
-    # delete the old trajectory
-    server.erase("trajectory")
-    # and create a new one
-    makeTrajectoryMarker(msgPoseArray)
-    server.insert(intMarkerTrajectory, callbackMarkerChange)
-    server.applyChanges();
+# called whenever a global DisplayTrajectory is published, draws the trajectory with colorfull little balls
+def displayGlobalTrajectoryCallback(displayTrajectory):
+    makeTrajectoryMarker(displayTrajectory, True, "globaltrajectory")
 
 
-def makeTrajectoryMarker( msgPoseArray ):
-    global intMarkerTrajectory;
-    intMarkerTrajectory = InteractiveMarker()
-    intMarkerTrajectory.header.frame_id = "base_link"
-    intMarkerTrajectory.scale = 0.01
-    intMarkerTrajectory.name ="trajectory"
+# compute a nice color for trajectories. 
+# with every succeeding number the  main color changes 
+def globalTrajectoryColor(no):
+    color = ColorRGBA()
+    color.r = no/6 if (no % 3) == 2 else 1-no/6
+    color.g = no/6 if (no % 3) == 1 else 1-no/6
+    color.b = no/6 if (no % 3) == 0 else 1-no/6
+    color.a = 1.0
+
+    return color
+
+# create little balls along a trajectory of a pose list 
+def makeTrajectoryMarker( displayTrajectory, isGlobal, markerName):
+    global server
+    server.erase(markerName)
+
+    intMarkerGlobalTrajectory = InteractiveMarker()
+    intMarkerGlobalTrajectory.header.frame_id = "base_link"
+    intMarkerGlobalTrajectory.scale = 0.01
+    intMarkerGlobalTrajectory.name = markerName
 
     # insert a sphere list control, currently empty
     control =  InteractiveMarkerControl()
@@ -224,30 +245,54 @@ def makeTrajectoryMarker( msgPoseArray ):
     control.interaction_mode = InteractiveMarkerControl.NONE
 
     # add the sphere list
-    marker = Marker()
-    marker.type = Marker.SPHERE_LIST
-    marker.scale.x = 0.005
-    marker.scale.y = 0.005
-    marker.scale.z = 0.005
-    marker.color.r = 1.0
-    marker.color.g = 0.2
-    marker.color.b = 0.0
-    marker.color.a = 1.0
-    for p in msgPoseArray.poses:
-        marker.points.append(p.position)
+    counter = 1
+    for traj in displayTrajectory.trajectory:
+        pointCounter = 1
+        marker = None
+        for p in traj.joint_trajectory.points:
+            if (pointCounter == 1) or (pointCounter == len(traj.joint_trajectory.points)):
+                marker = Marker()
+                marker.type = Marker.SPHERE_LIST
+                marker.color = globalTrajectoryColor(counter)
+                marker.scale.x = marker.scale.y = marker.scale.z = 0.008
+                control.markers.append( marker )                
+            else:
+                if pointCounter == 2:
+                    marker = Marker()
+                    marker.type = Marker.SPHERE_LIST
+                    marker.scale.x = marker.scale.y = marker.scale.z = 0.003
+                    marker.color = globalTrajectoryColor(counter)
+                    marker.color.a = 0.5
+                    control.markers.append( marker )                
 
-    # add marker to control and control to InteractievMarker
-    control.markers.append( marker )
-    intMarkerTrajectory.controls.append( control )
+            jointState = JointState()
+            jointState.name =  traj.joint_trajectory.joint_names
+            jointState.position =  p.positions
+            stampedTcp = core.computeFK(jointState)
+            marker.points.append(stampedTcp.pose.position)
+            pointCounter = pointCounter + 1
+
+        intMarkerGlobalTrajectory.controls.append( control )
+        counter = counter + 1
+
+    server.insert(intMarkerGlobalTrajectory, callbackMarkerChange)
+    server.applyChanges();
+ 
 
 
 if __name__=="__main__":
     global pub;
     rospy.init_node("markers")
+
+    core.initialize()
     server = InteractiveMarkerServer("markers")
 
     # listen to trajectory update
-    rospy.Subscriber('/move_group/display_planned_path/tcp', PoseArray, trajectoryCallback, queue_size=1);
+    #rospy.Subscriber('/move_group/display_planned_path/tcp', PoseArray, displayLocalTrajectoryCallback, queue_size=1);
+    rospy.Subscriber('/minibot/local_plan', DisplayTrajectory, displayLocalTrajectoryCallback, queue_size=1);
+
+    # listen to trajectory update
+    rospy.Subscriber('/minibot/global_plan', DisplayTrajectory, displayGlobalTrajectoryCallback, queue_size=1);
 
     # listen to tcp update
     rospy.Subscriber('/tcp/update', PoseStamped, queueUpUpdate, queue_size=1);
@@ -260,6 +305,8 @@ if __name__=="__main__":
     make6DofMarker( False, InteractiveMarkerControl.MOVE_ROTATE_3D, position, False, False)
 
     server.applyChanges()
+
+    rospy.loginfo("minibot marker node initialized")
 
     rospy.spin()
 

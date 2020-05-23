@@ -102,6 +102,12 @@ SettingsPanel.Init = function(options) {
 			})
 	}
 
+	var delayedSave = function() {
+		Utils.callDelay ("configuration", 5000, function() {
+			save();
+		})
+	}
+
 	var setKinematicsPanel = function(panel) {
 		kinematicsPanel = panel;
 	}
@@ -167,6 +173,25 @@ SettingsPanel.Init = function(options) {
 		})
 	}
 
+	var getVisualizationLocalPlan = function() {
+		return configuration.vis_local_plan;
+	} 
+
+	var getVisualizationGlobalPlan = function() {
+		return configuration.vis_global_plan;
+	} 
+
+	var setVisualizationLocalPlan = function(jfdi) {
+		configuration.vis_local_plan = jfdi;
+		delayedSave();
+	} 
+
+	var setVisualizationGlobalPlan = function(jfdi) {
+		configuration.vis_local_plan = jfdi;
+		delayedSave();
+	} 
+
+
 	function displayInfo(t) {
 		displayAlert(t, document.getElementById('settingsAlertHeadline'), document.getElementById('settingsAlertSuccess'));
 	}
@@ -198,6 +223,12 @@ SettingsPanel.Init = function(options) {
 		initialize : initialize,
 
 		setGlobalThemeFunction : setGlobalThemeFunction,
-		changeTheme : changeTheme
+		changeTheme : changeTheme,
+
+		getVisualizationGlobalPlan : getVisualizationGlobalPlan,
+		getVisualizationLocalPlan : getVisualizationLocalPlan,
+		setVisualizationGlobalPlan : setVisualizationGlobalPlan,
+		setVisualizationLocalPlan : setVisualizationLocalPlan,
+
 	};
 };

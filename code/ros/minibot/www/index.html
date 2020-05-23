@@ -29,15 +29,15 @@
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
         <link rel="stylesheet" href="/minibot/bootstrap-cyborg.min.css">
         <script>
-            var botUrdfView;          // view of URDF
-            var kinematicsPanel;     // panel for  kinematics
-            var poseStorePanel;      // panel for managing poses
-            var programmePanel;      // panel for pro<gramme
-            var settingsPanel;        // panel for configuration
-            var robotPanel;            // panel for the robot
-            var kinematics;            // kinematics library
+            var botUrdfView;            // view of URDF
+            var kinematicsPanel;        // panel for  kinematics
+            var poseStorePanel;         // panel for managing poses
+            var programmePanel;         // panel for pro<gramme
+            var settingsPanel;          // panel for configuration
+            var robotPanel;             // panel for the robot
+            var kinematics;             // kinematics library
             
-                        // set the theme by loading the css file and reinstatitation the robotview with a proper background
+            // set the theme by loading the css file and reinstatitation the robotview with a proper background
             function setGlobalTheme(str) {
                  var cssfile;
                  var robotViewColor;
@@ -99,7 +99,8 @@
                          ros: ros,
                          kinematicsPanel: kinematicsPanel,
                          kinematics: kinematics,
-                         poseStorePanel : poseStorePanel
+                         poseStorePanel : poseStorePanel,
+                         settingsPanel : settingsPanel
                  });
                  settingsPanel.setKinematicsPanel(kinematicsPanel);
                  settingsPanel.setPoseStorePanel(poseStorePanel);
@@ -108,11 +109,13 @@
             
                  // kinematics panel needs to load the robot model first before the unit can be changed 
                  setTimeout(function() {
-                      settingsPanel.setWidgets();                    
+                    settingsPanel.setWidgets();                    
+                    programmePanel.refresh();
                  }, 1500);
             
                  window.addEventListener("resize", resize);
             
+
                  // size of poseStore panel and programme panel is computed in resize
                  resize();
             }
@@ -127,7 +130,7 @@
                  document.getElementById("poseListGroup").style.height = hList.toString() +"px";
             
                  // resize the programme list
-                 var hList = document.getElementById("planningPanel").offsetHeight - document.getElementById("programmButtonPanel").offsetHeight - spacer*24;
+                 var hList = document.getElementById("planningPanel").offsetHeight - document.getElementById("programmButtonPanel").offsetHeight - spacer*20;
                  document.getElementById("statementListGroup").style.height = hList.toString() +"px";    
             
                  // resize robot view
@@ -140,11 +143,11 @@
                  var cl = document.getElementById(widget).classList;
                  if (on) {
                       cl.add('d-none');
-                      cl.remove('d-flex');
+                      cl.remove('d-flex'); // bootstrap: d-none works only, if d-flex is removed  
                  } 
                  else {
                       cl.add('d-flex');
-                      cl.remove('d-none');                     
+                      cl.remove('d-none');                    
                  }
             }
             
@@ -408,13 +411,13 @@
                                 <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
                                     id='programmeAlertWarning' role='alert'/></div>
                             </div>
-                            <div id="statementListGroup" class=" overflow-auto mt-4 mx-2" >
+                            <div id="statementListGroup" class=" overflow-auto mt-4 mx-2 mb-0" >
                                 <ul class="list-group "  id="programmeList">
                                 </ul>
                             </div>
                         </div>
                         <div id="programmButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
-                            <div class="w-100 p-0 my-3" style='height:25vh;' >
+                            <div class="w-100 p-0 mb-0 mt-0" style='height:20vh;' >
                                 <div class="p-0 m-0" id='detailsWaypointStatement'  style="display:none;">
                                     <small>Waypoint</small>
                                     <div class="mt-2 p-0">
@@ -472,6 +475,21 @@
                                 </div>
                             </div>
                             <div class="col w-100 m-0 p-0">
+                                <div class="col p-0"><small>Visiualize Plan</small></div>
+                                <div class="col p-0 mb-3">
+                                    <div class="form-check form-check-inline px-0">
+                                        <input  id="visualizeLocalPlan" class="form-check-input" type="checkbox" value="0" onchange="programmePanel.visualizeLocalPlan(event)" checked>
+                                        <label class="form-check-label" for="viewLocalPlan">
+                                            Display local Plan
+                                        </label>                                
+                                    </div>
+                                    <div class="form-check form-check-inline px-0">
+                                        <input id="visualizeGlobalPlan" class="form-check-input" type="checkbox" value="0" onchange="programmePanel.visualizeGlobalPlan(event)" checked>
+                                        <label class="form-check-label" for="viewGlobalPlan" >
+                                            Display global Plan  
+                                        </label>                                
+                                    </div>
+                                </div>
                                 <div class="col p-0"><small>Action Management</small></div>
                                 <div class="btn-group col p-0">
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWaypoint()">Waypoint</button>

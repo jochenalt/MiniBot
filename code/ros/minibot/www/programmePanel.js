@@ -18,6 +18,7 @@ ProgrammePanel.Init = function(options) {
   var kinematicsPanel = options.kinematicsPanel;
   var kinematics = options.kinematics;
   var poseStorePanel = options.poseStorePanel;
+  var settingsPanel  = options.settingsPanel;
 
 
   // types of statements
@@ -224,6 +225,10 @@ ProgrammePanel.Init = function(options) {
       badge.classList.add('badge-secondary');
       document.getElementById('commentStatement').value = statement.comment;
     }
+
+    document.getElementById('visualizeGlobalPlan').checked = settingsPanel.getVisualizationGlobalPlan();
+    document.getElementById('visualizeLocalPlan').checked = settingsPanel.getVisualizationLocalPlan();
+
   }
 
 
@@ -236,6 +241,8 @@ ProgrammePanel.Init = function(options) {
       document.getElementById('detailsWaitStatement').style.display = 'none';
       document.getElementById('detailsCommentStatement').style.display = 'none';
     }
+    document.getElementById('visualizeLocalPlan').checked = settingsPanel.getVisualizationLocalPlan()
+    document.getElementById('visualizeGlobalPlan').checked = settingsPanel.getVisualizationGlobalPlan()
   }
 
   var getStatementIDByUID = function(uid) {
@@ -967,11 +974,9 @@ ProgrammePanel.Init = function(options) {
     poseStorePanel.setPoseByUID(programmeItems[startID].poseUID);
 
     var request = new ROSLIB.ServiceRequest({
-      action: {
-        type: Constants.Planning.ACTION_SIMULATE_PLAN,
-        startStatementUID: programmeItems[startID].uid,
-        endStatementUID: programmeItems[endID].uid
-      }
+      type: Constants.Planning.ACTION_SIMULATE_PLAN,
+      startStatementUID: programmeItems[startID].uid,
+      endStatementUID: programmeItems[endID].uid
     });
 
     var planningAction = new ROSLIB.Service({
@@ -996,6 +1001,37 @@ ProgrammePanel.Init = function(options) {
   }
 
 
+  var visualizePlan = function(type, ok) {
+    var request = new ROSLIB.ServiceRequest({
+      type: type,
+      jfdi : ok
+    });
+
+    var planningAction = new ROSLIB.Service({
+      ros: ros,
+      name: '/planning_action',
+      serviceType: 'minibot/PlanningAction'
+    });
+
+    planningAction.callService(request,
+      function(response) {
+        if (response.error_code.val != ErrorCode.PLANNING.SUCCESS)
+          displayErr("could not change plan visualization({0}".format(response.error_code.val));
+      },
+      function(response) {
+          displayErr("could not change plan visualization({0}".format(response.error_code.val));
+      });
+  }
+
+  var visualizeGlobalPlan = function(event) {
+    visualizePlan(Constants.Planning.ACTION_VIS_GLOBAL_PLAN, event.target.checked);
+    settingsPanel.setVisualizationGlobalPlan(event.target.checked);
+  }
+
+  var visualizeLocalPlan = function(event) {
+    visualizePlan(Constants.Planning.ACTION_VIS_LOCAL_PLAN, event.target.checked);
+    settingsPanel.setVisualizationLocalPlan(event.target.checked);
+  }
 
   var forward = function(event) {
 
@@ -1060,6 +1096,9 @@ ProgrammePanel.Init = function(options) {
     setWaitTypeWaitForSeconds: setWaitTypeWaitForSeconds,
     setWaitTypeNoWait: setWaitTypeNoWait,
     setWaitTypeWaitForConfirmation: setWaitTypeWaitForConfirmation,
+
+    visualizeLocalPlan : visualizeLocalPlan,
+    visualizeGlobalPlan : visualizeGlobalPlan,
 
     forward: forward,
     plan: plan,

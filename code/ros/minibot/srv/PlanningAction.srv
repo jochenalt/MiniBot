@@ -5,8 +5,11 @@ uint8 PLAN_PATH=3       # compute a local plan
 uint8 CLEAR_PLAN=4      # delete a local plan
 uint8 SIMULATE_PLAN=5   # simulate a local plan
 uint8 GLOBAL_PLAN=6    	# initiate a global plan
+uint8 VIS_GLOBAL_PLAN=7 # publish displayTrajectory of global plan
+uint8 VIS_LOCAL_PLAN=8 	# publish displayTraectory of local plan
 uint8 type
 
+bool jfdi
 uint8 startStatementUID
 uint8 endStatementUID
 ---

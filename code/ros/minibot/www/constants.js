@@ -52,8 +52,9 @@ Constants.Planning = {
 		ACTION_PLAN_PATH : 3,				// plan and display the path		
 		ACTION_CLEAR_PLAN : 4,				// clear the last plan		
 		ACTION_SIMULATE_PLAN : 5,			// simulate the last plan
-		ACTION_GLOBAL_PLAN : 6				// create a plan of the entire programm
-
+		ACTION_GLOBAL_PLAN : 6,				// create a plan of the entire programm
+		ACTION_VIS_GLOBAL_PLAN : 7,			// visualize the global plan 
+		ACTION_VIS_LOCAL_PLAN : 8			// visualize the current local plan
 };
 
 Constants.Database = {
