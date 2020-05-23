@@ -226,6 +226,8 @@ Utils.euler2Quaternion = function(e) {
 		  		w:q1.w};
 }
 
-
+Utils.makeFloatString =function (str) {
+	return str.replace(/[^\d.-]/g, ''); 
+}
 
 
