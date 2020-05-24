@@ -36,7 +36,7 @@ mutexTimer = None
 mutextLastData = None
 mutexBlockUpdate = False
 
-globalPlanTrajectories = 0
+planType2TrajctoryLen = {}
 
 def blockUpdate():
     global mutexBlockUpdate
@@ -236,7 +236,7 @@ def globalTrajectoryColor(no):
 
 # create little balls along a trajectory of a pose list 
 def makeTrajectoryMarker( displayTrajectory, isGlobal, markerName):
-    global server, globalPlanTrajectories
+    global server, planType2TrajctoryLen
 
     # add the sphere list
     counter = 1
@@ -294,12 +294,13 @@ def makeTrajectoryMarker( displayTrajectory, isGlobal, markerName):
         server.insert(intMarkerGlobalTrajectory, callbackMarkerChange)
 
     # delete all remains of previous trajectories
-    for idx in range(counter-1, globalPlanTrajectories):
-        trajectoryName = markerName + "-" + str(counter)
-        server.erase(trajectoryName)
-        counter = counter + 1
+    if markerName in planType2TrajctoryLen:
+        for idx in range(counter-1, planType2TrajctoryLen[markerName]):
+            trajectoryName = markerName + "-" + str(counter)
+            server.erase(trajectoryName)
+            counter = counter + 1
 
-    globalPlanTrajectories = len(displayTrajectory.trajectory)
+    planType2TrajctoryLen[markerName] = len(displayTrajectory.trajectory)
 
     server.applyChanges();
  

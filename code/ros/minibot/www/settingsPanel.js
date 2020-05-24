@@ -38,10 +38,10 @@ SettingsPanel.Init = function(options) {
 			});
 	};
 
-	var writeConfiguration = function(config, callbackSuccess, callbackFailure) {
+	var writeConfiguration = function(callbackSuccess, callbackFailure) {
 		var request = new ROSLIB.ServiceRequest({
 			type: Constants.Database.WRITE_CONFIGURATIION,
-			configuration: config
+			configuration: configuration
 		});
 
 		var readConfiguration = new ROSLIB.Service({
@@ -52,7 +52,6 @@ SettingsPanel.Init = function(options) {
 		readConfiguration.callService(request,
 			function(result) {
 				if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
-					configuration = config;
 					callbackSuccess(result);
 				} else {
 					callbackFailure(result);
@@ -94,7 +93,7 @@ SettingsPanel.Init = function(options) {
 	}
 
 	var save = function() {
-		writeConfiguration(configuration, function(result) {
+		writeConfiguration(function(result) {
 				displayInfo("Settings have been saved");
 			},
 			function(error) {

@@ -402,7 +402,7 @@ def handlePlanningAction(request):
   response = PlanningActionResponse()
   response.error_code.val = ErrorCodes.SUCCESS;
 
-  if request.type == PlanningActionRequest.PLAN_PATH:
+  if request.type == PlanningActionRequest.SELECT_LOCAL_PLAN:
     startID = getStatementIDByUID(request.startStatementUID)
 
     rospy.loginfo("display local plan between {0}-{1}".format (startID, startID));
@@ -415,11 +415,9 @@ def handlePlanningAction(request):
     displayLocalPlan()
 
   if request.type == PlanningActionRequest.CLEAR_PLAN:
-    rospy.loginfo("clear  plan");
-    # dont know how to delete a plan and remove the displayed trajectory!?
-    # so set start and end point to current position
+    rospy.loginfo("clear plan");
     displayLocalPlanStartID = None
-
+    displayLocalPlan()
 
   if request.type == PlanningActionRequest.SIMULATE_PLAN:
     rospy.loginfo("simulate plan");

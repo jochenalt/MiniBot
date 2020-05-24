@@ -259,10 +259,6 @@ ProgrammePanel.Init = function(options) {
       badge.classList.add('badge-secondary');
       document.getElementById('commentStatement').value = statement.comment;
     }
-
-    document.getElementById('visualizeGlobalPlan').checked = settingsPanel.getVisualizationGlobalPlan();
-    document.getElementById('visualizeLocalPlan').checked = settingsPanel.getVisualizationLocalPlan();
-
   }
 
 
@@ -904,7 +900,7 @@ ProgrammePanel.Init = function(options) {
     }
 
     var request = new ROSLIB.ServiceRequest({
-        type: Constants.Planning.ACTION_PLAN_PATH,
+        type: Constants.Planning.ACTION_SELECT_LOCAL_PLAN,
         startStatementUID: programmeItems[startID].uid
     });
 
