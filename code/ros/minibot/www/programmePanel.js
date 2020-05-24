@@ -123,8 +123,12 @@ ProgrammePanel.Init = function(options) {
   };
 
 
-  var storeInDatabase = function() {
-      Utils.callDelay("storedatabase", 3000, function() { rawStoreInDatabase() }); 
+  var storeInDatabase = function(force) {
+    if (force)
+      Utils.callDelay("storedatabase", 0, function() { rawStoreInDatabase() }); 
+    else
+      Utils.callDelay("storedatabase", 5000, function() { rawStoreInDatabase() }); 
+
   }
 
   var rawStoreInDatabase = function() {
@@ -584,7 +588,7 @@ ProgrammePanel.Init = function(options) {
         activateStatement(id - 1);
 
       // immediately store in database
-      storeInDatabase();
+      storeInDatabase(false);
     } else
       displayErr('select a statement first')
   }
@@ -605,7 +609,7 @@ ProgrammePanel.Init = function(options) {
       statement.widget.scrollIntoView();
 
       // immediately store in database
-      storeInDatabase();
+      storeInDatabase(false);
 
     } else
       displayErr('select a pose first')
@@ -623,7 +627,7 @@ ProgrammePanel.Init = function(options) {
     activateStatement(id);
 
     // immediately store in database
-    storeInDatabase();
+    storeInDatabase(false);
   }
 
   function newWait() {
@@ -640,7 +644,7 @@ ProgrammePanel.Init = function(options) {
     activateStatement(id);
 
     // immediately store in database
-    storeInDatabase();
+    storeInDatabase(false);
   }
 
 
@@ -662,7 +666,7 @@ ProgrammePanel.Init = function(options) {
       updateWidgets();
 
       // immediately store in database
-      storeInDatabase();
+      storeInDatabase(false);
     } else
       displayErr('selected statement is first already')
   }
@@ -684,7 +688,7 @@ ProgrammePanel.Init = function(options) {
       updateWidgets();
 
       // immediately store in database
-      storeInDatabase();
+      storeInDatabase(false);
     } else
       displayErr('selected statement is last already')
   }
@@ -700,7 +704,7 @@ ProgrammePanel.Init = function(options) {
       updateWidget(id);
 
       // immediately store in database
-      storeInDatabase();
+      storeInDatabase(false);
     }
   }
 
@@ -715,7 +719,7 @@ ProgrammePanel.Init = function(options) {
       updateWidget(id);
 
       // immediately store in database
-      storeInDatabase();
+      storeInDatabase(false);
     }
   }
 
@@ -730,7 +734,7 @@ ProgrammePanel.Init = function(options) {
       updateWidget(id);
 
       // immediately store in database
-      storeInDatabase();
+      storeInDatabase(false);
     }
   }
 
@@ -740,23 +744,23 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.waitType = waitType;
       updateWidget(id);
-      storeInDatabase();
+      storeInDatabase(false);
     }
   }
 
   function setWaitTypeNoWait(event) {
     setWaitType(WaitType.NoWait);
-    storeInDatabase();
+    storeInDatabase(false);
   }
 
   function setWaitTypeWaitForConfirmation(event) {
     setWaitType(WaitType.WaitForConfirmation);
-    storeInDatabase();
+    storeInDatabase(false);
   }
 
   function setWaitTypeWaitForSeconds(event) {
     setWaitType(WaitType.WaitForSeconds);
-    storeInDatabase();
+    storeInDatabase(false);
   }
 
 
@@ -766,7 +770,7 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.waitForSeconds = Utils.makeFloatString(event.target.value);
       updateWidget(id);
-      storeInDatabase();
+      storeInDatabase(false);
     }
   }
 
@@ -776,7 +780,7 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.comment = event.target.value;
       updateWidget(id);
-      storeInDatabase();
+      storeInDatabase(false);
     }
   }
 
@@ -786,7 +790,7 @@ ProgrammePanel.Init = function(options) {
       var statement = programmeItems[id];
       statement.comment = event.target.value;
       updateWidget(id);
-      storeInDatabase();
+      storeInDatabase(false);
     }
   }
 
@@ -841,7 +845,7 @@ ProgrammePanel.Init = function(options) {
       cancelEditMode();
 
       // immediately store in database
-      storeInDatabase();
+      storeInDatabase(false);
 
       updateWidgets;
     }
@@ -1067,7 +1071,7 @@ ProgrammePanel.Init = function(options) {
   }
 
   var plan = function(event) {
-    createPlan();
+    storeInDatabase(true);
   }
 
   var run = function(event) {

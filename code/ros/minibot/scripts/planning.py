@@ -7,6 +7,10 @@ import rospy
 import array
 import timeit
 
+# threading model
+import threading 
+from threading import Lock
+
 # import mongodb
 import mongodb_store_msgs.srv as db_srv
 import mongodb_store.util as db_util
@@ -53,8 +57,8 @@ localPlan  = None             # latest plan on a local sequence of waypoints, co
 globalPlan = [];              # entire plan of the full programme 
 configuration = None          # settings
 
-visualizeGlobalPlan = False    # publish the global plan (for marker.py)
-visualizeLocalPlan = False    # publish the local plan (for marker.py)
+globalPlanningLock = Lock()
+latestGlobalPlanningThreadID = None
 
 def init():
   global groupArm,groupGripper, robot,plans,\
@@ -136,7 +140,7 @@ def initDatabase ():
   
 
 def handleDatabaseAction (request):
-  global statements, robotstates
+  global statements, robotstates, latestGlobalPlanningThreadID
   db = MessageStoreProxy()
 
   response = DatabaseResponse()
@@ -152,7 +156,6 @@ def handleDatabaseAction (request):
 
   if request.type == DatabaseRequest.READ_PROGRAMME:
     (programme, meta) = db.query_named("default_programme", Programme._type)
-
     if programme:
       response.programme_store = programme
       statements = programme.statements
@@ -164,8 +167,29 @@ def handleDatabaseAction (request):
     robotstates = request.pose_store.states
 
   if request.type == DatabaseRequest.WRITE_PROGRAMME:
-    db.update_named("default_programme", request.programme_store)
-    statements = request.programme_store.statements
+    # take care that planning happens only single threaded and also 
+    # dont execute all planning requests that are succeeded by another planning requests
+
+    # store the latest request
+    latestGlobalPlanningThreadID = threading.currentThread().ident
+    if globalPlanningLock.locked():
+      rospy.loginfo("global planning in progress, waiting")
+
+    globalPlanningLock.acquire()
+    # if a younger  request has set latestGlobalPlanningThreadID to another thread, quit without doing anything
+    if latestGlobalPlanningThreadID == threading.currentThread().ident:
+      rospy.loginfo("store and plan")
+      db.update_named("default_programme", request.programme_store)
+      statements = request.programme_store.statements
+      createGlobalPlan()
+      rospy.loginfo("display global plan")
+      displayGlobalPlan()
+      rospy.loginfo("storing, planning, and showing done")
+    else:
+      rospy.loginfo("later request exists, ignore this one")
+    globalPlanningLock.release()
+
+    rospy.loginfo("global planning done ")
 
   if request.type == DatabaseRequest.READ_SETTINGS:
     (config, meta) = db.query_named("settings",Configuration._type)
@@ -236,17 +260,29 @@ def mergeRobotTrajectory(trajA,trajB):
 # creates a plan of the entire programme
 def createGlobalPlan():
   global statements, globalPlan
+
   startID = None
-  globalPlan = [];
+  globalPlan = []
+  foundWaypoint = False
+
+  # find all waypoint blocks, identifiy start and end number and call creation of a loca plan in that interval
   for idx in range(0,len(statements)):
+    #print("gp: 0-{0}:{1} type:{2}".format(len(statements)-1, idx, statements[idx].type ))
+    isLastStatement = (idx == len(statements)-1)
+    # first wyaypoint?
     if startID is None and statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
       startID = idx
-    elif startID is not None and statements[idx].type != Statement.STATEMENT_TYPE_WAYPOINT and idx == startID+1:
-      # we have only one waypoint
-      startID = None
-    elif startID is not None and statements[idx].type != Statement.STATEMENT_TYPE_WAYPOINT and idx > startID+1:
+      foundWaypoint = True
+    # end of a waypoint block? 
+    elif not foundWaypoint and statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
+      foundWaypoint = True
+    # end of a waypoint block? 
+    elif startID is not None and foundWaypoint and (statements[idx].type != Statement.STATEMENT_TYPE_WAYPOINT or isLastStatement):
+      endID = idx-1
+      if isLastStatement:
+        endID = idx
       # we found a local sequence of waypoints
-      localPlan = createLocalPlan(startID, idx-1)
+      localPlan = createLocalPlan(startID, endID)
       globalPlanItem =  GlobalPlanItem()
       globalPlanItem.start_id = startID
       globalPlanItem.end_id = idx-1
@@ -254,7 +290,9 @@ def createGlobalPlan():
       globalPlan.append(globalPlanItem)
 
       # be ready for the next plan
-      startID = None
+      startID = endID
+      foundWaypoint = False
+
 
 
 def displayGlobalPlan():
@@ -302,18 +340,26 @@ def createLocalPlan(startID, endID):
       rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
   else:
     localPlan = None
-    for idx in range(startID, endID):
-      startRS  = getRobotState(statements[idx].pose_uid)
-      endRS = getRobotState(statements[idx+1].pose_uid)
-      robotState.joint_state = copy.copy(startRS.jointState)
-      groupArm.set_start_state(copy.copy(robotState))
-      groupArm.set_joint_value_target(copy.copy(endRS.jointState))
+    rospy.loginfo("create local plan from statement {0} to  {1}".format(startID, endID))
+    startRS  = getRobotState(statements[startID].pose_uid)
+    firstPlan = True
+    for idx in range(startID+1, endID+1):
+      if statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
+        #print("IDX {0}".format(idx))
+        endRS = getRobotState(statements[idx].pose_uid)
+        robotState.joint_state = copy.copy(startRS.jointState)
+        groupArm.set_start_state(copy.copy(robotState))
+        groupArm.set_joint_value_target(copy.copy(endRS.jointState))
 
-      if idx == startID:           
-        localPlan = groupArm.plan()
-      else:
-        planTmp = groupArm.plan()
-        localPlan = mergeRobotTrajectory(localPlan, planTmp)
+        rospy.loginfo("create micro plan from {0} to  {1}".format(startID, idx))
+        if firstPlan:           
+          localPlan = groupArm.plan()   # first plan
+          firstPlan = False
+        else:
+          planTmp = groupArm.plan()     # next plan
+          localPlan = mergeRobotTrajectory(localPlan, planTmp)
+        startRS = endRS
+        startID = idx
 
     localPlan= groupArm.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
 
@@ -323,7 +369,7 @@ def createLocalPlan(startID, endID):
 
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, groupArm, robot,displayGlobalPlanPublisher, localPlan,visualizeGlobalPlan, visualizeLocalPlan
+  global statements, groupArm, robot,displayGlobalPlanPublisher, localPlan
 
   rospy.loginfo("handle planning Action {0}".format (request.type))
   # think positive
@@ -365,12 +411,12 @@ def handlePlanningAction(request):
 
   if request.type == PlanningActionRequest.VIS_GLOBAL_PLAN:
     configuration.vis_global_plan = request.jfdi
-    rospy.loginfo("visualize global plan: {0}".format(visualizeGlobalPlan))
+    rospy.loginfo("visualize global plan: {0}".format(configuration.vis_global_plan))
     displayGlobalPlan()
 
   if request.type == PlanningActionRequest.VIS_LOCAL_PLAN:
     configuration.vis_local_plan = request.jfdi
-    rospy.loginfo("visualize local plan: {0}".format(visualizeLocalPlan))
+    rospy.loginfo("visualize local plan: {0}".format(configuration.vis_local_plan))
     displayLocalPlan()
 
   return response
