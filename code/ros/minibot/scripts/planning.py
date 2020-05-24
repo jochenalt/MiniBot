@@ -335,9 +335,11 @@ def displayLocalPlan():
   if configuration.vis_local_plan and displayLocalPlanStartID != None:
     # look for the local plan in the gobal plan
     startID = getNextWaypointID(displayLocalPlanStartID)
-    planID = getGlobalPlanIDByStatementID(startID)
-    rospy.loginfo("display local plan from {0} -> startid:{1} planblock:{2}".format(displayLocalPlanStartID,startID, planID))
-    display_trajectory.trajectory.append(globalPlan[planID].plan)
+    if startID != None:
+      planID = getGlobalPlanIDByStatementID(startID)
+      if planID != None:
+        rospy.loginfo("display local plan from {0} -> startid:{1} planblock:{2}".format(displayLocalPlanStartID,startID, planID))
+        display_trajectory.trajectory.append(globalPlan[planID].plan)
 
   displayLocalPlanPublisher.publish(display_trajectory);
 
