@@ -421,7 +421,11 @@ def handlePlanningAction(request):
 
   if request.type == PlanningActionRequest.SIMULATE_PLAN:
     rospy.loginfo("simulate plan");
-    groupArm.execute(localPlan, wait=True)
+    startID = getStatementIDByUID(request.startStatementUID)
+    if startID != None:
+      planID = getGlobalPlanIDByStatementID(startID)
+      if  planID != None:
+        groupArm.execute(globalPlan[planID].plan, wait=True)
 
   if request.type == PlanningActionRequest.GLOBAL_PLAN:
     rospy.loginfo("create global plan");
