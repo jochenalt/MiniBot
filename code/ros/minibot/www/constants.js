@@ -55,6 +55,7 @@ Constants.Planning = {
 		ACTION_GLOBAL_PLAN : 6,				// create a plan of the entire programm
 		ACTION_VIS_GLOBAL_PLAN : 7,			// visualize the global plan 
 		ACTION_VIS_LOCAL_PLAN : 8,			// visualize the current local plan
+		ACTION_STEP_FORWARD : 9,			// visualize the current local plan
 
 		ACTIVATE_STATEMENT : 1
 };

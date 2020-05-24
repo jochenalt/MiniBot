@@ -969,48 +969,6 @@ ProgrammePanel.Init = function(options) {
       });
   }
 
-  var createPlan = function() {
-    var startID = getActiveId();
-    if (startID == null || startID < 0 || programmeItems[startID].type != StatementType.WayPoint) {
-      displayErr("select a statement first");
-      return;
-    }
-
-    var endID = getNumberOfWaypoints();
-    if (endID == null || endID < 0) {
-      displayErr("select a waypoint sequence first");
-      return;
-    }
-
-    // activate the pose of that statement as starting point
-    poseStorePanel.setPoseByUID(programmeItems[startID].poseUID);
-
-    var request = new ROSLIB.ServiceRequest({
-      type: Constants.Planning.ACTION_SIMULATE_PLAN,
-      startStatementUID: programmeItems[startID].uid,
-      endStatementUID: programmeItems[endID].uid
-    });
-
-    var planningAction = new ROSLIB.Service({
-      ros: ros,
-      name: '/planning_action',
-      serviceType: 'minibot/PlanningAction'
-    });
-
-    planningAction.callService(request,
-      function(response) {
-        var id = getActiveId();
-        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS)
-          programmeItems[id].error_code = response.error_code.val;
-        else {
-          programmeItems[id].error_code = response.error_code.val;
-        }
-      },
-      function(response) {
-        var id = getActiveId();
-        programmeItems[id].error_code = ErrorCode.PLANNING.FAILURE;
-      });
-  }
 
 
   var visualizePlan = function(type, ok) {
@@ -1046,7 +1004,41 @@ ProgrammePanel.Init = function(options) {
   }
 
   var forward = function(event) {
+    var startID = getActiveId();
+    if (startID == null || startID < 0 || programmeItems[startID].type != StatementType.WayPoint) {
+      displayErr("select a statement first");
+      return;
+    }
 
+    // activate the pose of that statement as starting point
+    poseStorePanel.setPoseByUID(programmeItems[startID].poseUID);
+
+    var request = new ROSLIB.ServiceRequest({
+      type: Constants.Planning.ACTION_STEP_FORWARD,
+      startStatementUID: programmeItems[startID].uid
+    });
+
+    var planningAction = new ROSLIB.Service({
+      ros: ros,
+      name: '/planning_action',
+      serviceType: 'minibot/PlanningAction'
+    });
+
+    planningAction.callService(request,
+      function(response) {
+        var id = getActiveId();
+        if (response.error_code.val == ErrorCode.PLANNING.SUCCESS)
+          programmeItems[id].error_code = response.error_code.val;
+        if (programmeItems.length > startID+1)
+          activateStatement(startID + 1);
+        else {
+          programmeItems[id].error_code = response.error_code.val;
+        }
+      },
+      function(response) {
+        var id = getActiveId();
+        programmeItems[id].error_code = ErrorCode.PLANNING.FAILURE;
+      });
   }
 
   var plan = function(event) {

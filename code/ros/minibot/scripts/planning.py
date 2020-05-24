@@ -44,6 +44,7 @@ class GlobalPlanItem:
   start_id = 0
   end_id = 0
   plan = None
+  localPlans = None
 
 statements = []                 # memory cache of all programme statements
 robotstates = []                # memory cache of all poses
@@ -283,11 +284,10 @@ def createGlobalPlan():
       if isLastStatement:
         endID = idx
       # we found a local sequence of waypoints
-      localPlan = createLocalPlan(startID, endID)
       globalPlanItem =  GlobalPlanItem()
       globalPlanItem.start_id = startID
       globalPlanItem.end_id = idx-1
-      globalPlanItem.plan = localPlan
+      (globalPlanItem.plan, globalPlanItem.localPlans) = createLocalPlan(startID, endID)
       globalPlan.append(globalPlanItem)
 
       # be ready for the next plan
@@ -329,6 +329,13 @@ def getGlobalPlanIDByStatementID(id):
       return idx
   return None 
 
+
+def getLocalPlanIDByStatementID(planid, statementiID):
+  global globalPlan
+  statementsSinceStart = statementiID-globalPlan[planid].start_id;
+  return statementsSinceStart
+
+
 def displayLocalPlan():
   global globalPlan, displayLocalPlanPublisher, configuration, displayLocalPlanStartID
   display_trajectory = moveit_msgs.msg.DisplayTrajectory()
@@ -354,6 +361,7 @@ def createLocalPlan(startID, endID):
 
   startRS = getRobotState(statements[startID].pose_uid)
   endRS = getRobotState(statements[endID].pose_uid)
+  localPlans = []
 
   # compute waypoints, but leave out the first one, which is the start state
   groupArm.clear_pose_targets()
@@ -388,11 +396,12 @@ def createLocalPlan(startID, endID):
         else:
           planTmp = groupArm.plan()     # next plan, merge with previous plan
           localPlan = mergeRobotTrajectory(localPlan, planTmp)
+        localPlans.append(localPlan)
         startRS = endRS
         startID = idx
 
     localPlan= groupArm.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
-    return localPlan
+    return localPlan, localPlans
 
 
 # callback when a statement is activated
@@ -443,6 +452,16 @@ def handlePlanningAction(request):
     configuration.vis_local_plan = request.jfdi
     rospy.loginfo("visualize local plan: {0}".format(configuration.vis_local_plan))
     displayLocalPlan()
+
+  if request.type == PlanningActionRequest.STEP_FORWARD:
+    startID = getStatementIDByUID(request.startStatementUID)
+    if startID != None:
+      planID = getGlobalPlanIDByStatementID(startID)
+      if planID != None:
+        localPlanID = getLocalPlanIDByStatementID(planID, startID)
+        rospy.loginfo("simulate one step from: {0}/{1}/{2}".format(startID, planID, localPlanID))
+        groupArm.execute(globalPlan[planID].localPlans[localPlanID], wait=True)
+
 
   return response
 
