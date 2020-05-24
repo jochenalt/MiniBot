@@ -20,7 +20,6 @@ from minibot.msg import ClientAction
 
 server = None
 interactiveMarker = None
-
 lastMarkerPose = None           # last Marker Pose published (necessary, since Marker also publishes no changes )
 
 # returns true if two geometry_msgs/Pose are different (with a little wiggle room)
@@ -37,6 +36,7 @@ mutexTimer = None
 mutextLastData = None
 mutexBlockUpdate = False
 
+globalPlanTrajectories = 0
 
 def blockUpdate():
     global mutexBlockUpdate
@@ -236,11 +236,11 @@ def globalTrajectoryColor(no):
 
 # create little balls along a trajectory of a pose list 
 def makeTrajectoryMarker( displayTrajectory, isGlobal, markerName):
-    global server
+    global server, globalPlanTrajectories
 
-   
     # add the sphere list
     counter = 1
+    rospy.loginfo("makeTrajectoryMarker {0}, {1}".format(markerName, isGlobal))
     for traj in displayTrajectory.trajectory:
         trajectoryName = markerName + "-" + str(counter)
         server.erase(trajectoryName)
@@ -292,6 +292,14 @@ def makeTrajectoryMarker( displayTrajectory, isGlobal, markerName):
         intMarkerGlobalTrajectory.controls.append( control )
         counter = counter + 1
         server.insert(intMarkerGlobalTrajectory, callbackMarkerChange)
+
+    # delete all remains of previous trajectories
+    for idx in range(counter-1, globalPlanTrajectories):
+        trajectoryName = markerName + "-" + str(counter)
+        server.erase(trajectoryName)
+        counter = counter + 1
+
+    globalPlanTrajectories = len(displayTrajectory.trajectory)
 
     server.applyChanges();
  
