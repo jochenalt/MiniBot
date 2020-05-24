@@ -142,6 +142,7 @@ SettingsPanel.Init = function(options) {
 			document.getElementById("gradUnit").checked = true;
 			setGradUnit();
 		}
+		document.getElementById("saveAfterSeconds").value = parseInt(configuration.save_after.secs);
 		setThemeWidget();
 	}
 
@@ -170,6 +171,7 @@ SettingsPanel.Init = function(options) {
 		setThemeWidget();
 		Utils.callDelay ("theme", 1000, function() {
 			callSetGlobalTheme();
+			delayedSave();
 		})
 	}
 
@@ -191,6 +193,11 @@ SettingsPanel.Init = function(options) {
 		delayedSave();
 	} 
 
+	var setSaveAfterSeconds = function (event) {
+		configuration.save_after.secs = parseInt(Utils.makeFloatString(event.target.value));
+		configuration.save_after.nsecs = 0;
+		delayedSave();
+	}
 
 	function displayInfo(t) {
 		displayAlert(t, document.getElementById('settingsAlertHeadline'), document.getElementById('settingsAlertSuccess'));
@@ -229,6 +236,8 @@ SettingsPanel.Init = function(options) {
 		getVisualizationLocalPlan : getVisualizationLocalPlan,
 		setVisualizationGlobalPlan : setVisualizationGlobalPlan,
 		setVisualizationLocalPlan : setVisualizationLocalPlan,
+
+		setSaveAfterSeconds :setSaveAfterSeconds
 
 	};
 };

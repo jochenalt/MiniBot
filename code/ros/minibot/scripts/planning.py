@@ -43,26 +43,27 @@ from minibot.srv import Database, DatabaseRequest, DatabaseResponse
 class GlobalPlanItem:
   start_id = 0
   end_id = 0
-  localPlan = None
+  plan = None
 
-statements = []               # memory cache of all programme statements
-robotstates = []              # memory cache of all poses
+statements = []                 # memory cache of all programme statements
+robotstates = []                # memory cache of all poses
 
-groupArm = None               # group of all arm links
-groupGripper = None           # group of all gripper links
+groupArm = None                 # group of all arm links
 
-robot = None                  # RobotCommander Object
-scene = None                  # Planing scene Object
-localPlan  = None             # latest plan on a local sequence of waypoints, contains the currently computed plan
-globalPlan = [];              # entire plan of the full programme 
-configuration = None          # settings
+robot = None                    # RobotCommander Object
+globalPlan = [];                # entire plan of the full programme 
+displayLocalPlanStartID = None  # start id of local plan to be displayed
 
-globalPlanningLock = Lock()
-latestGlobalPlanningThreadID = None
+configuration = None            # all settings
+
+globalPlanningLock = Lock()             # lock to ensure that global planning is executed single threaded
+latestGlobalPlanningThreadID = None     # latest request of global planning that is used to ditch planning requests that are obsolete 
+
+
 
 def init():
-  global groupArm,groupGripper, robot,plans,\
-         displayGlobalPlanPublisher, scene,  \
+  global groupArm, robot,plans,\
+         displayGlobalPlanPublisher,   \
          displayLocalPlanPublisher
 
   #  initialize moveit pyhton interface, needs to happenn before .init_node
@@ -76,14 +77,8 @@ def init():
 
   # MoveGroupCommander is the interface to one group of joints.  
   groupArm = moveit_commander.MoveGroupCommander(Constants.MINIBOT_GROUP)
-  #groupArm.set_end_effector_link("flange_link")
-  #groupGripper = moveit_commander.MoveGroupCommander(Constants.GRIPPER_GROUP)
-
-  # instantiate a planning scene
-  scene = moveit_commander.PlanningSceneInterface()
-
+ 
   ## publisher of trajectories to be displayed
-    ## publisher of trajectories to be displayed
   displayLocalPlanPublisher = rospy.Publisher(
                                       '/minibot/local_plan',
                                       moveit_msgs.msg.DisplayTrajectory, queue_size=1)
@@ -97,7 +92,7 @@ def init():
   groupArm.clear_pose_targets()
   groupArm.set_start_state_to_current_state()
   groupArm.set_joint_value_target(groupArm.get_current_joint_values())
-  localPlan = groupArm.plan()
+  groupArm.plan()
 
   # minibot planning services
   planning_action = rospy.Service('planning_action', PlanningAction, handlePlanningAction)
@@ -130,12 +125,16 @@ def initDatabase ():
     db.insert_named("default_programme",programme)
   statements = programme.statements
 
-  (configuration, meta) = db.query_named("settings", Configuration._type)
+  (configuration, meta) = db.query_named("mysettings", Configuration._type)
   if configuration is None:
     configuration = Configuration()
     configuration.theme = "cyborgTheme"
     configuration.angle_unit = Configuration.ANGLE_UNIT_RAD
-    db.insert_named("settings",configuration)
+    configuration.save_after 
+    configuration.save_after.secs = 3000
+    configuration.save_after.nsecs = 0
+
+    db.insert_named("mysettings",configuration)
 
   
 
@@ -170,13 +169,13 @@ def handleDatabaseAction (request):
     # take care that planning happens only single threaded and also 
     # dont execute all planning requests that are succeeded by another planning requests
 
-    # store the latest request
+    # store thread id of this  request  
     latestGlobalPlanningThreadID = threading.currentThread().ident
     if globalPlanningLock.locked():
       rospy.loginfo("global planning in progress, waiting")
 
     globalPlanningLock.acquire()
-    # if a younger  request has set latestGlobalPlanningThreadID to another thread, quit without doing anything
+    # if a younger  request has set latestGlobalPlanningThreadID in another thread, quit without doing anything
     if latestGlobalPlanningThreadID == threading.currentThread().ident:
       rospy.loginfo("store and plan")
       db.update_named("default_programme", request.programme_store)
@@ -192,15 +191,14 @@ def handleDatabaseAction (request):
     rospy.loginfo("global planning done ")
 
   if request.type == DatabaseRequest.READ_SETTINGS:
-    (config, meta) = db.query_named("settings",Configuration._type)
-    if config:
-      response.configuration = config
-      configuration = config
+    (configuration, meta) = db.query_named("mysettings",Configuration._type)
+    if configuration:
+      response.configuration = configuration
     else:
       rospy.logerr("settings are not initialized");
 
   if request.type == DatabaseRequest.WRITE_SETTINGS:
-    db.update_named("settings", request.configuration)
+    db.update_named("mysettings", request.configuration)
     configuration = request.configuration
 
   return response;
@@ -240,22 +238,25 @@ def mergeRobotTrajectory(trajA,trajB):
   for trajPoint in trajB.joint_trajectory.points:
     result.joint_trajectory.points.append(copy.deepcopy(trajPoint))
     lastTraj = result.joint_trajectory.points[-1]
-    lastTraj.time_from_start.secs =  lastTraj.time_from_start.secs + deltaTime.secs
-    lastTraj.time_from_start.nsecs =  lastTraj.time_from_start.nsecs + deltaTime.nsecs
-    if lastTraj.time_from_start.nsecs > 999999999:
-       lastTraj.time_from_start.secs = lastTraj.time_from_start.secs + 1
-       lastTraj.time_from_start.nsecs = lastTraj.time_from_start.nsecs - 1000000000
+    tfs = lastTraj.time_from_start
+    tfs.secs =  tfs.secs + deltaTime.secs
+    tfs.nsecs =  tfs.nsecs + deltaTime.nsecs
+    if tfs.nsecs > 999999999:
+       tfs.secs = tfs.secs + 1
+       tfs.nsecs = tfs.nsecs - 1000000000
 
   for mPoint in trajB.multi_dof_joint_trajectory.points:
     result.multi_dof_joint_trajectory.points.append(copy.deepcopy(mPoint))
     lastTraj = result.multi_dof_joint_trajectory.points[-1]
-    lastTraj.time_from_start.secs =  lastTraj.time_from_start.secs + deltaTime.secs
-    lastTraj.time_from_start.nsecs =  lastTraj.time_from_start.nsecs + deltaTime.nsecs
-    if lastTraj.time_from_start.nsecs > 999999999:
-       lastTraj.time_from_start.secs = lastTraj.time_from_start.secs + 1
-       lastTraj.time_from_start.nsecs = lastTraj.time_from_start.nsecs - 1000000000
+    tfs = lastTraj.time_from_start
+    tfs.secs =  tfs.secs + deltaTime.secs
+    tfs.nsecs =  tfs.nsecs + deltaTime.nsecs
+    if tfs.nsecs > 999999999:
+       tfs.secs = tfs.secs + 1
+       tfs.nsecs = tfs.nsecs - 1000000000
 
   return result
+
 
 # creates a plan of the entire programme
 def createGlobalPlan():
@@ -305,18 +306,45 @@ def displayGlobalPlan():
   displayGlobalPlanPublisher.publish(display_trajectory);
 
 
+# return the next waypoint beginning (and including) startid 
+def getNextWaypointID (startid):
+  global globalPlan, statements
+  for idx in range(startid, len(statements)):
+      if statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
+        return idx
+  return None
+
+# returns the last Waypoint of this block, that ends by EOL or  statement type different from waypoint 
+def getLastWaypointID (startid):
+  global globalPlan, statements
+  for idx in range(startid, len(statements)):
+      if statements[idx].type != Statement.STATEMENT_TYPE_WAYPOINT:
+        return idx-1
+  return len(statements)-1
+
+def getGlobalPlanIDByStatementID(id):
+  global globalPlan
+  for idx in range(0, len(globalPlan)):
+    if globalPlan[idx].start_id <=id and globalPlan[idx].end_id >= id:
+      return idx
+  return None 
+
 def displayLocalPlan():
-  global displayLocalPlanPublisher, localPlan, configuration
+  global globalPlan, displayLocalPlanPublisher, configuration, displayLocalPlanStartID
   display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-  if configuration.vis_local_plan:
-    display_trajectory.trajectory.append(localPlan)
+  if configuration.vis_local_plan and displayLocalPlanStartID != None:
+    # look for the local plan in the gobal plan
+    startID = getNextWaypointID(displayLocalPlanStartID)
+    planID = getGlobalPlanIDByStatementID(startID)
+    rospy.loginfo("display local plan from {0} -> startid:{1} planblock:{2}".format(displayLocalPlanStartID,startID, planID))
+    display_trajectory.trajectory.append(globalPlan[planID].plan)
 
   displayLocalPlanPublisher.publish(display_trajectory);
 
 
 # returns a local plan for all waypoints between startID and endID
 def createLocalPlan(startID, endID):
-  global statements, groupArm, localPlan
+  global statements, groupArm
 
   robotState = RobotState()
   robotState.joint_state.header = Header()
@@ -351,25 +379,23 @@ def createLocalPlan(startID, endID):
         groupArm.set_start_state(copy.copy(robotState))
         groupArm.set_joint_value_target(copy.copy(endRS.jointState))
 
-        rospy.loginfo("create micro plan from {0} to  {1}".format(startID, idx))
+        rospy.loginfo("create micro plan from statement {0} to  {1}".format(startID, idx))
         if firstPlan:           
           localPlan = groupArm.plan()   # first plan
           firstPlan = False
         else:
-          planTmp = groupArm.plan()     # next plan
+          planTmp = groupArm.plan()     # next plan, merge with previous plan
           localPlan = mergeRobotTrajectory(localPlan, planTmp)
         startRS = endRS
         startID = idx
 
     localPlan= groupArm.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
-
-    displayLocalPlan()
     return localPlan
 
 
 # callback when a statement is activated
 def handlePlanningAction(request):
-  global statements, groupArm, robot,displayGlobalPlanPublisher, localPlan
+  global statements, groupArm, robot,displayGlobalPlanPublisher, displayLocalPlanStartID
 
   rospy.loginfo("handle planning Action {0}".format (request.type))
   # think positive
@@ -378,27 +404,22 @@ def handlePlanningAction(request):
 
   if request.type == PlanningActionRequest.PLAN_PATH:
     startID = getStatementIDByUID(request.startStatementUID)
-    endID = getStatementIDByUID(request.endStatementUID)
-    rospy.loginfo("create local plan between {0}-{1}".format (startID, startID));
+
+    rospy.loginfo("display local plan between {0}-{1}".format (startID, startID));
     if startID == -1:
       rospy.logerr("statement with uid={0} does not exist".format(request.startStatementUID) )
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
       return response
-    if endID == -1:
-      rospy.logerr("statement with uid={0} does not exist".format(request.endStatementUID))
-      response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
-      return response
 
-    localPlan = createLocalPlan(startID, endID); 
+    displayLocalPlanStartID = startID
+    displayLocalPlan()
 
   if request.type == PlanningActionRequest.CLEAR_PLAN:
     rospy.loginfo("clear  plan");
     # dont know how to delete a plan and remove the displayed trajectory!?
     # so set start and end point to current position
-    groupArm.clear_pose_targets()
-    groupArm.set_start_state_to_current_state()
-    groupArm.set_joint_value_target(groupArm.get_current_joint_values())
-    localPlan = groupArm.plan()
+    displayLocalPlanStartID = None
+
 
   if request.type == PlanningActionRequest.SIMULATE_PLAN:
     rospy.loginfo("simulate plan");

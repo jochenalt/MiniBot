@@ -274,7 +274,7 @@ def makeTrajectoryMarker( displayTrajectory, isGlobal, markerName):
                     marker = Marker()
                     marker.type = Marker.SPHERE_LIST
                     if isGlobal:
-                        marker.scale.x = marker.scale.y = marker.scale.z = 0.003
+                        marker.scale.x = marker.scale.y = marker.scale.z = 0.004
                         marker.color = globalTrajectoryColor(counter)
                     else:
                         marker.scale.x = marker.scale.y = marker.scale.z = 0.005

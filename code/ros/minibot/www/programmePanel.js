@@ -505,9 +505,7 @@ ProgrammePanel.Init = function(options) {
       }
 
       // display the trajectory to the next Item
-      if (programmeItems[id].type == StatementType.WayPoint)
-        planningAction();
-
+      planningAction();
     }
   }
 
@@ -900,30 +898,15 @@ ProgrammePanel.Init = function(options) {
   var planningAction = function() {
     // anything active?
     var startID = getActiveId();
-    if (startID == null || startID < 0 || programmeItems[startID].type != StatementType.WayPoint) {
+    if (startID == null || startID < 0) {
       displayErr("select a statement first");
       return;
     }
 
-    var endID = getNumberOfWaypoints();
-    var action = null;
-
-    var request = null;
-
-    if (endID == null || endID < 0) {
-      // only one waypoint, clear the plan
-      request = new ROSLIB.ServiceRequest({
-        type: Constants.Planning.ACTION_CLEAR_PLAN,
-      });
-    } else {
-      // multiple waypoints, make  a plan
-      request = new ROSLIB.ServiceRequest({
+    var request = new ROSLIB.ServiceRequest({
         type: Constants.Planning.ACTION_PLAN_PATH,
-        startStatementUID: programmeItems[startID].uid,
-        endStatementUID: programmeItems[endID].uid
-      });
-    }
-
+        startStatementUID: programmeItems[startID].uid
+    });
 
     var planningAction = new ROSLIB.Service({
       ros: ros,

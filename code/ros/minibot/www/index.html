@@ -560,7 +560,7 @@
                             <div class="w-100 p-0 my-3 w-100" >
                                 <div class="col p-0 ">
                                     <small>UI Units</small>
-                                    <div class='form-check form-check-inline w-100'>
+                                    <div class='form-check form-check-inline w-100 my-3'>
                                         <div class="custom-control custom-radio w-100">
                                             <input id="radUnit" type="radio" class="custom-control-input"  name="unitSwitcher" onchange='settingsPanel.setRadUnit(event.target.id)' checked/>
                                             <label class="custom-control-label" for="radUnit">RAD<br><small>use [radiant] for all angles</small></label>
@@ -570,6 +570,14 @@
                                             <label class="custom-control-label" for="gradUnit">GRAD<br><small>use [GRAD] for all angles</small></label>
                                         </div>
                                     </div>
+                                    <div class="form-inline">
+                                        <div class="form-group">
+                                            <label class="col-form-label">Save work after</label>
+                                            <input id="saveAfterSeconds" type="text" class="form-control input-sm col-3 mx-2" placeholder="0" oninput='settingsPanel.setSaveAfterSeconds(event)'/>
+                                            <label class="col-form-label">seconds</label>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                             <div class="w-100 p-0 my-3 w-100" >
