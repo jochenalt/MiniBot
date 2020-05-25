@@ -289,6 +289,9 @@ def createGlobalPlan():
       globalPlanItem.end_id = idx-1
       (globalPlanItem.plan, globalPlanItem.localPlans) = createLocalPlan(startID, endID)
       globalPlan.append(globalPlanItem)
+      #print("--------------------------------------------------------")
+      #print(globalPlanItem.localPlans)
+      #print("--------------------------------------------------------")
 
       # be ready for the next plan
       startID = endID
@@ -361,6 +364,7 @@ def createLocalPlan(startID, endID):
 
   startRS = getRobotState(statements[startID].pose_uid)
   endRS = getRobotState(statements[endID].pose_uid)
+  concatLocalPlan = []
   localPlans = []
 
   # compute waypoints, but leave out the first one, which is the start state
@@ -392,16 +396,18 @@ def createLocalPlan(startID, endID):
         rospy.loginfo("create micro plan from statement {0} to  {1}".format(startID, idx))
         if firstPlan:           
           localPlan = groupArm.plan()   # first plan
+          concatLocalPlan = localPlan
           firstPlan = False
         else:
-          planTmp = groupArm.plan()     # next plan, merge with previous plan
-          localPlan = mergeRobotTrajectory(localPlan, planTmp)
+          localPlan = groupArm.plan()     # next plan, merge with previous plan
+          concatLocalPlan = mergeRobotTrajectory(concatLocalPlan, localPlan)
+  
         localPlans.append(localPlan)
         startRS = endRS
         startID = idx
 
-    localPlan= groupArm.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
-    return localPlan, localPlans
+    localPlan = groupArm.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
+    return concatLocalPlan, localPlans
 
 
 # callback when a statement is activated
@@ -435,7 +441,11 @@ def handlePlanningAction(request):
     startID = getStatementIDByUID(request.startStatementUID)
     if startID != None:
       planID = getGlobalPlanIDByStatementID(startID)
-      if  planID != None:
+      if planID != None:
+        startRS = getRobotState(statements[startID].pose_uid)
+        robotState = RobotState()
+        robotState.joint_state = startRS.jointState
+        groupArm.set_start_state(robotState)
         groupArm.execute(globalPlan[planID].plan, wait=True)
 
   if request.type == PlanningActionRequest.GLOBAL_PLAN:
@@ -460,6 +470,11 @@ def handlePlanningAction(request):
       if planID != None:
         localPlanID = getLocalPlanIDByStatementID(planID, startID)
         rospy.loginfo("simulate one step from: {0}/{1}/{2}".format(startID, planID, localPlanID))
+
+        startRS = getRobotState(statements[startID].pose_uid)
+        robotState = RobotState()
+        robotState.joint_state = startRS.jointState
+        groupArm.set_start_state(robotState)
         groupArm.execute(globalPlan[planID].localPlans[localPlanID], wait=True)
 
 
