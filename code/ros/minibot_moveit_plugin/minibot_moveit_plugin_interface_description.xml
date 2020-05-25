@@ -1,0 +1,7 @@
+<library path="lib/libminibot_moveit_plugin">
+    <class base_class_type="planning_interface::PlannerManager" name="lerp_interface/LERPPlanner" type="lerp_interface::LERPPlannerManager" >  
+   <description>
+	Jochen's move plugin
+   </description>
+  </class>
+</library>
