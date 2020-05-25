@@ -14,6 +14,24 @@ SettingsPanel.Init = function(options) {
 	var programmePanel;
 	var setGlobalThemeFunc;
 
+	var initialize = function() {
+		// patch all the themes into the DOM
+		document.getElementById("themeSlider").setAttribute("max",Constants.Themes.Name.length-1);
+		for (var idx = 0;idx < Constants.Themes.Name.length;idx++) {
+			var name = Constants.Themes.Name[idx];
+			var uppperName = name[0].toUpperCase() + name.substring(1);
+			var themeScale = document.getElementById("themeScale");
+			var label = document.createElement("DIV");
+    		label.setAttribute('class', 'my-3 m-0 p-0');
+    		label.innerHTML = uppperName;
+    		label.style.transform = 'rotate(80deg)';
+    		label.style.width =100/Constants.Themes.Name.length + '%';
+
+    		// label.style.width="100%"; // Math.floor(w/Constants.Themes.Name.length) + "px";
+    		themeScale.appendChild(label);
+		}
+	}
+
 	var readConfiguration = function(callbackSuccess, callbackFailure) {
 		var request = new ROSLIB.ServiceRequest({
 			type: Constants.Database.READ_CONFIGURATIION
@@ -78,9 +96,7 @@ SettingsPanel.Init = function(options) {
 		setTheme(configuration.theme);
 	}
 
-	var initialize = function() {
-		setThemeWidget();
-	}
+	
 
 	var factoryReset = function() {
 		if (configuration == null) {
@@ -120,17 +136,19 @@ SettingsPanel.Init = function(options) {
 	}
 
 	var setThemeWidget = function() {
+		var foundit = false;
 		for (var idx = 0;idx < Constants.Themes.Name.length;idx++) {
+			var name = Constants.Themes.Name[idx];
+			var uppperName = name[0].toUpperCase() + name.substring(1);
 			if (Constants.Themes.Name[idx] == configuration.theme) {
-				var name = Constants.Themes.Name[idx];
-				var uppperName = name[0].toUpperCase() + name.substring(1);
 				document.getElementById("themeDescription").innerHTML = uppperName+ "<br><small>" + Constants.Themes.Description[idx];
 				document.getElementById("themeSlider").value = idx;
 				configuration.theme = Constants.Themes.Name[idx];
-				return;
+				foundit = true;
 			}
 		}
-		displayErr("could not find theme " + configuration.theme);
+		if (!foundit)
+			displayErr("could not find theme " + configuration.theme);
 	}
 
 	var setWidgets = function() {

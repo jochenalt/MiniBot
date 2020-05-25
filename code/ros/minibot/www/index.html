@@ -79,6 +79,7 @@
           
             // will be called after loading the DOM tree 
             function init() {
+
                  kinematics = new Kinematics.Init({
                      ros: ros
                  });
@@ -92,8 +93,6 @@
                          kinematicsPanel: kinematicsPanel,
                          kinematics: kinematics
                  });
-            
-            
             
                  programmePanel  = new ProgrammePanel.Init({
                          ros: ros,
@@ -111,6 +110,9 @@
                  setTimeout(function() {
                     settingsPanel.setWidgets();                    
                     programmePanel.refresh();
+                    // requires loaded body
+                    settingsPanel.initialize();
+
                  }, 1500);
             
                  window.addEventListener("resize", resize);
@@ -365,7 +367,7 @@
                     </div>
                 </div>
                 <div id="posePanel" class="row d-flex col-2 mx-0 p-0">
-                    <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
+                    <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0 vw-100">
                         <div class="col w-100 p-0 m-0 " >
                             <div class="w-100 mx-1 mt-1 mb-0 px-2 " style="height:1rem;">
                                 <div class='w-100 my-0 py-0' 
@@ -377,24 +379,25 @@
                                 <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
                                     id='poseStorageAlertWarning' role='alert'/></div>
                             </div>
-                            <div id="poseListGroup" class="overflow-auto  mt-4 mx-2" >
-                                <ul class="list-group "  id="poseStoreList">
+                            <div id="poseListGroup" class="overflow-auto mt-4 mx-2" >
+                                <ul class="list-group"  id="poseStoreList">
                                 </ul>
                             </div>
                         </div>
-                        <div class="w-100 row p-0 m-0 mb-3 d-flex align-self-end ">
-                            <div id="poseButtonPanel" class="col  w-100 m-0 p-0">
-                                <div class="btn-group col  ">
+                        <div class="w-100 row mx-2 d-flex align-self-end">
+                            <div id="poseButtonPanel" class="col  w-100 m-0 p-0 pb-3">
+                                <div class="btn-group col p-0 ">
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.newPose()">New</button>
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.storePose()">Store</button>
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="poseStorePanel.deletePose()">Delete</button>
                                 </div>
-                                <div class="btn-group col">
+                                <div class="btn-group col p-0">
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.renamePose()">Rename</button>
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.up()">Up</button>
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="poseStorePanel.down()">Down</button>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -411,13 +414,14 @@
                                 <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
                                     id='programmeAlertWarning' role='alert'/></div>
                             </div>
-                            <div id="statementListGroup" class=" overflow-auto mt-4 mx-2 mb-0" >
-                                <ul class="list-group "  id="programmeList">
+                            <div id="statementListGroup" class="overflow-auto mt-4 mx-2 mb-0" >
+                                <ul class="list-group"  id="programmeList">
                                 </ul>
                             </div>
                         </div>
-                        <div id="programmButtonPanel" class="w-100 row p-0 mx-2 d-flex align-self-end ">
-                            <div class="w-100 p-0 mb-0 mt-0" style='height:20vh;' >
+
+                        <div id="programmButtonPanel" class="w-100 row mx-2  d-flex align-self-end ">
+                            <div class="row w-100 ml-0 p-0"  style="height:20vh;" >
                                 <div class="p-0 m-0" id='detailsWaypointStatement'  style="display:none;">
                                     <small>Waypoint</small>
                                     <div class="mt-2 p-0">
@@ -474,9 +478,9 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col w-100 m-0 p-0">
-                                <div class="col p-0"><small>Visiualize Plan</small></div>
-                                <div class="col p-0 mb-3">
+                            <div class="w-100 p-0 m-0">
+                                <div class="col p-0 m-0"><small>Visiualize Plan</small></div>
+                                <div class="col mb-3 m-0">
                                     <div class="form-check form-check-inline px-0">
                                         <input  id="visualizeLocalPlan" class="form-check-input" type="checkbox" value="0" onchange="programmePanel.visualizeLocalPlan(event)" checked>
                                         <label class="form-check-label" for="viewLocalPlan">
@@ -490,8 +494,10 @@
                                         </label>                                
                                     </div>
                                 </div>
-                                <div class="col p-0"><small>Action Management</small></div>
-                                <div class="btn-group col p-0">
+                            </div>
+                            <div class="w-100 p-0 m-0">
+                                <div class=" col p-0"><small>Action Management</small></div>
+                                <div class=" btn-group col p-0">
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWaypoint()">Waypoint</button>
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWait()" >Wait</button>
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newComment()">Comment</button>
@@ -504,6 +510,8 @@
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.up()">Up</button>
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.down()">Down</button>
                                 </div>
+                            </div>
+                            <div class="w-100 p-0 mb-0 mt-0">
                                 <div class="col p-0"><small>Simulation</small></div>
                                 <div class="btn-group col p-0 mb-3">
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.plan()">Plan</button>
@@ -555,9 +563,8 @@
                                     </div>
                             </div>
                         </div>
-
                         <div id="settingsButtonPanel" class="w-100 row p-0 mx-2 pb-3 d-flex align-self-end ">
-                            <div class="w-100 p-0 my-3 w-100" >
+                            <div class="w-100 p-0 m-0 w-100" >
                                 <div class="col p-0 ">
                                     <small>UI Units</small>
                                     <div class='form-check form-check-inline w-100 my-3'>
@@ -577,29 +584,32 @@
                                             <label class="col-form-label">seconds</label>
                                         </div>
                                     </div>
-
                                 </div>
-                            </div>
-                            <div class="w-100 p-0 my-3 w-100" >
-                                <div id="themesSettings" class="w-100 p-0 my-3 w-100" >
-                                    <div class="col p-0 "><small>UI theme</small>
-                                       <input id="themeSlider" type="range" class="custom-range" name="range" min="1" max="5" step="1" oninput="settingsPanel.changeTheme(event)">
-                                       <div id="themeDescription" class="alert alert-primary p-3">
+                                <div id="themesSettings" class="w-100 p-0 m-0 my-3 w-100" >
+                                    <div class="col mr-3 pl-0 pr-3"><small>UI theme</small>
+                                       <input id="themeSlider" type="range" class="custom-range" name="range" min="0" step="1" oninput="settingsPanel.changeTheme(event)">
+                                    </div>                         
+                                    <div class="col p-0">
+                                       <div id="themeScale" class="row mb-5 ml-0 mr-1 p-0">
+                                       </div>
+                                       <div id="themeDescription" class="alert alert-primary p-1">
                                             Lorem ipsum<br><small> dolor sit amet</small> 
                                        </div>
-                                    </div>                         
+                                    </div>
+
                                 </div>
-                            </div>
-                            <div class="col w-100 m-0 p-0">
-                                <div class="col p-0"><small>UI changes</small></div>
-                                <div class="btn-group col p-0">
-                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.apply()">Apply</button>
-                                </div>
-                                <div class="btn-group col p-0">
-                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.factoryReset()">Factory Reset</button>
-                                </div>
-                                <div class="btn-group col p-0">
-                                    <button type="button" class="btn-sm btn-primary w-100" onclick="settingsPanel.save()" >Save</button>
+                                <div class="col w-100 m-0 p-0">
+                                    <div class="col p-0"><small>UI changes</small></div>
+                                    <div class="btn-group col p-0">
+                                        <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.apply()">Apply</button>
+                                    </div>
+                                    <div class="btn-group col p-0">
+                                        <button type="button" class="btn-sm btn-secondary w-100" onclick="settingsPanel.factoryReset()">Factory Reset</button>
+                                    </div>
+
+                                    <div class="btn-group col p-0">
+                                        <button type="button" class="btn-sm btn-primary w-100" onclick="settingsPanel.save()" >Save</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
