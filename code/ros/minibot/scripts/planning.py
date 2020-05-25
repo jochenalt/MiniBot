@@ -470,13 +470,14 @@ def handlePlanningAction(request):
       if planID != None:
         localPlanID = getLocalPlanIDByStatementID(planID, startID)
         rospy.loginfo("simulate one step from: {0}/{1}/{2}".format(startID, planID, localPlanID))
-
-        startRS = getRobotState(statements[startID].pose_uid)
-        robotState = RobotState()
-        robotState.joint_state = startRS.jointState
-        groupArm.set_start_state(robotState)
-        groupArm.execute(globalPlan[planID].localPlans[localPlanID], wait=True)
-
+        if localPlanID < len(globalPlan[planID].localPlans):
+          startRS = getRobotState(statements[startID].pose_uid)
+          robotState = RobotState()
+          robotState.joint_state = startRS.jointState
+          groupArm.set_start_state(robotState)
+          groupArm.execute(globalPlan[planID].localPlans[localPlanID], wait=True)
+        else:
+          rospy.loginfo("cannot run only one waypoint")
 
   return response
 
