@@ -304,6 +304,11 @@ PoseStorePanel.Init = function(options) {
     activate(id);
   }
 
+  var activateByUID = function(uid) {
+    var id = getPoseItemIDByUID(uid);
+    activate(id);
+  }
+
   // activate the passed list item
   var activate = function(id) {
     if (id >= 0) {
@@ -571,6 +576,7 @@ PoseStorePanel.Init = function(options) {
     getJointStateByUID: getJointStateByUID,
     getNameByUID: getNameByUID,
     setProgrammePanel: setProgrammePanel,
-    setPoseByUID: setPoseByUID
+    setPoseByUID: setPoseByUID,
+    activateByUID : activateByUID 
   };
 };

@@ -470,6 +470,7 @@ ProgrammePanel.Init = function(options) {
   var callbackClick = function(event) {
     var id = event.target.id;
     activateStatement(id);
+    poseStorePanel.activateByUID(programmeItems[id].poseUID);
   }
 
   // activate the passed list item
@@ -503,6 +504,11 @@ ProgrammePanel.Init = function(options) {
       // display the trajectory to the next Item
       planningAction();
     }
+  }
+
+  var activatePoseInPosePanel  = function(id) {
+    var id = parseInt(event.target.parentNode.getAttribute('id'));
+    poseStorePanel.setPoseByUID(programmeItems[id].poseUID);
   }
 
   var activatePose = function(event) {
