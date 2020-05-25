@@ -1058,10 +1058,6 @@ ProgrammePanel.Init = function(options) {
     }
   }
 
-  var plan = function(event) {
-    storeInDatabase(true);
-  }
-
   var run = function(event) {
     simulatePlan();
   }
@@ -1122,7 +1118,6 @@ ProgrammePanel.Init = function(options) {
     visualizeGlobalPlan : visualizeGlobalPlan,
 
     forward: forward,
-    plan: plan,
     run: run,
     refresh: refresh
   };
