@@ -173,8 +173,6 @@ sudo apt-get update
 sudo apt-get install ros-melodic-ros-base
 sudo apt-get install python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
 sudo apt-get install ros-melodic-joint-state-publisher-gui
-sudo apt-get install ros-melodic-roswww
-
 sudo apt-get install ros-melodic-catkin
 sudo apt-get install ros-melodic-eigen-conversions
 
@@ -190,18 +188,17 @@ sudo chmod a+w /opt/ros/mongodb_store
 --- install moveit
 sudo apt-get install ros-melodic-moveit
 
+sudo apt-get install ros-melodic-descartes_capability
+
 sudo apt install python-pip
 python -m pip install tornado
 pip install twisted
 pip install autobahn 
 
-
-
 sudo rosdep init
 rosdep update
 echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 source ~/.bashrc
-
 
 --- install minibot sources
 cd ~
@@ -216,6 +213,36 @@ in .bashrc
 rosparam set mongodb_port 62345
 rosparam set mongodb_host localhost
 rosrun mongodb_store mongodb_server.py
+
+--- install descartes along https://github.com/PickNikRobotics/descartes_capability
+sudo apt-get install python-wstool python-catkin-tools
+export CATKIN_WS=~/ws_catkin/
+git clone https://github.com/PickNikRobotics/descartes_capability.git
+wstool init ~/catkin_ws/src
+wstool merge -t ~/catkin_ws/src descartes_capability/descartes_capability.rosinstall
+wstool update -t ~/catkin_ws/src
+rosdep install --from-paths ~/catkin_ws/src --ignore-src --rosdistro melodic
+cd ~/catkin_ws
+catkin config --extend /opt/ros/melodic --cmake-args -DCMAKE_BUILD_TYPE=Release
+catkin build
+
+--- update descartes
+cd $CATKIN_WS/src/descartes_capability
+git checkout master
+git pull origin master
+cd ~/catkin_ws/src
+wstool merge descartes_capability/descartes_capability.rosinstall
+wstool update
+rosdep install --from-paths . --ignore-src --rosdistro melodic
+
+
+--- install eclipse along http://wiki.ros.org/IDEs with catkin tools
+# download Eclipse for C++ from https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2020-03/R/eclipse-cpp-2020-03-R-incubation-linux-gtk-x86_64.tar.gz&mirror_id=1099
+# extract in ~
+catkin build  --force-cmake -G"Eclipse CDT4 - Unix Makefiles"
+sudo apt install openjdk-8-jdk
+~/catkin/src/generate_eclipse_files.sh
+catkin build  --force-cmake -G"Eclipse CDT4 - Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug
 
 ----
 ToDos
