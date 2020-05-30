@@ -23,6 +23,11 @@ import geometry_msgs.msg
 from std_msgs.msg import String
 from moveit_msgs.msg import RobotState
 from moveit_msgs.msg import RobotTrajectory
+from geometry_msgs.msg import Pose
+from moveit_msgs.msg import Constraints
+from moveit_msgs.msg import PositionConstraint
+from moveit_msgs.msg import OrientationConstraint
+from shape_msgs.msg import SolidPrimitive
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
@@ -49,7 +54,8 @@ class GlobalPlanItem:
 statements = []                 # memory cache of all programme statements
 robotstates = []                # memory cache of all poses
 
-groupArm = None                 # group of all arm links
+minibotArmGripperGroup = None                 # group of all arm links and the gripper
+minibotArmGroup = None                        # group of all arm links without the gripper
 
 robot = None                    # RobotCommander Object
 globalPlan = [];                # entire plan of the full programme 
@@ -63,7 +69,7 @@ latestGlobalPlanningThreadID = None     # latest request of global planning that
 
 
 def init():
-  global groupArm, robot,plans,\
+  global minibotArmGripperGroup, minibotArmGroup, robot,plans,\
          displayGlobalPlanPublisher,   \
          displayLocalPlanPublisher
 
@@ -77,7 +83,8 @@ def init():
   robot = moveit_commander.RobotCommander()
 
   # MoveGroupCommander is the interface to one group of joints.  
-  groupArm = moveit_commander.MoveGroupCommander(Constants.MINIBOT_GROUP)
+  minibotArmGripperGroup = moveit_commander.MoveGroupCommander(Constants.MINIBOT_GROUP)
+  minibotArmGroup = moveit_commander.MoveGroupCommander(Constants.ARM_GROUP)
  
   ## publisher of trajectories to be displayed
   displayLocalPlanPublisher = rospy.Publisher(
@@ -90,10 +97,10 @@ def init():
 
 
   # clear any existing plans (if moveit is still running from a previous session)
-  groupArm.clear_pose_targets()
-  groupArm.set_start_state_to_current_state()
-  groupArm.set_joint_value_target(groupArm.get_current_joint_values())
-  groupArm.plan()
+  minibotArmGripperGroup.clear_pose_targets()
+  minibotArmGripperGroup.set_start_state_to_current_state()
+  minibotArmGripperGroup.set_joint_value_target(minibotArmGripperGroup.get_current_joint_values())
+  minibotArmGripperGroup.plan()
 
   # minibot planning services
   planning_action = rospy.Service('planning_action', PlanningAction, handlePlanningAction)
@@ -204,6 +211,80 @@ def handleDatabaseAction (request):
 
   return response;
 
+
+# callback when a statement is activated
+def handlePlanningAction(request):
+  global statements, minibotArmGripperGroup, robot,displayGlobalPlanPublisher, displayLocalPlanStartID
+
+  rospy.loginfo("handle planning Action {0}".format (request.type))
+  # think positive
+  response = PlanningActionResponse()
+  response.error_code.val = ErrorCodes.SUCCESS;
+
+  if request.type == PlanningActionRequest.SELECT_LOCAL_PLAN:
+    startID = getStatementIDByUID(request.startStatementUID)
+
+    rospy.loginfo("display local plan between {0}-{1}".format (startID, startID));
+    if startID == -1:
+      rospy.logerr("statement with uid={0} does not exist".format(request.startStatementUID) )
+      response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
+      return response
+
+    displayLocalPlanStartID = startID
+    displayLocalPlan()
+
+  if request.type == PlanningActionRequest.CLEAR_PLAN:
+    rospy.loginfo("clear plan");
+    displayLocalPlanStartID = None
+    displayLocalPlan()
+
+  if request.type == PlanningActionRequest.SIMULATE_PLAN:
+    rospy.loginfo("simulate plan");
+    startID = getStatementIDByUID(request.startStatementUID)
+    if startID != None:
+      planID = getGlobalPlanIDByStatementID(startID)
+      if planID != None:
+        startRS = getRobotState(statements[startID].pose_uid)
+        robotState = RobotState()
+        robotState.joint_state = startRS.jointState
+        minibotArmGripperGroup.set_start_state(robotState)
+        minibotArmGripperGroup.execute(globalPlan[planID].plan, wait=True)
+
+  if request.type == PlanningActionRequest.GLOBAL_PLAN:
+    rospy.loginfo("create global plan");
+    createGlobalPlan()
+    displayGlobalPlan()
+
+  if request.type == PlanningActionRequest.VIS_GLOBAL_PLAN:
+    configuration.vis_global_plan = request.jfdi
+    rospy.loginfo("visualize global plan: {0}".format(configuration.vis_global_plan))
+    displayGlobalPlan()
+
+  if request.type == PlanningActionRequest.VIS_LOCAL_PLAN:
+    configuration.vis_local_plan = request.jfdi
+    rospy.loginfo("visualize local plan: {0}".format(configuration.vis_local_plan))
+    displayLocalPlan()
+
+  if request.type == PlanningActionRequest.STEP_FORWARD:
+    startID = getStatementIDByUID(request.startStatementUID)
+    if startID != None:
+      planID = getGlobalPlanIDByStatementID(startID)
+      if planID != None:
+        localPlanID = getLocalPlanIDByStatementID(planID, startID)
+        rospy.loginfo("simulate one step from: {0}/{1}/{2}".format(startID, planID, localPlanID))
+        if localPlanID < len(globalPlan[planID].localPlans):
+          startRS = getRobotState(statements[startID].pose_uid)
+          robotState = RobotState()
+          robotState.joint_state = startRS.jointState
+          minibotArmGripperGroup.set_start_state(robotState)
+          minibotArmGripperGroup.execute(globalPlan[planID].localPlans[localPlanID], wait=True)
+        else:
+          rospy.loginfo("cannot run only one waypoint")
+
+  return response
+
+
+
 # return the RobotState (MinibotState.msg) with a given uid
 def getRobotState(uid):
   global robotstates, db
@@ -261,7 +342,7 @@ def mergeRobotTrajectory(trajA,trajB):
 
 # creates a plan of the entire programme
 def createGlobalPlan():
-  global statements, globalPlan
+  global statements, globalPlan, minibotArmGroup
 
   startID = None
   globalPlan = []
@@ -296,6 +377,72 @@ def createGlobalPlan():
       # be ready for the next plan
       startID = endID
       foundWaypoint = False
+
+
+# returns a local plan for all waypoints between startID and endID
+def createLocalPlan(startID, endID):
+  global statements, minibotArmGripperGroup, minibotArmGroup
+
+  robotState = RobotState()
+  robotState.joint_state.header = Header()
+  robotState.joint_state.header.stamp = rospy.Time.now()
+
+  startRS = getRobotState(statements[startID].pose_uid)
+  endRS = getRobotState(statements[endID].pose_uid)
+  concatLocalPlan = []
+  localPlans = []
+
+  # compute waypoints, but leave out the first one, which is the start state
+  minibotArmGripperGroup.clear_pose_targets()
+  if statements[startID].cartesic_path:
+    constraints = Constraints()
+    constraints.name = "MinibotCartesianConstraints"
+    constraints.position_constraints = []
+    waypoints = []
+    robotState.joint_state = startRS.jointState
+    minibotArmGripperGroup.set_start_state(robotState)
+
+    for idx in range(startID+1, endID+1):
+      waypointRS = getRobotState(statements[idx].pose_uid)
+      waypoints.append(waypointRS.pose)
+      positionConstraint = PositionConstraint()
+      positionConstraint.constraint_region.primitives.append(SolidPrimitive())
+      positionConstraint.constraint_region.primitives[0].type = SolidPrimitive.CYLINDER
+      positionConstraint.constraint_region.primitives[0].dimensions = [0.01]
+      constraints.position_constraints.append(positionConstraint)
+    print(constraints)
+    (localPlan,fraction) = minibotArmGroup.compute_cartesian_path(waypoints,0.01,0,True, constraints)
+    if fraction < 1.0:
+      rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
+    return localPlan, localPlans
+  else:
+    localPlan = None
+    rospy.loginfo("create local plan from statement {0} to  {1}".format(startID, endID))
+    startRS  = getRobotState(statements[startID].pose_uid)
+    firstPlan = True
+    for idx in range(startID+1, endID+1):
+      if statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
+        #print("IDX {0}".format(idx))
+        endRS = getRobotState(statements[idx].pose_uid)
+        robotState.joint_state = copy.copy(startRS.jointState)
+        minibotArmGripperGroup.set_start_state(copy.copy(robotState))
+        minibotArmGripperGroup.set_joint_value_target(copy.copy(endRS.jointState))
+
+        rospy.loginfo("create micro plan from statement {0} to  {1}".format(startID, idx))
+        if firstPlan:           
+          localPlan = minibotArmGripperGroup.plan()   # first plan
+          concatLocalPlan = localPlan
+          firstPlan = False
+        else:
+          localPlan = minibotArmGripperGroup.plan()     # next plan, merge with previous plan
+          concatLocalPlan = mergeRobotTrajectory(concatLocalPlan, localPlan)
+  
+        localPlans.append(localPlan)
+        startRS = endRS
+        startID = idx
+
+    localPlan = minibotArmGripperGroup.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
+    return concatLocalPlan, localPlans
 
 
 
@@ -353,133 +500,6 @@ def displayLocalPlan():
 
   displayLocalPlanPublisher.publish(display_trajectory);
 
-
-# returns a local plan for all waypoints between startID and endID
-def createLocalPlan(startID, endID):
-  global statements, groupArm
-
-  robotState = RobotState()
-  robotState.joint_state.header = Header()
-  robotState.joint_state.header.stamp = rospy.Time.now()
-
-  startRS = getRobotState(statements[startID].pose_uid)
-  endRS = getRobotState(statements[endID].pose_uid)
-  concatLocalPlan = []
-  localPlans = []
-
-  # compute waypoints, but leave out the first one, which is the start state
-  groupArm.clear_pose_targets()
-  if statements[startID].cartesic_path:
-    waypoints = []
-    robotState.joint_state = startRS.jointState
-    groupArm.set_start_state(copy.copy(robotState))
-    for idx in range(startID, endID+1):
-      waypointRS = getRobotState(statements[idx].pose_uid)
-      waypoints.append(copy.copy(waypointRS.pose))
-
-    (localPlan,fraction) = groupArm.compute_cartesian_path(waypoints,0.01,0)
-    if fraction < 1.0:
-      rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
-  else:
-    localPlan = None
-    rospy.loginfo("create local plan from statement {0} to  {1}".format(startID, endID))
-    startRS  = getRobotState(statements[startID].pose_uid)
-    firstPlan = True
-    for idx in range(startID+1, endID+1):
-      if statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
-        #print("IDX {0}".format(idx))
-        endRS = getRobotState(statements[idx].pose_uid)
-        robotState.joint_state = copy.copy(startRS.jointState)
-        groupArm.set_start_state(copy.copy(robotState))
-        groupArm.set_joint_value_target(copy.copy(endRS.jointState))
-
-        rospy.loginfo("create micro plan from statement {0} to  {1}".format(startID, idx))
-        if firstPlan:           
-          localPlan = groupArm.plan()   # first plan
-          concatLocalPlan = localPlan
-          firstPlan = False
-        else:
-          localPlan = groupArm.plan()     # next plan, merge with previous plan
-          concatLocalPlan = mergeRobotTrajectory(concatLocalPlan, localPlan)
-  
-        localPlans.append(localPlan)
-        startRS = endRS
-        startID = idx
-
-    localPlan = groupArm.retime_trajectory(robot.get_current_state(), localPlan, 1.0)
-    return concatLocalPlan, localPlans
-
-
-# callback when a statement is activated
-def handlePlanningAction(request):
-  global statements, groupArm, robot,displayGlobalPlanPublisher, displayLocalPlanStartID
-
-  rospy.loginfo("handle planning Action {0}".format (request.type))
-  # think positive
-  response = PlanningActionResponse()
-  response.error_code.val = ErrorCodes.SUCCESS;
-
-  if request.type == PlanningActionRequest.SELECT_LOCAL_PLAN:
-    startID = getStatementIDByUID(request.startStatementUID)
-
-    rospy.loginfo("display local plan between {0}-{1}".format (startID, startID));
-    if startID == -1:
-      rospy.logerr("statement with uid={0} does not exist".format(request.startStatementUID) )
-      response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
-      return response
-
-    displayLocalPlanStartID = startID
-    displayLocalPlan()
-
-  if request.type == PlanningActionRequest.CLEAR_PLAN:
-    rospy.loginfo("clear plan");
-    displayLocalPlanStartID = None
-    displayLocalPlan()
-
-  if request.type == PlanningActionRequest.SIMULATE_PLAN:
-    rospy.loginfo("simulate plan");
-    startID = getStatementIDByUID(request.startStatementUID)
-    if startID != None:
-      planID = getGlobalPlanIDByStatementID(startID)
-      if planID != None:
-        startRS = getRobotState(statements[startID].pose_uid)
-        robotState = RobotState()
-        robotState.joint_state = startRS.jointState
-        groupArm.set_start_state(robotState)
-        groupArm.execute(globalPlan[planID].plan, wait=True)
-
-  if request.type == PlanningActionRequest.GLOBAL_PLAN:
-    rospy.loginfo("create global plan");
-    createGlobalPlan()
-    displayGlobalPlan()
-
-  if request.type == PlanningActionRequest.VIS_GLOBAL_PLAN:
-    configuration.vis_global_plan = request.jfdi
-    rospy.loginfo("visualize global plan: {0}".format(configuration.vis_global_plan))
-    displayGlobalPlan()
-
-  if request.type == PlanningActionRequest.VIS_LOCAL_PLAN:
-    configuration.vis_local_plan = request.jfdi
-    rospy.loginfo("visualize local plan: {0}".format(configuration.vis_local_plan))
-    displayLocalPlan()
-
-  if request.type == PlanningActionRequest.STEP_FORWARD:
-    startID = getStatementIDByUID(request.startStatementUID)
-    if startID != None:
-      planID = getGlobalPlanIDByStatementID(startID)
-      if planID != None:
-        localPlanID = getLocalPlanIDByStatementID(planID, startID)
-        rospy.loginfo("simulate one step from: {0}/{1}/{2}".format(startID, planID, localPlanID))
-        if localPlanID < len(globalPlan[planID].localPlans):
-          startRS = getRobotState(statements[startID].pose_uid)
-          robotState = RobotState()
-          robotState.joint_state = startRS.jointState
-          groupArm.set_start_state(robotState)
-          groupArm.execute(globalPlan[planID].localPlans[localPlanID], wait=True)
-        else:
-          rospy.loginfo("cannot run only one waypoint")
-
-  return response
 
 
 if __name__=='__main__':
