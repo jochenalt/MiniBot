@@ -126,7 +126,7 @@ void MoveGroupDescartesPathService::createDensePath(const Eigen::Isometry3d& sta
 	eigen_pose.translation()[1] = p.y;
 	eigen_pose.translation()[2] = p.z;
 
-	ROS_INFO_STREAM_NAMED(name_, "spline[" <<eigen_pose.translation());
+	ROS_INFO_STREAM_NAMED(name_, "spline[" << t << "]=(" << p.x << "," << p.y << "," << p.z << ")");
     }
 
     eigen_pose.linear() = start_quaternion.slerp(t, end_quaternion).toRotationMatrix();

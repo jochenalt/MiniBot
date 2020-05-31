@@ -189,11 +189,11 @@ ProgrammePanel.Init = function(options) {
         if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
           displayInfo("saved");
         } else {
-          displayErr("storing in database failed " + result.error_code.val);
+          displayErr("database error " + result.error_code.val);
         }
       },
       function(result) {
-        displayErr("storing in database failed " + result.toString());
+        displayErr("database error " + result.toString());
       });
   }
 
@@ -613,7 +613,7 @@ ProgrammePanel.Init = function(options) {
       cancelEditMode();
 
       // create new element without a name yet
-      var statement = createWaypoint('', poseUID, false, true, false);
+      var statement = createWaypoint('', poseUID, Constants.Planning.PLAN_SPACE_STRATEGY, false  /* collision_check */);
       var id = getStatementIDByUID(statement.uid);
 
       // scroll to new element, dont activate it yet, the new element needs to be stored in the database first

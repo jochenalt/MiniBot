@@ -403,6 +403,8 @@ def createLocalPlan(startID, endID):
       rospy.loginfo("create local cartesic plan from statement {0} to {1}".format(startID, endID))
 
     constraints = Constraints()
+
+    # indication for compute_cartesic_path, if the plan should be cartesic or a cubic spline
     if statements[startID].path_strategy == Statement.PLAN_SPLINE_STRATEGY:
       constraints.name = "spline"
     else:
