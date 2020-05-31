@@ -117,7 +117,6 @@ def init():
   displayGlobalPlan()
 
 
-
 def initDatabase ():
   global statements, robotstates, configuration
   db = MessageStoreProxy()
@@ -190,9 +189,11 @@ def handleDatabaseAction (request):
       statements = request.programme_store.statements
       rospy.loginfo("create global plan")
       createGlobalPlan()
-      rospy.loginfo("display global plan")
       displayGlobalPlan()
+      rospy.loginfo("display local  plan")
+      displayLocalPlan()
       rospy.loginfo("storing, planning, and showing done")
+
     else:
       rospy.loginfo("later request exists, ignore this one")
     globalPlanningLock.release()
@@ -255,6 +256,7 @@ def handlePlanningAction(request):
     rospy.loginfo("create global plan");
     createGlobalPlan()
     displayGlobalPlan()
+    displayLocalPlan()
 
   if request.type == PlanningActionRequest.VIS_GLOBAL_PLAN:
     configuration.vis_global_plan = request.jfdi
@@ -394,11 +396,18 @@ def createLocalPlan(startID, endID):
 
   # compute waypoints, but leave out the first one, which is the start state
   minibotArmGripperGroup.clear_pose_targets()
-  if statements[startID].cartesic_path:
-    rospy.loginfo("create local cartesic plan from statement {0} to {1}".format(startID, endID))
+  if (statements[startID].path_strategy == Statement.PLAN_CARTESIC_STRATEGY) or (statements[startID].path_strategy == Statement.PLAN_SPLINE_STRATEGY):
+    if statements[startID].path_strategy == Statement.PLAN_SPLINE_STRATEGY:
+      rospy.loginfo("create local spline plan from statement {0} to {1}".format(startID, endID))
+    else:
+      rospy.loginfo("create local cartesic plan from statement {0} to {1}".format(startID, endID))
 
-    #constraints = Constraints()
-    #constraints.name = "MinibotCartesianConstraints"
+    constraints = Constraints()
+    if statements[startID].path_strategy == Statement.PLAN_SPLINE_STRATEGY:
+      constraints.name = "spline"
+    else:
+      constraints.name = "cartesic"
+
     #constraints.position_constraints = []
     waypoints = []
     robotState.joint_state = startRS.jointState
@@ -413,7 +422,7 @@ def createLocalPlan(startID, endID):
       #  positionConstraint.constraint_region.primitives[0].type = SolidPrimitive.SPHERE
       #  positionConstraint.constraint_region.primitives[0].dimensions = [0.1]
       #  constraints.position_constraints.append(positionConstraint)
-    (localPlan,fraction) = minibotArmGroup.compute_cartesian_path(waypoints,0.01,0,True)
+    (localPlan,fraction) = minibotArmGroup.compute_cartesian_path(waypoints,0.01,0,statements[startID].collision_check, constraints)
     if fraction < 1.0:
       rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
     return localPlan, localPlans

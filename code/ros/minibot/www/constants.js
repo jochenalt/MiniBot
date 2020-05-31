@@ -57,7 +57,11 @@ Constants.Planning = {
 		ACTION_VIS_LOCAL_PLAN : 8,			// visualize the current local plan
 		ACTION_STEP_FORWARD : 9,			// visualize the current local plan
 
-		ACTIVATE_STATEMENT : 1
+		ACTIVATE_STATEMENT : 1,
+
+		PLAN_SPACE_STRATEGY :0,
+		PLAN_CARTESIC_STRATEGY :1,
+		PLAN_SPLINE_STRATEGY :2
 };
 
 Constants.Database = {

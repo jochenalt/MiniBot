@@ -9,9 +9,11 @@ uint8 type
 
 # Waypoint:
 uint16 pose_uid
-bool cartesic_path
+uint8 PLAN_SPACE_STRATEGY=0
+uint8 PLAN_CARTESIC_STRATEGY=1
+uint8 PLAN_SPLINE_STRATEGY=2
+uint8 path_strategy
 bool collision_check
-bool improved_path
 # Comment
 string comment
 

@@ -66,9 +66,8 @@ ProgrammePanel.Init = function(options) {
             if (statementDB.type == StatementType.WayPoint) {
               stmt.type = StatementType.WayPoint;
               stmt.poseUID = statementDB.pose_uid;
-              stmt.cartesicPath = statementDB.cartesic_path;
+              stmt.pathStrategy  = statementDB.path_strategy;
               stmt.collisionCheck = statementDB.collision_check;
-              stmt.improvedPath = statementDB.improved_path;
             }
             if (statementDB.type == StatementType.Wait) {
               stmt.type = StatementType.Wait;
@@ -86,7 +85,7 @@ ProgrammePanel.Init = function(options) {
 
           // and select the first statement if it is there
           if (programmeItems.length > 0) {
-            activateStatement(1);
+            activateStatement(0);
           }
         } else {
           displayErr("reading programme from database failed " + result.error_code.val);
@@ -131,15 +130,13 @@ ProgrammePanel.Init = function(options) {
   var storeInDatabase = function(force) {
     if (force)
       Utils.callDelay("storedatabase", 0, function() { 
-        displayInfo("store & replan...")
+        displayInfo("store and plan")
         rawStoreInDatabase() 
-        displayInfo("store & replan... done")
       }); 
     else
       Utils.callDelay("storedatabase", settingsPanel.getSaveAfterSeconds(), function() { 
-        displayInfo("store & replan...")
+        displayInfo("store and plan")
         rawStoreInDatabase() 
-        displayInfo("store & replan... done")
       }); 
 
   }
@@ -156,9 +153,8 @@ ProgrammePanel.Init = function(options) {
       if (statement.type == StatementType.WayPoint) {
         statementDB.type = StatementType.WayPoint;
         statementDB.pose_uid = statement.poseUID;
-        statementDB.cartesic_path = statement.cartesicPath;
+        statementDB.path_strategy  = statement.pathStrategy;
         statementDB.collision_check = statement.collisionCheck;
-        statementDB.improved_path = statement.improvedPath;
       }
       if (statement.type == StatementType.Wait) {
         statementDB.type = StatementType.Wait;
@@ -256,9 +252,14 @@ ProgrammePanel.Init = function(options) {
     if (statement.type == StatementType.WayPoint) {
       badge.classList.add('badge-primary');
       statement.widget.classList.add('list-group-item-success');
-      document.getElementById('cartesicPath').checked = statement.cartesicPath;
       document.getElementById('collisionCheck').checked = statement.collisionCheck;
-      document.getElementById('improvedPath').checked = statement.improvedPath;
+
+      if (statement.pathStrategy == Constants.Planning.PLAN_CARTESIC_STRATEGY)
+        document.getElementById('cartesicPath').checked = true;
+      if (statement.pathStrategy == Constants.Planning.PLAN_SPLINE_STRATEGY)
+        document.getElementById('splinePath').checked = true;
+      if (statement.pathStrategy == Constants.Planning.PLAN_SPACE_STRATEGY)
+        document.getElementById('spacePath').checked = true;
       var waypointErrorWidget = document.getElementById('waypointError');
       if (statement.error_code != null && statement.error_code != ErrorCode.PLANNING.SUCCESS) {
         waypointErrorWidget.style.display = 'block';
@@ -387,12 +388,11 @@ ProgrammePanel.Init = function(options) {
     return statement;
   }
 
-  var updateWaypoint = function(uid, name, poseUID, cartesicPath, collisionCheck, improvedPath) {
+  var updateWaypoint = function(uid, name, poseUID, pathStrategy, collisionCheck) {
     var statement = updateStatement(uid, name, StatementType.WayPoint);
     statement.poseUID = poseUID;
-    statement.cartesicPath = cartesicPath;
+    statement.pathStrategy = pathStrategy;
     statement.collisionCheck = collisionCheck;
-    statement.improvedPath = improvedPath;
   }
 
   var moveStatement = function(uid, newId) {
@@ -439,9 +439,9 @@ ProgrammePanel.Init = function(options) {
     return null;
   }
 
-  var createWaypoint = function(name, poseUID, cartesicPath, collisionCheck, improvedPath) {
+  var createWaypoint = function(name, poseUID, pathStrategy, collisionCheck) {
     var statement = newStatement();
-    updateWaypoint(statement.uid, name, poseUID, cartesicPath, collisionCheck, improvedPath);
+    updateWaypoint(statement.uid, name, poseUID, pathStrategy, collisionCheck);
     updateWidgets();
     return statement;
   }
@@ -613,7 +613,7 @@ ProgrammePanel.Init = function(options) {
       cancelEditMode();
 
       // create new element without a name yet
-      var statement = createWaypoint('', poseUID, false, false, false);
+      var statement = createWaypoint('', poseUID, false, true, false);
       var id = getStatementIDByUID(statement.uid);
 
       // scroll to new element, dont activate it yet, the new element needs to be stored in the database first
@@ -705,14 +705,16 @@ ProgrammePanel.Init = function(options) {
       displayErr('selected statement is last already')
   }
 
-  function setCartesicPath(event) {
+  function setPathStrategy(event) {
     var id = getActiveId();
     if (id >= 0) {
       var statement = programmeItems[id];
-      if (event.target.checked)
-        statement.cartesicPath = true;
-      else
-        statement.cartesicPath = false;
+      if (event.target.id == "spacePath")
+        statement.pathStrategy = Constants.Planning.PLAN_SPACE_STRATEGY;
+      if (event.target.id == "cartesicPath")
+        statement.pathStrategy = Constants.Planning.PLAN_CARTESIC_STRATEGY;
+      if (event.target.id == "splinePath")
+        statement.pathStrategy = Constants.Planning.PLAN_SPLINE_STRATEGY;
       updateWidget(id);
 
       // immediately store in database
@@ -728,21 +730,6 @@ ProgrammePanel.Init = function(options) {
         statement.collisionCheck = true;
       else
         statement.collisionCheck = false;
-      updateWidget(id);
-
-      // immediately store in database
-      storeInDatabase(false);
-    }
-  }
-
-  function setImprovedPath(event) {
-    var id = getActiveId();
-    if (id >= 0) {
-      var statement = programmeItems[id];
-      if (event.target.checked)
-        statement.improvedPath = true;
-      else
-        statement.improvedPath = false;
       updateWidget(id);
 
       // immediately store in database
@@ -1122,9 +1109,8 @@ ProgrammePanel.Init = function(options) {
     getStatementIDByPoseUID: getStatementIDByPoseUID,
     activateStatement: activateStatement,
 
-    setCartesicPath: setCartesicPath,
+    setPathStrategy: setPathStrategy,
     setCollisionCheck: setCollisionCheck,
-    setImprovedPath: setImprovedPath,
     assignActivePose: assignActivePose,
 
     setWaitingSeconds: setWaitingSeconds,

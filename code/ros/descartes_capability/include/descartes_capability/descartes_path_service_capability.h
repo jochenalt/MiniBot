@@ -60,6 +60,12 @@
 // Visualization
 #include <moveit_visual_tools/moveit_visual_tools.h>
 
+// Spline
+#include <descartes_capability/splines.hpp>
+#include <descartes_capability/Vec3.hpp>
+#include <descartes_capability/Vec6.hpp>
+
+
 namespace descartes_capability
 {
 class MoveGroupDescartesPathService : public move_group::MoveGroupCapability
@@ -81,12 +87,12 @@ private:
 
   /** \brief Interpolates between start and end poses and appends them to deense_waypoints **/
   void createDensePath(const Eigen::Isometry3d& start, const Eigen::Isometry3d& end, double max_step,
-                       EigenSTL::vector_Isometry3d& dense_waypoints);
+                       EigenSTL::vector_Isometry3d& dense_waypoints, const Spline<Vec3, float>& spline);
 
   /** \brief Transforms each point in a vector of affine**/
   void createDescartesTrajectory(const EigenSTL::vector_Isometry3d& dense_waypoints,
                                  std::vector<descartes_core::TrajectoryPtPtr>& input_descartes_trajectory,
-								 const moveit_msgs::Constraints& constraints);
+				 const moveit_msgs::Constraints& constraints);
 
   /** \brief Transforms each waypoint in the request to the target frame **/
   bool transformWaypointsToFrame(const moveit_msgs::GetCartesianPath::Request& req, const std::string& target_frame,
@@ -114,6 +120,8 @@ private:
   double pitch_orientation_tolerance_;
   double yaw_orientation_tolerance_;
   double orientation_tolerance_increment_;
+
+  bool use_spline;
 
   bool verbose_debug_;
   bool visual_debug_;

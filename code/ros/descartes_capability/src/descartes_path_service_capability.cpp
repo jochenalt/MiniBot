@@ -49,6 +49,10 @@
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 
+#include <descartes_capability/splines.hpp>
+#include <descartes_capability/Vec3.hpp>
+#include <descartes_capability/Vec6.hpp>
+
 namespace descartes_capability
 {
 MoveGroupDescartesPathService::MoveGroupDescartesPathService()
@@ -87,10 +91,13 @@ void MoveGroupDescartesPathService::initialize()
 
   descartes_path_service_ = root_node_handle_.advertiseService(move_group::CARTESIAN_PATH_SERVICE_NAME,
                                                                &MoveGroupDescartesPathService::computeService, this);
+
+  use_spline = true;
 }
 
 void MoveGroupDescartesPathService::createDensePath(const Eigen::Isometry3d& start, const Eigen::Isometry3d& end,
-                                                    double max_step, EigenSTL::vector_Isometry3d& dense_waypoints)
+                                                    double max_step, EigenSTL::vector_Isometry3d& dense_waypoints,
+						    const Spline<Vec3, float>& spline)
 {
   // TODO: There's a lot of casting being done. This could probably be pruned down
   const Eigen::Quaterniond start_quaternion(start.rotation());
@@ -112,6 +119,21 @@ void MoveGroupDescartesPathService::createDensePath(const Eigen::Isometry3d& sta
 
     Eigen::Isometry3d eigen_pose;
     eigen_pose.translation() = (end_translation - start_translation) * t + start_translation;
+
+    if (use_spline) {
+	Vec3 p = spline.eval_f(t);
+	Eigen::Vector3d pp (p.x, p.y, p.z);
+	eigen_pose.translation()[0] = p.x;
+	eigen_pose.translation()[1] = p.y;
+	eigen_pose.translation()[2] = p.z;
+
+	ROS_INFO_STREAM_NAMED(name_, "splineRaw[" << t << "]=(" << p.x << "," << p.y << "," << p.z << ")");
+	ROS_INFO_STREAM_NAMED(name_, "spline[" <<eigen_pose.translation());
+
+	ROS_INFO_STREAM_NAMED(name_, "check[" << (end_translation - start_translation) * t + start_translation);
+
+    }
+
     eigen_pose.linear() = start_quaternion.slerp(t, end_quaternion).toRotationMatrix();
 
     dense_waypoints.push_back(eigen_pose);
@@ -147,11 +169,12 @@ void MoveGroupDescartesPathService::createDescartesTrajectory(
 	  }
       }
 
+    /*
     ROS_INFO_NAMED(name_, "positional_tolerance_  [%f]", positional_tolerance_);
     ROS_INFO_NAMED(name_, "roll_orientation_tolerance_  [%f]", roll_orientation_tolerance_);
     ROS_INFO_NAMED(name_, "pitch_orientation_tolerance_  [%f]", pitch_orientation_tolerance_);
     ROS_INFO_NAMED(name_, "yaw_orientation_tolerance_  [%f]", yaw_orientation_tolerance_);
-
+    */
     const Eigen::Isometry3d eigen_pose = dense_waypoints[i];
     const Eigen::Quaterniond rotation(eigen_pose.rotation());
 
@@ -314,6 +337,8 @@ bool MoveGroupDescartesPathService::computeService(moveit_msgs::GetCartesianPath
   ROS_INFO_NAMED(name_, "Passed %u position constraints named  '%s'",
 		  (unsigned)req.path_constraints.position_constraints.size(), req.path_constraints.name.c_str());
 
+  use_spline = req.path_constraints.name == "spline";
+
   for (std::size_t i = 0;i<req.path_constraints.position_constraints.size();i++) {
       moveit_msgs::PositionConstraint posConstraint = req.path_constraints.position_constraints[i];
       ROS_INFO_NAMED(name_, "position constraint [%u] = (%f, %f, %f)", (unsigned)i,
@@ -389,16 +414,13 @@ bool MoveGroupDescartesPathService::computeService(moveit_msgs::GetCartesianPath
   if (link_name.empty() && !jmg->getLinkModelNames().empty())
     link_name = jmg->getLinkModelNames().back();
 
-  if (verbose_debug_)
-  {
-    ROS_DEBUG_NAMED(name_, "Starting at current pose");
+  ROS_DEBUG_NAMED(name_, "Starting at current pose");
 
-    std::string sep = "\n-----------------------------------------------------\n";
-    ROS_DEBUG_STREAM_NAMED(name_, "current_pose\n"
+  std::string sep = "\n-----------------------------------------------------\n";
+  ROS_DEBUG_STREAM_NAMED(name_, "current_pose\n"
                                       << "Position: \n"
                                       << current_pose.translation() << "\nRotation: \n"
                                       << current_pose.rotation() << sep);
-  }
 
   bool no_transform =
       req.header.frame_id.empty() || robot_state::Transforms::sameFrame(req.header.frame_id, default_frame);
@@ -428,6 +450,35 @@ bool MoveGroupDescartesPathService::computeService(moveit_msgs::GetCartesianPath
     return true;
   }
 
+  // try a spline
+  int splineOrder = 3;
+  ROS_INFO_NAMED(name_,
+                 "Starting spline computation");
+
+  Spline<Vec3, float> splineCurve(splineOrder, /*spline::eOPEN_UNIFORM*/spline::eUNIFORM);
+  std::vector<Vec3> ctrlPoints;
+  Vec3 start((float)current_pose.translation()[0], (float)current_pose.translation()[1], (float)current_pose.translation()[2]);
+  ctrlPoints.push_back(start);
+  ROS_INFO_STREAM_NAMED(name_, "start:" << current_pose.translation());
+
+  for (std::size_t i = 0; i < req.waypoints.size(); ++i) {
+      ROS_INFO_STREAM_NAMED(name_, "waypoint"
+                                        << "[" << i << "]: ("
+                                        << req.waypoints[i].position.x << "," << req.waypoints[i].position.y << "," << req.waypoints[i].position.z << ")");
+
+      Vec3 ctrlPoint(req.waypoints[i].position.x, req.waypoints[i].position.y, req.waypoints[i].position.z);
+      ctrlPoints.push_back(ctrlPoint);
+  }
+  for (std::size_t i = 0; i < ctrlPoints.size(); ++i) {
+      ROS_INFO_STREAM_NAMED(name_, "spline"
+                                        << "[" << i << "]: ("
+                                        << ctrlPoints[i].x << "," << ctrlPoints[i].y << "," << ctrlPoints[i].z << ")");
+
+  }
+
+  splineCurve.set_ctrl_points(ctrlPoints);
+
+
   bool global_frame = !robot_state::Transforms::sameFrame(link_name, req.header.frame_id);
   ROS_INFO_NAMED(name_,
                  "Attempting to follow %u waypoints for link '%s' using a step of %lf m and jump threshold %lf (in "
@@ -439,13 +490,19 @@ bool MoveGroupDescartesPathService::computeService(moveit_msgs::GetCartesianPath
   EigenSTL::vector_Isometry3d dense_waypoints;
   // Add the first point then add all the interpolated dense values
   dense_waypoints.push_back(waypoints[0]);
-  for (std::size_t i = 1; i < waypoints.size(); ++i)
-  {
-    // If there are two identical waypoints in a row, then the trajectory generated will have identical points
-    // planned for the same timestamp which could cause trajectory execution to fail.
-    if (!waypoints[i - 1].isApprox(waypoints[i]))
-      createDensePath(waypoints[i - 1], waypoints[i], req.max_step, dense_waypoints);
+  if (use_spline) {
+      createDensePath(waypoints[0], waypoints[waypoints.size()-1], req.max_step, dense_waypoints, splineCurve);
+  } else {
+      for (std::size_t i = 1; i < waypoints.size(); ++i)
+      {
+        // If there are two identical waypoints in a row, then the trajectory generated will have identical points
+        // planned for the same timestamp which could cause trajectory execution to fail.
+        if (!waypoints[i - 1].isApprox(waypoints[i]))
+          createDensePath(waypoints[i - 1], waypoints[i], req.max_step, dense_waypoints, splineCurve);
+      }
   }
+
+
 
   if (visual_debug_)
   {
