@@ -371,9 +371,6 @@ def createGlobalPlan():
       globalPlanItem.end_id = idx-1
       (globalPlanItem.plan, globalPlanItem.localPlans) = createLocalPlan(startID, endID)
       globalPlan.append(globalPlanItem)
-      #print("--------------------------------------------------------")
-      #print(globalPlanItem.localPlans)
-      #print("--------------------------------------------------------")
 
       # be ready for the next plan
       startID = endID
@@ -398,12 +395,14 @@ def createLocalPlan(startID, endID):
   # compute waypoints, but leave out the first one, which is the start state
   minibotArmGripperGroup.clear_pose_targets()
   if statements[startID].cartesic_path:
+    rospy.loginfo("create local cartesic plan from statement {0} to {1}".format(startID, endID))
+
     #constraints = Constraints()
     #constraints.name = "MinibotCartesianConstraints"
     #constraints.position_constraints = []
     waypoints = []
     robotState.joint_state = startRS.jointState
-    minibotArmGripperGroup.set_start_state(robotState)
+    minibotArmGroup.set_start_state(robotState)
 
     for idx in range(startID+1, endID+1):
       waypointRS = getRobotState(statements[idx].pose_uid)
@@ -420,12 +419,11 @@ def createLocalPlan(startID, endID):
     return localPlan, localPlans
   else:
     localPlan = None
-    rospy.loginfo("create local plan from statement {0} to  {1}".format(startID, endID))
+    rospy.loginfo("create local space plan from statement {0} to  {1}".format(startID, endID))
     startRS  = getRobotState(statements[startID].pose_uid)
     firstPlan = True
     for idx in range(startID+1, endID+1):
       if statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
-        #print("IDX {0}".format(idx))
         endRS = getRobotState(statements[idx].pose_uid)
         robotState.joint_state = copy.copy(startRS.jointState)
         minibotArmGripperGroup.set_start_state(copy.copy(robotState))

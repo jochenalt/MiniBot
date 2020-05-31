@@ -131,15 +131,15 @@ ProgrammePanel.Init = function(options) {
   var storeInDatabase = function(force) {
     if (force)
       Utils.callDelay("storedatabase", 0, function() { 
-        displayInfo("store & replan")
+        displayInfo("store & replan...")
         rawStoreInDatabase() 
-        displayInfo("done")
+        displayInfo("store & replan... done")
       }); 
     else
       Utils.callDelay("storedatabase", settingsPanel.getSaveAfterSeconds(), function() { 
-        displayInfo("store & replan")
+        displayInfo("store & replan...")
         rawStoreInDatabase() 
-        displayInfo("done")
+        displayInfo("store & replan... done")
       }); 
 
   }
