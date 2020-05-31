@@ -136,7 +136,7 @@ ProgrammePanel.Init = function(options) {
         displayInfo("done")
       }); 
     else
-      Utils.callDelay("storedatabase", 5000, function() { 
+      Utils.callDelay("storedatabase", settingsPanel.getSaveAfterSeconds(), function() { 
         displayInfo("store & replan")
         rawStoreInDatabase() 
         displayInfo("done")
@@ -484,6 +484,9 @@ ProgrammePanel.Init = function(options) {
     var id = event.target.id;
     activateStatement(id);
     poseStorePanel.activateByUID(programmeItems[id].poseUID);
+
+    // display the trajectory to the next Item
+    planningAction();
   }
 
   // activate the statement by the passed statement id
@@ -513,9 +516,6 @@ ProgrammePanel.Init = function(options) {
           programmeItems[idx].widget.classList.remove('active');
         }
       }
-
-      // display the trajectory to the next Item
-      planningAction();
     }
   }
 
@@ -600,7 +600,6 @@ ProgrammePanel.Init = function(options) {
       if (id > 0)
         activateStatement(id - 1);
 
-      // immediately store in database
       storeInDatabase(false);
     } else
       displayErr('select a statement first')

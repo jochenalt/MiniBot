@@ -216,6 +216,10 @@ SettingsPanel.Init = function(options) {
 		delayedSave();
 	}
 
+	var getSaveAfterSeconds = function () {
+		return configuration.save_after.secs;
+	}
+
 	function displayInfo(t) {
 		displayAlert(t, document.getElementById('settingsAlertHeadline'), document.getElementById('settingsAlertSuccess'));
 	}
@@ -254,7 +258,7 @@ SettingsPanel.Init = function(options) {
 		setVisualizationGlobalPlan : setVisualizationGlobalPlan,
 		setVisualizationLocalPlan : setVisualizationLocalPlan,
 
-		setSaveAfterSeconds :setSaveAfterSeconds
-
+		setSaveAfterSeconds :setSaveAfterSeconds,
+		getSaveAfterSeconds : getSaveAfterSeconds
 	};
 };
