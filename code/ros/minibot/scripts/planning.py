@@ -185,9 +185,10 @@ def handleDatabaseAction (request):
     globalPlanningLock.acquire()
     # if a younger  request has set latestGlobalPlanningThreadID in another thread, quit without doing anything
     if latestGlobalPlanningThreadID == threading.currentThread().ident:
-      rospy.loginfo("store and plan")
+      rospy.loginfo("store")
       db.update_named("default_programme", request.programme_store)
       statements = request.programme_store.statements
+      rospy.loginfo("create global plan")
       createGlobalPlan()
       rospy.loginfo("display global plan")
       displayGlobalPlan()
@@ -224,7 +225,7 @@ def handlePlanningAction(request):
   if request.type == PlanningActionRequest.SELECT_LOCAL_PLAN:
     startID = getStatementIDByUID(request.startStatementUID)
 
-    rospy.loginfo("display local plan between {0}-{1}".format (startID, startID));
+    rospy.loginfo("display local plan {0}".format (startID));
     if startID == -1:
       rospy.logerr("statement with uid={0} does not exist".format(request.startStatementUID) )
       response.error_code.val = ErrorCodes.UNKNOWN_STATEMENT_UID
@@ -362,7 +363,7 @@ def createGlobalPlan():
     # end of a waypoint block? 
     elif startID is not None and foundWaypoint and (statements[idx].type != Statement.STATEMENT_TYPE_WAYPOINT or isLastStatement):
       endID = idx-1
-      if isLastStatement:
+      if isLastStatement and (statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT):
         endID = idx
       # we found a local sequence of waypoints
       globalPlanItem =  GlobalPlanItem()
@@ -382,6 +383,8 @@ def createGlobalPlan():
 # returns a local plan for all waypoints between startID and endID
 def createLocalPlan(startID, endID):
   global statements, minibotArmGripperGroup, minibotArmGroup
+
+  rospy.loginfo("create local plan [{0}-{1}]".format(startID, endID))
 
   robotState = RobotState()
   robotState.joint_state.header = Header()
