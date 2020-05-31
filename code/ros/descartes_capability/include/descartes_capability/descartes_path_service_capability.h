@@ -63,7 +63,6 @@
 // Spline
 #include <descartes_capability/splines.hpp>
 #include <descartes_capability/Vec3.hpp>
-#include <descartes_capability/Vec6.hpp>
 
 
 namespace descartes_capability

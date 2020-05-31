@@ -51,7 +51,6 @@
 
 #include <descartes_capability/splines.hpp>
 #include <descartes_capability/Vec3.hpp>
-#include <descartes_capability/Vec6.hpp>
 
 namespace descartes_capability
 {
@@ -127,11 +126,7 @@ void MoveGroupDescartesPathService::createDensePath(const Eigen::Isometry3d& sta
 	eigen_pose.translation()[1] = p.y;
 	eigen_pose.translation()[2] = p.z;
 
-	ROS_INFO_STREAM_NAMED(name_, "splineRaw[" << t << "]=(" << p.x << "," << p.y << "," << p.z << ")");
 	ROS_INFO_STREAM_NAMED(name_, "spline[" <<eigen_pose.translation());
-
-	ROS_INFO_STREAM_NAMED(name_, "check[" << (end_translation - start_translation) * t + start_translation);
-
     }
 
     eigen_pose.linear() = start_quaternion.slerp(t, end_quaternion).toRotationMatrix();
@@ -457,18 +452,28 @@ bool MoveGroupDescartesPathService::computeService(moveit_msgs::GetCartesianPath
 
   Spline<Vec3, float> splineCurve(splineOrder, /*spline::eOPEN_UNIFORM*/spline::eUNIFORM);
   std::vector<Vec3> ctrlPoints;
-  Vec3 start((float)current_pose.translation()[0], (float)current_pose.translation()[1], (float)current_pose.translation()[2]);
-  ctrlPoints.push_back(start);
-  ROS_INFO_STREAM_NAMED(name_, "start:" << current_pose.translation());
+  Eigen::Isometry3d firstWaypoint = waypoints[0];
+  Vec3 start((float)firstWaypoint.translation()[0], (float)firstWaypoint.translation()[1], (float)firstWaypoint.translation()[2]);
+  Eigen::Isometry3d lastWaypoint = waypoints[waypoints.size()-1];
+  Vec3 end((float)lastWaypoint.translation()[0], (float)lastWaypoint.translation()[1], (float)lastWaypoint.translation()[2]);
 
-  for (std::size_t i = 0; i < req.waypoints.size(); ++i) {
+  // first point is a control point that wont be reached. So we need the start point twice.
+  ctrlPoints.push_back(start);
+  ctrlPoints.push_back(start);
+
+  for (std::size_t i = 0; i < req.waypoints.size()-1; ++i) {
       ROS_INFO_STREAM_NAMED(name_, "waypoint"
                                         << "[" << i << "]: ("
                                         << req.waypoints[i].position.x << "," << req.waypoints[i].position.y << "," << req.waypoints[i].position.z << ")");
 
       Vec3 ctrlPoint(req.waypoints[i].position.x, req.waypoints[i].position.y, req.waypoints[i].position.z);
       ctrlPoints.push_back(ctrlPoint);
-  }
+  };
+
+  // same with end point, also required twice
+  ctrlPoints.push_back(end);
+  ctrlPoints.push_back(end);
+
   for (std::size_t i = 0; i < ctrlPoints.size(); ++i) {
       ROS_INFO_STREAM_NAMED(name_, "spline"
                                         << "[" << i << "]: ("
