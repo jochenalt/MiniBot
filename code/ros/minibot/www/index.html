@@ -80,6 +80,9 @@
             // will be called after loading the DOM tree 
             function init() {
 
+                 // turn screen off until everyting is loaded 
+                 turnScreenOff();
+
                  kinematics = new Kinematics.Init({
                      ros: ros
                  });
@@ -110,9 +113,12 @@
                  setTimeout(function() {
                     settingsPanel.setWidgets();                    
                     programmePanel.refresh();
-                    // requires loaded body
-                    settingsPanel.initialize();
 
+                    // initialize planning view
+                    switchToPlan();
+
+                    // and call the theme again to display the robot view 
+                    settingsPanel.callSetGlobalTheme();
                  }, 1500);
             
                  window.addEventListener("resize", resize);
@@ -154,15 +160,28 @@
             }
             
             function switchToPlan() {
+                 switchVisibility('RobotView', false);
                  switchVisibility('settingsPanel', true);
+                 switchVisibility('kinematicsPanel',false);
                  switchVisibility('posePanel', false);
                  switchVisibility('planningPanel', false);
             }
             function switchToSettings() {
+                 switchVisibility('RobotView', false);
                  switchVisibility('settingsPanel', false);
+                 switchVisibility('kinematicsPanel',false);
                  switchVisibility('posePanel', true);
                  switchVisibility('planningPanel', true);
             }
+
+            function turnScreenOff() {
+                 switchVisibility('RobotView', true);
+                 switchVisibility('settingsPanel', true);
+                 switchVisibility('kinematicsPanel',true);
+                 switchVisibility('posePanel', true);
+                 switchVisibility('planningPanel', true);
+            }
+
 
             // the following can be done before the body is loaded, since it does not require a full DOM tree
 
@@ -196,9 +215,9 @@
         <div id="root" class="container-fluid  d-flex flex-column m-0 ml-3 p-0" style="height:98vh;width:98vw;" >
             <div class="row  m-0 p-0">
                 <div class="col m-0 p-0">
-                    <nav id="navbar" class="navbar navbar-expand-md navbar-dark m-0 pl-4 p-0 bg-light">
-                        <div class="mx-auto order-0">
-                            <big><a class="navbar-brand mx-auto" href="#">Minibot</a></big>
+                    <nav id="navbar" class="navbar navbar-expand-md m-0 p-0 ">
+                        <div class="mx-auto order-0 ml-0 p-0">
+                            <big><a class="navbar-brand mx-auto ml-0 p-0" href="#">Minibot</a></big>
                         </div>
                         <div class="navbar-collapse collapse w-100 order-3 m-0 dual-collapse2">
                             <ul class="navbar-nav ml-auto m-0 ">

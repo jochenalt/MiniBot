@@ -252,7 +252,8 @@ SettingsPanel.Init = function(options) {
 
 		setGlobalThemeFunction : setGlobalThemeFunction,
 		changeTheme : changeTheme,
-
+		callSetGlobalTheme : callSetGlobalTheme,
+		
 		getVisualizationGlobalPlan : getVisualizationGlobalPlan,
 		getVisualizationLocalPlan : getVisualizationLocalPlan,
 		setVisualizationGlobalPlan : setVisualizationGlobalPlan,

@@ -7,3 +7,5 @@ class Constants:
 		GRIPPER_GROUP = 'minibot_gripper'  	# group of links of the gripper
 		MINIBOT_GROUP = 'minibot'  			# group of links as defined in SRDF defining the arm with the endeffector
 		FIXED_FRAME = 'base_link'  			# first link 
+
+		
