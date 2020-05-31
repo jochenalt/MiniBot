@@ -437,11 +437,10 @@ PoseStorePanel.Init = function(options) {
       poseItem.pose = pose;
       poseItem.jointState = jointState;
 
-      // we need to change the badges
+      // we need to change the badges, store everyhting and  inform the proramme panel 
       updateWidgets();
-
-      // store in database
       storeInDatabase();
+      programmePanel.modifyPose();
     }
   }
 
@@ -458,8 +457,6 @@ PoseStorePanel.Init = function(options) {
 
       poseListWidget.insertBefore(poseItem.widget, prevPoseItem.widget);
       updateWidgets();
-
-      // store in database
       storeInDatabase();
 
     } else
@@ -480,8 +477,6 @@ PoseStorePanel.Init = function(options) {
         poseListWidget.insertBefore(poseItem.widget, poseItems[id + 2].widget);
 
       updateWidgets();
-
-      // store in database
       storeInDatabase();
 
     } else
@@ -568,15 +563,19 @@ PoseStorePanel.Init = function(options) {
     deletePose: deletePose,
     storePose: storePose,
     newPose: newPose,
+    renamePose: renamePose,
+
     up: up,
     down: down,
-    renamePose: renamePose,
+
     getCurrentPoseUID: getCurrentPoseUID,
     getPoseByUID: getPoseByUID,
-    getJointStateByUID: getJointStateByUID,
     getNameByUID: getNameByUID,
-    setProgrammePanel: setProgrammePanel,
     setPoseByUID: setPoseByUID,
-    activateByUID : activateByUID 
+    activateByUID : activateByUID, 
+
+    getJointStateByUID: getJointStateByUID,   
+    setProgrammePanel: setProgrammePanel    // the programme panel is using poses and needs to be updated from time to time
+
   };
 };

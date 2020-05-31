@@ -83,6 +83,11 @@ ProgrammePanel.Init = function(options) {
 
           // update DOM 
           updateWidgets();
+
+          // and select the first statement if it is there
+          if (programmeItems.length > 0) {
+            activateStatement(1);
+          }
         } else {
           displayErr("reading programme from database failed " + result.error_code.val);
         }
@@ -125,9 +130,17 @@ ProgrammePanel.Init = function(options) {
 
   var storeInDatabase = function(force) {
     if (force)
-      Utils.callDelay("storedatabase", 0, function() { rawStoreInDatabase() }); 
+      Utils.callDelay("storedatabase", 0, function() { 
+        displayInfo("store & replan")
+        rawStoreInDatabase() 
+        displayInfo("done")
+      }); 
     else
-      Utils.callDelay("storedatabase", 5000, function() { rawStoreInDatabase() }); 
+      Utils.callDelay("storedatabase", 5000, function() { 
+        displayInfo("store & replan")
+        rawStoreInDatabase() 
+        displayInfo("done")
+      }); 
 
   }
 
@@ -473,7 +486,7 @@ ProgrammePanel.Init = function(options) {
     poseStorePanel.activateByUID(programmeItems[id].poseUID);
   }
 
-  // activate the passed list item
+  // activate the statement by the passed statement id
   var activateStatement = function(id) {
     id = parseFloat(id); // passed id might be a string
     if (id >= 0) {
@@ -896,6 +909,15 @@ ProgrammePanel.Init = function(options) {
     return -1;
   }
 
+  // called when a pose is modified and we need to replan, if the pose is used in a statement
+  var modifyPose = function(poseUID) {
+    var statementID = getStatementIDByPoseUID (poseUID)
+    if (statementID != null) {
+      updateWidgets();
+      storeInDatabase(false);
+    }
+  }
+
   // save  the programm to the server
   var planningAction = function() {
     // anything active?
@@ -1116,6 +1138,8 @@ ProgrammePanel.Init = function(options) {
 
     visualizeLocalPlan : visualizeLocalPlan,
     visualizeGlobalPlan : visualizeGlobalPlan,
+
+    modifyPose : modifyPose,                          // called when a pose has been modified, updates the database and the plan
 
     forward: forward,
     run: run,

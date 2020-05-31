@@ -228,7 +228,8 @@ KinematicsPanel.Init = function(options) {
   }
 
   var setTcpView = function (tcpPose) {
-    // convert the world frame into view frame 
+
+      // convert the world frame into view frame 
       var pos = [ tcpPose.pose.position.x, tcpPose.pose.position.y, tcpPose.pose.position.z ];
       coordInputs[0].value = Utils.distance2View(pos[0]);
       coordInputs[1].value = Utils.distance2View(pos[1]);
@@ -289,7 +290,6 @@ KinematicsPanel.Init = function(options) {
     Utils.callDelay("blockJoint", Constants.Kinematics.BLOCK_UI_INPUT_TIME, function() {
       Utils.releaseMutex("blockJoint", setJointView );
     });
-
   }
 
   var jointInputTopic  = new ROSLIB.Topic({

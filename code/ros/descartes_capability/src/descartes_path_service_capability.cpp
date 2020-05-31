@@ -53,7 +53,7 @@ namespace descartes_capability
 {
 MoveGroupDescartesPathService::MoveGroupDescartesPathService()
   : MoveGroupCapability("DescartesPathService")
-  , nh_("~")
+  , nh_("")
   , display_computed_paths_(true)
   , current_group_name_("")
   , current_world_frame_("")
@@ -123,9 +123,34 @@ void MoveGroupDescartesPathService::createDescartesTrajectory(
     std::vector<descartes_core::TrajectoryPtPtr>& input_descartes_trajectory,
 	const moveit_msgs::Constraints& constraints)
 {
+
+  double positionTol = positional_tolerance_;
+
   for (std::size_t i = 0; i < dense_waypoints.size(); ++i)
   {
-	// compute the tolerances out of the constraints
+
+      // compute the tolerances out of the constraints
+      if (i < constraints.position_constraints.size()) {
+	  moveit_msgs::PositionConstraint posConstraint = constraints.position_constraints[i];
+	  if (posConstraint.constraint_region.primitives.size() >= 1) {
+	      shape_msgs::SolidPrimitive prim = posConstraint.constraint_region.primitives[0];
+	      if ((prim.type == shape_msgs::SolidPrimitive::SPHERE) && (prim.dimensions.size() >= 1)) {
+		  positionTol = prim.dimensions[0];
+	      } else {
+		  ROS_WARN_NAMED(name_, "position constraint[%u]: SPHERE expected", (unsigned)i);
+	      }
+	      if (posConstraint.constraint_region.primitives.size() > 1) {
+		  ROS_WARN_NAMED(name_, "position constraint[%u] has %u primitives, only first is used ", (unsigned)i, (unsigned)posConstraint.constraint_region.primitives.size());
+	      }
+	  } else {
+	    ROS_WARN_NAMED(name_, "position constraint[%u] has no primitives", (unsigned)i);
+	  }
+      }
+
+    ROS_INFO_NAMED(name_, "positional_tolerance_  [%f]", positional_tolerance_);
+    ROS_INFO_NAMED(name_, "roll_orientation_tolerance_  [%f]", roll_orientation_tolerance_);
+    ROS_INFO_NAMED(name_, "pitch_orientation_tolerance_  [%f]", pitch_orientation_tolerance_);
+    ROS_INFO_NAMED(name_, "yaw_orientation_tolerance_  [%f]", yaw_orientation_tolerance_);
 
     const Eigen::Isometry3d eigen_pose = dense_waypoints[i];
     const Eigen::Quaterniond rotation(eigen_pose.rotation());
@@ -135,7 +160,7 @@ void MoveGroupDescartesPathService::createDescartesTrajectory(
                       eigen_pose.translation().x(), eigen_pose.translation().y(), eigen_pose.translation().z(),
                       rotation.x(), rotation.y(), rotation.z(), rotation.w());
 
-    if (positional_tolerance_ == 0.0 && roll_orientation_tolerance_ == 0.0 && pitch_orientation_tolerance_ == 0 &&
+    if (abs(positionTol) < 0.0001 && roll_orientation_tolerance_ == 0.0 && pitch_orientation_tolerance_ == 0 &&
         yaw_orientation_tolerance_ == 0)
     {
       const descartes_core::TrajectoryPtPtr descartes_point = descartes_core::TrajectoryPtPtr(
@@ -147,7 +172,7 @@ void MoveGroupDescartesPathService::createDescartesTrajectory(
       descartes_trajectory::PositionTolerance position_tol =
           descartes_trajectory::ToleranceBase::createSymmetric<descartes_trajectory::PositionTolerance>(
               eigen_pose.translation().x(), eigen_pose.translation().y(), eigen_pose.translation().z(),
-              positional_tolerance_);
+	      positional_tolerance_);
 
       Eigen::Matrix3d m = Eigen::Matrix3d(rotation);
       Eigen::Vector3d rxyz = m.eulerAngles(0, 1, 2);
@@ -286,17 +311,17 @@ bool MoveGroupDescartesPathService::computeService(moveit_msgs::GetCartesianPath
                                                    moveit_msgs::GetCartesianPath::Response& res)
 {
   ROS_INFO_NAMED(name_, "Received request to compute Descartes path");
-  ROS_INFO_NAMED(name_, "Passed %i position constraints named  '%s'",
-		  req.path_constraints.position_constraints.size(), req.path_constraints.name.c_str());
+  ROS_INFO_NAMED(name_, "Passed %u position constraints named  '%s'",
+		  (unsigned)req.path_constraints.position_constraints.size(), req.path_constraints.name.c_str());
 
-  for (int i = 0;i<req.path_constraints.position_constraints.size();i++) {
+  for (std::size_t i = 0;i<req.path_constraints.position_constraints.size();i++) {
       moveit_msgs::PositionConstraint posConstraint = req.path_constraints.position_constraints[i];
-      ROS_INFO_NAMED(name_, "position constraint [%i] = (%lf, %lf, %lf)", i,
+      ROS_INFO_NAMED(name_, "position constraint [%u] = (%f, %f, %f)", (unsigned)i,
     		  posConstraint.target_point_offset.z, posConstraint.target_point_offset.z, posConstraint.target_point_offset.z);
-      for (int j = 0;j< posConstraint.constraint_region.primitives.size();j++) {
-    	  for (int k = 0;k<posConstraint.constraint_region.primitives[j].dimensions.size();k++) {
+      for (std::size_t j = 0;j< posConstraint.constraint_region.primitives.size();j++) {
+    	  for (std::size_t k = 0;k<posConstraint.constraint_region.primitives[j].dimensions.size();k++) {
         	  ROS_INFO_NAMED(name_, "region of type=%i dim=%lf",
-        			  posConstraint.constraint_region.primitives[j].type,
+        			  (int)posConstraint.constraint_region.primitives[j].type,
     				  posConstraint.constraint_region.primitives[j].dimensions[k]);
     	  }
       }
@@ -308,7 +333,7 @@ bool MoveGroupDescartesPathService::computeService(moveit_msgs::GetCartesianPath
   nh_.param<double>("descartes_params/positional_tolerance_inc", positional_tolerance_increment_, 0.0);
   nh_.param<double>("descartes_params/roll_orientation_tolerance", roll_orientation_tolerance_, 0.0);
   nh_.param<double>("descartes_params/pitch_orientation_tolerance", pitch_orientation_tolerance_, 0.0);
-  nh_.param<double>("descartes_params/yaw_orientation_tolerance", yaw_orientation_tolerance_, 0.0);
+  nh_.param<double>("descartes_params/yaw_orientation_tolerance", yaw_orientation_tolerance_, 0.00);
   nh_.param<double>("descartes_params/orientation_tolerance_inc", orientation_tolerance_increment_, 0.0);
 
   // Get most up to date planning scene information
@@ -407,7 +432,7 @@ bool MoveGroupDescartesPathService::computeService(moveit_msgs::GetCartesianPath
   ROS_INFO_NAMED(name_,
                  "Attempting to follow %u waypoints for link '%s' using a step of %lf m and jump threshold %lf (in "
                  "%s reference frame)",
-                 (unsigned int)waypoints.size(), link_name.c_str(), req.max_step, req.jump_threshold,
+                 (unsigned)waypoints.size(), link_name.c_str(), req.max_step, req.jump_threshold,
                  global_frame ? "global" : "link");
 
   // For each set of sequential waypoints we need to ensure that we do not exceed the req.max_step so we resample

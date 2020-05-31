@@ -395,9 +395,9 @@ def createLocalPlan(startID, endID):
   # compute waypoints, but leave out the first one, which is the start state
   minibotArmGripperGroup.clear_pose_targets()
   if statements[startID].cartesic_path:
-    constraints = Constraints()
-    constraints.name = "MinibotCartesianConstraints"
-    constraints.position_constraints = []
+    #constraints = Constraints()
+    #constraints.name = "MinibotCartesianConstraints"
+    #constraints.position_constraints = []
     waypoints = []
     robotState.joint_state = startRS.jointState
     minibotArmGripperGroup.set_start_state(robotState)
@@ -405,13 +405,13 @@ def createLocalPlan(startID, endID):
     for idx in range(startID+1, endID+1):
       waypointRS = getRobotState(statements[idx].pose_uid)
       waypoints.append(waypointRS.pose)
-      positionConstraint = PositionConstraint()
-      positionConstraint.constraint_region.primitives.append(SolidPrimitive())
-      positionConstraint.constraint_region.primitives[0].type = SolidPrimitive.CYLINDER
-      positionConstraint.constraint_region.primitives[0].dimensions = [0.01]
-      constraints.position_constraints.append(positionConstraint)
-    print(constraints)
-    (localPlan,fraction) = minibotArmGroup.compute_cartesian_path(waypoints,0.01,0,True, constraints)
+      #if idx == startID + 2:
+      #  positionConstraint = PositionConstraint()
+      #  positionConstraint.constraint_region.primitives.append(SolidPrimitive())
+      #  positionConstraint.constraint_region.primitives[0].type = SolidPrimitive.SPHERE
+      #  positionConstraint.constraint_region.primitives[0].dimensions = [0.1]
+      #  constraints.position_constraints.append(positionConstraint)
+    (localPlan,fraction) = minibotArmGroup.compute_cartesian_path(waypoints,0.01,0,True)
     if fraction < 1.0:
       rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
     return localPlan, localPlans
