@@ -108,7 +108,7 @@ Utils.stopMutex = function(name) {
 
 Utils.releaseMutex = function(name, func) {
 	var mutex = Utils.getMutex(name);
- 	if (mutex.status == 1) && (mutex.lastDataObject != null) {
+ 	if ((mutex.status == 1) && (mutex.lastDataObject != null)) {
         func (mutex.lastDataObject);
         mutex.status  = 0;
     } 

@@ -143,7 +143,8 @@ KinematicsPanel.Init = function(options) {
     });
 
     listenToTCP.subscribe(function(tcpPose) {
-        Utils.queueAtMutex("blockTcp",setTcpView, tcpPose);
+        // Utils.queueAtMutex("blockTcp",setTcpView, tcpPose);
+        setTcpView(tcpPose);
     });
 
     var listenToJointState  = new ROSLIB.Topic({
@@ -153,7 +154,8 @@ KinematicsPanel.Init = function(options) {
     });
 
     listenToJointState.subscribe(function(jointState) {
-        Utils.queueAtMutex("blockJoint",setJointView, jointState);
+        // Utils.queueAtMutex("blockJoint",setJointView, jointState);
+        setJointView (jointState);
     });
 
     initErrorMessages()
@@ -286,10 +288,10 @@ KinematicsPanel.Init = function(options) {
     }, newJointState);
 
     // block joint input from kinematics while we turn the sliders (and 0.5 seconds afterwards)
-    Utils.stopMutex("blockJoint");
-    Utils.callDelay("blockJoint", Constants.Kinematics.BLOCK_UI_INPUT_TIME, function() {
-      Utils.releaseMutex("blockJoint", setJointView );
-    });
+    // Utils.stopMutex("blockJoint");
+    // Utils.callDelay("blockJoint", Constants.Kinematics.BLOCK_UI_INPUT_TIME, function() {
+    //  Utils.releaseMutex("blockJoint", setJointView );
+    //});
   }
 
   var jointInputTopic  = new ROSLIB.Topic({
@@ -346,10 +348,10 @@ KinematicsPanel.Init = function(options) {
     }, tcpPose);
 
     // block tcp input from kinematics while we turn the sliders
-    Utils.stopMutex("blockTcp");
-    Utils.callDelay("blockTcp", Constants.Kinematics.BLOCK_UI_INPUT_TIME, function() {
-      Utils.releaseMutex("blockTcp", setTcpView );
-    });
+    // Utils.stopMutex("blockTcp");
+    // Utils.callDelay("blockTcp", Constants.Kinematics.BLOCK_UI_INPUT_TIME, function() {
+    //  Utils.releaseMutex("blockTcp", setTcpView );
+    //});
   }
 
   var jointInputTopic  = new ROSLIB.Topic({
