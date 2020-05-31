@@ -196,17 +196,17 @@ SettingsPanel.Init = function(options) {
 		return configuration.vis_local_plan;
 	} 
 
-	var getVisualizationGlobalPlan = function() {
-		return configuration.vis_global_plan;
-	} 
-
 	var setVisualizationLocalPlan = function(jfdi) {
 		configuration.vis_local_plan = jfdi;
 		delayedSave();
 	} 
 
+	var getVisualizationGlobalPlan = function() {
+		return configuration.vis_global_plan;
+	} 
+
 	var setVisualizationGlobalPlan = function(jfdi) {
-		configuration.vis_local_plan = jfdi;
+		configuration.vis_global_plan = jfdi;
 		delayedSave();
 	} 
 
