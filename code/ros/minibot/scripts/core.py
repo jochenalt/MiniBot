@@ -74,7 +74,7 @@ def initialize():
     #print (semnaticRobot)
     groupChain = []
     for groups in semnaticRobot.groups:
-        if groups.name == Constants.ARM_GROUP:
+        if groups.name == Constants.MINIBOT_ARM_GROUP:
             groupChain = groups.links
             for links in groups.links:
                 kinematicGroupLinks.append(links.name)
@@ -208,7 +208,7 @@ def computeIK (msgTcpPose):
     serviceComputeIK = rospy.ServiceProxy('compute_ik', GetPositionIK)
 
     request = GetPositionIKRequest()
-    request.ik_request.group_name = Constants.ARM_GROUP
+    request.ik_request.group_name = Constants.MINIBOT_ARM_GROUP
     request.ik_request.timeout = rospy.Duration.from_sec(0.0001)
 
     # inverse kinematics is computed for the first 6 links

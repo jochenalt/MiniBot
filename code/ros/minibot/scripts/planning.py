@@ -52,7 +52,7 @@ class GlobalPlanItem:
   localPlans = None
 
 statements = []                 # memory cache of all programme statements
-robotstates = []                # memory cache of all poses
+robotstates = []                # memory cache of all geometry_msgs::Poses, contains
 
 minibotArmGripperGroup = None                 # group of all arm links and the gripper
 minibotArmGroup = None                        # group of all arm links without the gripper
@@ -84,7 +84,7 @@ def init():
 
   # MoveGroupCommander is the interface to one group of joints.  
   minibotArmGripperGroup = moveit_commander.MoveGroupCommander(Constants.MINIBOT_GROUP)
-  minibotArmGroup = moveit_commander.MoveGroupCommander(Constants.ARM_GROUP)
+  minibotArmGroup = moveit_commander.MoveGroupCommander(Constants.MINIBOT_ARM_GROUP)
  
   ## publisher of trajectories to be displayed
   displayLocalPlanPublisher = rospy.Publisher(
