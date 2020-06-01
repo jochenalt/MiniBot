@@ -424,7 +424,7 @@ def createLocalPlan(startID, endID):
       #  positionConstraint.constraint_region.primitives[0].type = SolidPrimitive.SPHERE
       #  positionConstraint.constraint_region.primitives[0].dimensions = [0.1]
       #  constraints.position_constraints.append(positionConstraint)
-    (localPlan,fraction) = minibotArmGroup.compute_cartesian_path(waypoints,0.005,0,statements[startID].collision_check, constraints)
+    (localPlan,fraction) = minibotArmGroup.compute_cartesian_path(waypoints,0.002,0,statements[startID].collision_check, constraints)
     if fraction < 1.0:
       rospy.logerr("incomplete plan with fraction {0} ".format(fraction))
     return localPlan, localPlans

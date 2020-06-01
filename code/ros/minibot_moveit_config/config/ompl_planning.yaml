@@ -1,3 +1,5 @@
+ompl:
+  maximum_waypoint_distance: 0.07
 planner_configs:
   SBLkConfigDefault:
     type: geometric::SBL
