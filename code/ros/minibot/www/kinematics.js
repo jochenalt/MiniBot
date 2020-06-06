@@ -151,6 +151,56 @@ Kinematics.Init = function(options) {
     );
   }
 
+
+  var computeAllIK = function(jointStates, tcpPose, success, failure) {
+    var linkNames = [];
+    var jointNames = [];
+    var jointAngleValues = [];
+
+    var jointNames = kinematicGroupJoints.slice(0,6);
+    var linkNames = kinematicGroupLinks.slice(0,6);
+   
+    var request = new ROSLIB.ServiceRequest({
+      ik_request: {
+        group_name: 'minibot_arm',  // as referred to in kinematics.yaml and defined in minibot.xacro
+        robot_state: {
+            joint_state: jointStates
+        },
+        pose_stamped: {
+          pose : {
+            position: { 
+              x: tcpPose.position.x,
+              y: tcpPose.position.y, 
+              z: tcpPose.position.z },
+            orientation: { 
+              x: tcpPose.orientation.x, 
+              y: tcpPose.orientation.y, 
+              z: tcpPose.orientation.z, 
+              w: tcpPose.orientation.w }
+          }
+        }  
+      }
+    });
+
+    var getPositionIK  = new ROSLIB.Service({
+      ros : ros,
+      name : '/compute_all_ik',
+      serviceType : 'moveit_msgs/GetPositionIK'
+    });
+
+    getPositionIK.callService(request, function(result) {
+      if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+          success(result.solution);
+        }
+        else
+          failure(result.error_code.val);
+      },
+      function (result) {
+        failure (result);
+      }
+    );
+  }
+
   
   function getZeroPose(successCallback, failureCallback) {
     var joints = [0,0,0,0,0,0];

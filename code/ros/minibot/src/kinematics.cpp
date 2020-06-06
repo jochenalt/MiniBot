@@ -11,6 +11,7 @@ std::vector<std::string> minibot_arm_joint_names;
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_model/robot_model.h>
@@ -243,10 +244,6 @@ bool satisfiesBounds(const robot_state::RobotStatePtr& kinematic_state, const se
       kinematic_state->setVariablePosition(minibot_arm_joint_names[i], joint_state.position[i]);
   }
   bool ok = (kinematic_state->satisfiesBounds ());
-  ROS_INFO_STREAM("result=" << ok
-		  << " " << kinematic_state->getVariablePosition(0)<< "," << kinematic_state->getVariablePosition(1) <<
-		  kinematic_state->getVariablePosition(2)<< "," << kinematic_state->getVariablePosition(3) <<
-		  kinematic_state->getVariablePosition(4)<< "," << kinematic_state->getVariablePosition(5) );
 
   return ok;
 }
@@ -259,11 +256,26 @@ bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state) {
   collision_detection::CollisionResult collision_result;
   planning_scene.checkSelfCollision(collision_request, collision_result);
   return collision_result.collision;
-  ROS_INFO_STREAM("Test 1: Current state is "
-                  << (collision_result.collision ? "in" : "not in")
-                  << " self collision");
 }
 
+// returns an artifical distance between two joint states.
+// don't use the moveit-distance function, since it is not in favour
+// of a little movement of all joints against one greater movement in one joint
+double jointModelDistance(const sensor_msgs::JointState& a, const moveit_msgs::RobotState& b) {
+  if (a.name.size() != b.joint_state.name.size()) {
+      ROS_ERROR_STREAM("jointModelDistance: jointStates are not comparable");
+      return 0;
+  }
+  double sum = 0;
+  for (size_t i = 0;i< a.name.size();i++) {
+      if (a.name[i] != b.joint_state.name[i]) {
+	  ROS_ERROR_STREAM("jointModelDistance: jointStates are not compatible");
+	  return 0;
+      }
+      sum += pow(fmod(fabs(a.position[i]-b.joint_state.position[i]), 2.0 * M_PI), 2.0);
+  }
+  return sum;
+}
 bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
 			    minibot::GetPositionAllIK::Response &res) {
 
@@ -275,7 +287,32 @@ bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
 	rs.joint_state = solutions[i];
 	res.solution.push_back(rs);
     }
+
+    // sort all solutions along the distance to the
+    // joint state, closest solution comes first
+    struct customLess {
+	customLess(const sensor_msgs::JointState& current) { this->current = current; }
+
+	bool operator()(const moveit_msgs::RobotState& a, const moveit_msgs::RobotState& b) const
+         {
+	     return jointModelDistance(current, a) < jointModelDistance(current, b);
+         }
+	 sensor_msgs::JointState current;
+     } ;
+    std::sort(res.solution.begin(), res.solution.end(),customLess(req.ik_request.robot_state.joint_state));
     res.error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+
+    for (size_t i = 0;i<solutions.size();i++) {
+	sensor_msgs::JointState rs = solutions[i];
+	ROS_DEBUG_STREAM_NAMED(LOG_NAME, " result[" << i << "]=[" << std::setprecision(5)
+			       << rs.position[0]<< ", "
+			       << rs.position[1]<< ", "
+			       << rs.position[2]<< ", "
+			       << rs.position[3]<< ", "
+			       << rs.position[4]<< ", "
+			       << rs.position[5]  << "] ");
+    }
+
   }
   else {
       res.error_code.val = moveit_msgs::MoveItErrorCodes::NO_IK_SOLUTION;

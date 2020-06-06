@@ -34,7 +34,7 @@ int main (int argc, char *argv[])
   std::vector<sensor_msgs::JointState> solutions;
   Minibot::Kinematics::compute_ik (pose, solutions);
 
-  Minibot::Kinematics::compute_fk (solutions[3], pose);
+  Minibot::Kinematics::compute_fk (solutions[0], pose);
 
   ros::waitForShutdown ();
   ROS_INFO_STREAM("shutting down minibot server node");
