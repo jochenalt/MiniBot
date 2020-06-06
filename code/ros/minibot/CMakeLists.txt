@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   geometry_msgs
   sensor_msgs
+  moveit_msgs
   moveit_core
   moveit_ros_planning_interface
 )
@@ -36,6 +37,7 @@ add_service_files(
   FILES
   Database.srv
   PlanningAction.srv
+  GetPositionAllIK.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -44,6 +46,7 @@ generate_messages(
   std_msgs
   sensor_msgs
   geometry_msgs
+  moveit_msgs
 )
 
 catkin_package(

@@ -8,6 +8,10 @@
 #include <moveit/robot_model/robot_model.h>
 #include <geometry_msgs/Pose.h>
 #include <sensor_msgs/JointState.h>
+#include <minibot/GetPositionAllIK.h>
+
+#include <moveit/planning_scene/planning_scene.h>
+#include <moveit/kinematic_constraints/utils.h>
 
 #include "utils.h"
 
@@ -27,8 +31,13 @@ namespace Minibot {
     // check if the robotstate is in self-collision
     bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state);
 
+    // call me before anything else, but after node initialisation
     void init();
-  }
+
+    //
+    bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
+				minibot::GetPositionAllIK::Response &res);
+}
 }
 
 

@@ -109,11 +109,16 @@ bool compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointS
 	sol.GetSolution(&solValues[0],NULL);
 	sensor_msgs::JointState jointState;
 	for( std::size_t j = 0; j < solValues.size(); ++j) {
+	    jointState.name.push_back(minibot_arm_joint_names[j]);
 	    jointState.position.push_back(solValues[j]);
 	}
 
+	// check the position limits defined in the urdf
 	bool limits_are_ok = satisfiesBounds(kinematic_state, jointState);
-	bool self_collision_is_ok = !inSelfCollision(kinematic_state);
+
+	// check for self-collision if limits are fine
+	// planning_scene::PlanningScenePtr ptr(&planning_scene);
+	bool limits_and_no_collision  = limits_are_ok && !inSelfCollision(kinematic_state);
 
 
 	ROS_DEBUG_STREAM_NAMED(LOG_NAME, " sol[" << i << "]=[" << std::setprecision(5)
@@ -122,11 +127,12 @@ bool compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointS
 			       << solValues[2]<< ", "
 			       << solValues[3]<< ", "
 			       << solValues[4]<< ", "
-			       << solValues[5]  << "] " << (limits_are_ok?"in bounds":"out of bounds") << ", "
-			       << (self_collision_is_ok?"not colliding":"in self-collision"));
+			       << solValues[5]  << "] "
+			       << (limits_are_ok?"in bounds":"out of bounds") << ", "
+			       << (limits_are_ok && limits_and_no_collision?"non colliding":(limits_are_ok?"self-colling":"")));
 
 
-	if (limits_are_ok)
+	if (limits_and_no_collision)
 	  solutions.push_back(jointState);
     }
     return true;
@@ -232,26 +238,23 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
 
 
 
-bool satisfiesBounds(const robot_state::RobotStatePtr& kinematic_statex, const sensor_msgs::JointState& joint_state) {
+bool satisfiesBounds(const robot_state::RobotStatePtr& kinematic_state, const sensor_msgs::JointState& joint_state) {
   for (size_t i = 0;i<minibot_arm_joint_names.size(); i++) {
-      kinematic_statex->setVariablePosition(minibot_arm_joint_names[i], joint_state.position[i]);
+      kinematic_state->setVariablePosition(minibot_arm_joint_names[i], joint_state.position[i]);
   }
-  bool ok = (kinematic_statex->satisfiesBounds ());
+  bool ok = (kinematic_state->satisfiesBounds ());
   ROS_INFO_STREAM("result=" << ok
-		  << " " << kinematic_statex->getVariablePosition(0)<< "," << kinematic_statex->getVariablePosition(1) <<
-		  kinematic_statex->getVariablePosition(2)<< "," << kinematic_statex->getVariablePosition(3) <<
-		  kinematic_statex->getVariablePosition(4)<< "," << kinematic_statex->getVariablePosition(5) );
+		  << " " << kinematic_state->getVariablePosition(0)<< "," << kinematic_state->getVariablePosition(1) <<
+		  kinematic_state->getVariablePosition(2)<< "," << kinematic_state->getVariablePosition(3) <<
+		  kinematic_state->getVariablePosition(4)<< "," << kinematic_state->getVariablePosition(5) );
 
   return ok;
-
 }
 
 bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state) {
-  robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-  robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
+  robot_model::RobotModelPtr kinematic_model = Minibot::Utils::getRobotModel();
   planning_scene::PlanningScene planning_scene(kinematic_model);
   planning_scene.setCurrentState(*kinematic_state);
-
   collision_detection::CollisionRequest collision_request;
   collision_detection::CollisionResult collision_result;
   planning_scene.checkSelfCollision(collision_request, collision_result);
@@ -261,6 +264,23 @@ bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state) {
                   << " self collision");
 }
 
+bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
+			    minibot::GetPositionAllIK::Response &res) {
+
+  std::vector<sensor_msgs::JointState> solutions;
+  bool result = compute_ik(req.ik_request.pose_stamped.pose, solutions);
+  if (result) {
+    for (size_t i = 0;i<solutions.size();i++) {
+	moveit_msgs::RobotState rs;
+	rs.joint_state = solutions[i];
+	res.solution.push_back(rs);
+    }
+    res.error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+  }
+  else {
+      res.error_code.val = moveit_msgs::MoveItErrorCodes::NO_IK_SOLUTION;
+  }
+}
 
 }
 }
