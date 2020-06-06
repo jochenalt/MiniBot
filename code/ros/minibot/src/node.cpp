@@ -1,4 +1,7 @@
+
 #include "ros/ros.h"
+#include "utils.h"
+
 #include "kinematics.h"
 
 int main(int argc, char * argv[]) {
@@ -7,6 +10,7 @@ int main(int argc, char * argv[]) {
 
 	ros::init(argc, argv, "minibot_server");
 
+	initErrorMap();
 	geometry_msgs::Pose pose;
 	pose.position.x = 0.2591;
 	pose.position.y = 0.0661;
@@ -26,4 +30,5 @@ int main(int argc, char * argv[]) {
 	return 0;
 
 }
+
 

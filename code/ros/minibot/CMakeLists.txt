@@ -87,6 +87,7 @@ include_directories(
 # node
 add_executable(${PROJECT_NAME}_server 
    src/node.cpp
+   src/utils.cpp
    src/kinematics.cpp
 )
 target_link_libraries(
