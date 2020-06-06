@@ -12,11 +12,12 @@ std::vector<std::string> minibot_arm_joint_names;
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <moveit/robot_model/robot_model.h>
-#include <moveit/robot_model/joint_model.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_model/joint_model.h>
 #include <moveit/robot_state/robot_state.h>
+#include <moveit/planning_scene/planning_scene.h>
+#include <moveit/kinematic_constraints/utils.h>
 
 #include "utils.h"
 
@@ -27,16 +28,21 @@ namespace ikfast {
 #include "../src/minibot_minibot_arm_ikfast_solver.cpp"
 }
 
-float SIGN(float x);
-float NORM(float a, float b, float c, float d);
+
+float SIGN(float x) {
+    return (x >= 0.0f) ? +1.0f : -1.0f;
+}
+
+float NORM(float a, float b, float c, float d) {
+    return sqrt(a * a + b * b + c * c + d * d);
+}
 
 #define IKREAL_TYPE ikfast::IkReal
-
 
 namespace Minibot {
 namespace Kinematics {
 
-void Minibot::Kinematics::init() {
+void init() {
   ROS_INFO_STREAM_NAMED(LOG_NAME, "module kinematics init");
 
   // cache the joint names of the kinematics group
@@ -53,7 +59,7 @@ void Minibot::Kinematics::init() {
 
 // computes all IK solutions of a given pose and returns those in solutions
 // returns true if success
-bool Minibot::Kinematics::compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointState>& solutions) {
+bool compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointState>& solutions) {
     // create a local state
     robot_model::RobotModelPtr kinematic_model = Utils::getRobotModel();
     robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
@@ -106,7 +112,9 @@ bool Minibot::Kinematics::compute_ik(const geometry_msgs::Pose& pose, std::vecto
 	    jointState.position.push_back(solValues[j]);
 	}
 
-	bool ok = satisfiesBounds(kinematic_state, jointState);
+	bool limits_are_ok = satisfiesBounds(kinematic_state, jointState);
+	bool self_collision_is_ok = !inSelfCollision(kinematic_state);
+
 
 	ROS_DEBUG_STREAM_NAMED(LOG_NAME, " sol[" << i << "]=[" << std::setprecision(5)
 			       << solValues[0]<< ", "
@@ -114,16 +122,17 @@ bool Minibot::Kinematics::compute_ik(const geometry_msgs::Pose& pose, std::vecto
 			       << solValues[2]<< ", "
 			       << solValues[3]<< ", "
 			       << solValues[4]<< ", "
-			       << solValues[5]  << "] " << (ok?"in bounds":"out of bounds"));
+			       << solValues[5]  << "] " << (limits_are_ok?"in bounds":"out of bounds") << ", "
+			       << (self_collision_is_ok?"not colliding":"in self-collision"));
 
 
-	if (ok)
+	if (limits_are_ok)
 	  solutions.push_back(jointState);
     }
     return true;
 }
 
-void Minibot::Kinematics::compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose) {
+void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose) {
    IKREAL_TYPE eerot[9],eetrans[3];
    unsigned int numOfJoints = ikfast::GetNumJoints();
 
@@ -221,18 +230,9 @@ void Minibot::Kinematics::compute_fk(const sensor_msgs::JointState& jointState, 
    printf("\n\n");
 }
 
-float SIGN(float x) {
-    return (x >= 0.0f) ? +1.0f : -1.0f;
-}
-
-float NORM(float a, float b, float c, float d) {
-    return sqrt(a * a + b * b + c * c + d * d);
-}
 
 
-bool Minibot::Kinematics::satisfiesBounds(const robot_state::RobotStatePtr& kinematic_statex, const sensor_msgs::JointState& joint_state) {
-
-  int pos_no = 0;
+bool satisfiesBounds(const robot_state::RobotStatePtr& kinematic_statex, const sensor_msgs::JointState& joint_state) {
   for (size_t i = 0;i<minibot_arm_joint_names.size(); i++) {
       kinematic_statex->setVariablePosition(minibot_arm_joint_names[i], joint_state.position[i]);
   }
@@ -246,6 +246,20 @@ bool Minibot::Kinematics::satisfiesBounds(const robot_state::RobotStatePtr& kine
 
 }
 
+bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state) {
+  robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+  robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
+  planning_scene::PlanningScene planning_scene(kinematic_model);
+  planning_scene.setCurrentState(*kinematic_state);
+
+  collision_detection::CollisionRequest collision_request;
+  collision_detection::CollisionResult collision_result;
+  planning_scene.checkSelfCollision(collision_request, collision_result);
+  return collision_result.collision;
+  ROS_INFO_STREAM("Test 1: Current state is "
+                  << (collision_result.collision ? "in" : "not in")
+                  << " self collision");
+}
 
 
 }

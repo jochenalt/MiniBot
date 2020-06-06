@@ -21,7 +21,11 @@ namespace Minibot {
     void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose);
 
     // check if JointState is within robot limits
+    // use a cached kinematic_state
     bool satisfiesBounds(const robot_state::RobotStatePtr& kinematic_state,const sensor_msgs::JointState& joint_state);
+
+    // check if the robotstate is in self-collision
+    bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state);
 
     void init();
   }
