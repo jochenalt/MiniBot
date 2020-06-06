@@ -24,7 +24,7 @@
   <node pkg="minibot" type="planning.py" name="planning" output="screen"/>
 
   <!-- start the server node planning node --> 
-  <node name="minibot_server" pkg="minibot" type="minibot_server" output="screen">
+  <node pkg="minibot" name="minibot_server" type="minibot_server" output="screen">
   </node>
 
 

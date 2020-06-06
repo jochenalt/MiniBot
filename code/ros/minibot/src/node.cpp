@@ -1,17 +1,23 @@
+#include <ros/ros.h>
 
-#include "ros/ros.h"
 #include "utils.h"
-
 #include "kinematics.h"
+#include "planner.h"
 
 int main(int argc, char * argv[]) {
 
-	ROS_INFO_STREAM("starting minibot node");
-
 	ros::init(argc, argv, "minibot_server");
+	ROS_INFO_STREAM("starting minibot server node");
 
-	initErrorMap();
-	geometry_msgs::Pose pose;
+	ros::AsyncSpinner spinner(0); // 0 = one thread per core
+	spinner.start();
+
+
+	Minibot::Utils::init();
+	Minibot::Planner::init();
+	Minibot::Kinematics::init();
+
+        geometry_msgs::Pose pose;
 	pose.position.x = 0.2591;
 	pose.position.y = 0.0661;
 	pose.position.z = 0.3046;
@@ -21,12 +27,13 @@ int main(int argc, char * argv[]) {
 	pose.orientation.w = 0.7349737729470047;
 
 	std::vector<sensor_msgs::JointState> solutions;
-	compute_ik(pose, solutions);
+	Minibot::Kinematics::compute_ik(pose, solutions);
 
-	compute_fk(solutions[3], pose);
+	Minibot::Kinematics::compute_fk(solutions[3], pose);
 
-	// spin with one thread
-	ros::spin();
+	ros::waitForShutdown();
+	ROS_INFO_STREAM("shutting down minibot server node");
+
 	return 0;
 
 }

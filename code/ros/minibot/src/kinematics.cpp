@@ -1,32 +1,70 @@
 
-#define IKFAST_HAS_LIBRARY 	// Build IKFast with API functions
-#define IKFAST_NO_MAIN 		// Don't include main() from IKFast
 
+#include "ros/ros.h"
 
+#define LOG_NAME "kinematics"
 #include "kinematics.h"
-#include "../src/minibot_minibot_arm_ikfast_solver.cpp"
+
+
+std::vector<std::string> minibot_arm_joint_names;
 
 
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_model/joint_model.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_state/robot_state.h>
+
+#include "utils.h"
+
+#define IKFAST_HAS_LIBRARY 	// Build IKFast with API functions
+#define IKFAST_NO_MAIN 		// Don't include main() from IKFast
+
+namespace ikfast {
+#include "../src/minibot_minibot_arm_ikfast_solver.cpp"
+}
+
 float SIGN(float x);
 float NORM(float a, float b, float c, float d);
 
-#define IKREAL_TYPE IkReal
+#define IKREAL_TYPE ikfast::IkReal
+
+
+namespace Minibot {
+namespace Kinematics {
+
+void Minibot::Kinematics::init() {
+  ROS_INFO_STREAM_NAMED(LOG_NAME, "module kinematics init");
+
+  // cache the joint names of the kinematics group
+  robot_model::RobotModelPtr kinematic_model = Utils::getRobotModel();
+  robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
+  const moveit::core::JointModelGroup* jmg = kinematic_state->getJointModelGroup(minibot_arm_group_name);
+  if (jmg == NULL) {
+      ROS_ERROR_STREAM("Minibot::Kinematics::init: did not find joint model group" << minibot_arm_group_name);
+  }
+  minibot_arm_joint_names = jmg->getActiveJointModelNames();
+
+}
 
 
 // computes all IK solutions of a given pose and returns those in solutions
 // returns true if success
-bool compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointState>& solutions) {
-    IKREAL_TYPE eerot[9],eetrans[3];
+bool Minibot::Kinematics::compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointState>& solutions) {
+    // create a local state
+    robot_model::RobotModelPtr kinematic_model = Utils::getRobotModel();
+    robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
 
-    unsigned int numOfJoints = GetNumJoints();
+    IKREAL_TYPE eerot[9],eetrans[3];
+    unsigned int numOfJoints = ikfast::GetNumJoints();
 
     // should be 0 on a 6DOF robot
-    unsigned int num_free_parameters = GetNumFreeParameters();
+    unsigned int num_free_parameters = ikfast::GetNumFreeParameters();
 
-    IkSolutionList<IKREAL_TYPE> ik_solutions;
+    ikfast::IkSolutionList<IKREAL_TYPE> ik_solutions;
 
     eetrans[0] = pose.position.x;
     eetrans[1] = pose.position.y;
@@ -47,51 +85,54 @@ bool compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointS
     eerot[3] = 2.0f*qx*qy + 2.0f*qz*qw;         eerot[4] = 1.0f - 2.0f*qx*qx - 2.0f*qz*qz;  eerot[5] = 2.0f*qy*qz - 2.0f*qx*qw;
     eerot[6] = 2.0f*qx*qz - 2.0f*qy*qw;         eerot[7] = 2.0f*qy*qz + 2.0f*qx*qw;         eerot[8] = 1.0f - 2.0f*qx*qx - 2.0f*qy*qy;
 
-    bool success = ComputeIk(eetrans, eerot, NULL, ik_solutions);
+    bool success = ikfast::ComputeIk(eetrans, eerot, NULL, ik_solutions);
     if( !success )
 	return false;
 
     unsigned int num_of_solutions = (int)ik_solutions.GetNumSolutions();
-    ROS_DEBUG_STREAM_NAMED(LOG_NAME, "compute_ik(" << pose << ")" << num_of_solutions << "solutions.");
+    ROS_DEBUG_STREAM_NAMED(LOG_NAME, "compute_ik(pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z << ")"
+			   << " orientation=(x=" << pose.orientation.x << " y=" << pose.orientation.y << " z=" << pose.orientation.z << " w=" << pose.orientation.w <<") "
+			   << num_of_solutions << " solutions.\n");
     std::vector<IKREAL_TYPE> solValues(numOfJoints);
     solutions.clear();
     for(std::size_t i = 0; i < num_of_solutions; ++i) {
-	const IkSolutionBase<IKREAL_TYPE>& sol = ik_solutions.GetSolution(i);
-	int this_sol_free_params = (int)sol.GetFree().size();
 
-	printf("sol%d ", (int)i);
+	const ikfast::IkSolutionBase<IKREAL_TYPE>& sol = ik_solutions.GetSolution(i);
+	int this_sol_free_params = (int)sol.GetFree().size();
 
 	sol.GetSolution(&solValues[0],NULL);
 	sensor_msgs::JointState jointState;
 	for( std::size_t j = 0; j < solValues.size(); ++j) {
 	    jointState.position.push_back(solValues[j]);
-	    printf("%.15f, ", solValues[j]);
 	}
-	solutions.push_back(jointState);
 
-	printf("\n");
+	bool ok = satisfiesBounds(kinematic_state, jointState);
 
-	ROS_DEBUG_STREAM_NAMED(LOG_NAME, " sol%d "
-			       << round(solValues[0]*10000.0)/10000.0  << ", "
-			       << round(solValues[1]*10000.0)/10000.0 << ", "
-			       << round(solValues[2]*10000.0)/10000.0  << ", "
-			       << round(solValues[3]*10000.0)/10000.0 << ", "
-			       << round(solValues[4]*10000.0)/10000.0  << ", "
-			       << round(solValues[5]*10000.0)/10000.0);
+	ROS_DEBUG_STREAM_NAMED(LOG_NAME, " sol[" << i << "]=[" << std::setprecision(5)
+			       << solValues[0]<< ", "
+			       << solValues[1]<< ", "
+			       << solValues[2]<< ", "
+			       << solValues[3]<< ", "
+			       << solValues[4]<< ", "
+			       << solValues[5]  << "] " << (ok?"in bounds":"out of bounds"));
+
+
+	if (ok)
+	  solutions.push_back(jointState);
     }
     return true;
 }
 
-void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose) {
+void Minibot::Kinematics::compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose) {
    IKREAL_TYPE eerot[9],eetrans[3];
-   unsigned int numOfJoints = GetNumJoints();
+   unsigned int numOfJoints = ikfast::GetNumJoints();
 
    // Put input joint values into array
    IKREAL_TYPE joints[numOfJoints];
    for (int i = 0;i<numOfJoints;i++)
     joints[i] = jointState.position[i];
 
-   ComputeFk(joints, eetrans, eerot); // void return
+   ikfast::ComputeFk(joints, eetrans, eerot); // void return
    printf("Found fk solution for end frame: \n\n");
    printf("  Translation:  x: %f  y: %f  z: %f  \n", eetrans[0], eetrans[1], eetrans[2] );
    printf("\n");
@@ -105,13 +146,13 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
    float pitch;
    float roll;
    if ( eerot[5] > 0.999 || eerot[5] < -0.999 ) { // singularity
-   	yaw = IKatan2( -eerot[6], eerot[0] );
+   	yaw = ikfast::IKatan2( -eerot[6], eerot[0] );
 	pitch = 0;
    } else {
-	yaw = IKatan2( eerot[2], eerot[8] );
-	pitch = IKatan2( eerot[3], eerot[4] );
+	yaw = ikfast::IKatan2( eerot[2], eerot[8] );
+	pitch = ikfast::IKatan2( eerot[3], eerot[4] );
    }
-   roll = IKasin( eerot[5] );
+   roll = ikfast::IKasin( eerot[5] );
    printf(" Euler angles: \n");
    printf("       Yaw:   %f    ", yaw ); printf("(1st: rotation around vertical blue Z-axis in ROS Rviz) \n");
    printf("       Pitch: %f  \n", pitch );
@@ -152,7 +193,7 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
         q2 *= SIGN(eerot[7] + eerot[5]);
         q3 *= +1.0f;
    } else {
-       ROS_DEBUG_STREAM_NAMED(LOG_NAME,"Error while converting to quaternion!");
+       ROS_DEBUG_STREAM_NAMED("kinematics","Error while converting to quaternion!");
    }
    float r = NORM(q0, q1, q2, q3);
    q0 /= r;
@@ -186,6 +227,28 @@ float SIGN(float x) {
 
 float NORM(float a, float b, float c, float d) {
     return sqrt(a * a + b * b + c * c + d * d);
+}
+
+
+bool Minibot::Kinematics::satisfiesBounds(const robot_state::RobotStatePtr& kinematic_statex, const sensor_msgs::JointState& joint_state) {
+
+  int pos_no = 0;
+  for (size_t i = 0;i<minibot_arm_joint_names.size(); i++) {
+      kinematic_statex->setVariablePosition(minibot_arm_joint_names[i], joint_state.position[i]);
+  }
+  bool ok = (kinematic_statex->satisfiesBounds ());
+  ROS_INFO_STREAM("result=" << ok
+		  << " " << kinematic_statex->getVariablePosition(0)<< "," << kinematic_statex->getVariablePosition(1) <<
+		  kinematic_statex->getVariablePosition(2)<< "," << kinematic_statex->getVariablePosition(3) <<
+		  kinematic_statex->getVariablePosition(4)<< "," << kinematic_statex->getVariablePosition(5) );
+
+  return ok;
+
+}
+
+
+
+}
 }
 
 

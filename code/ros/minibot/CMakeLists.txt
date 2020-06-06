@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(minibot)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -g)
+add_compile_options(-std=c++11 -g2)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -15,13 +15,9 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   geometry_msgs
   sensor_msgs
-  tf
-  minibot_ikfast_plugin
+  moveit_core
+  moveit_ros_planning_interface
 )
-
-find_package(Boost REQUIRED)
-find_package(Eigen3 REQUIRED)
-
 
 ## Generate messages in the 'msg' folder
 add_message_files(
@@ -63,11 +59,9 @@ catkin_package(
      sensor_msgs 
      std_msgs 
      move_base_msgs
-     tf
+     moveit_core
+     moveit_ros_planning_interface
    DEPENDS
-     Boost
-     EIGEN3
-     minibot_ikfast_plugin
 )
 
 ###########
@@ -87,8 +81,9 @@ include_directories(
 # node
 add_executable(${PROJECT_NAME}_server 
    src/node.cpp
-   src/utils.cpp
    src/kinematics.cpp
+   src/utils.cpp
+   src/planner.cpp
 )
 target_link_libraries(
    ${PROJECT_NAME}_server ${catkin_LIBRARIES}
