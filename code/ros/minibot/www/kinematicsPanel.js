@@ -67,7 +67,7 @@ KinematicsPanel.Init = function(options) {
 
                   textInput.onblur = callBackJointInput;
                   textInput.onChange = callBackJointInput;
-                  textInput.onkeyup  = callBackJointInput;
+                  textInput.onkeyup  = callBackJointInputKeyUp;
                   inputs[ inputs.length ] = textInput;
 
                   // fetch slider element, set callbacks and common properties
@@ -109,7 +109,7 @@ KinematicsPanel.Init = function(options) {
           coordInputs[index].setAttribute('step', Utils.distanceSteps());
           coordInputs[index].onblur   = callbackCartesicInput;
           coordInputs[index].onchange = callbackCartesicInput;
-          coordInputs[index].onkeyup  = callbackCartesicInput;
+          coordInputs[index].onkeyup  = callbackCartesicInputKeyUp;
 
           coordSliders[index].setAttribute('name', coordSliders[index].id);
           coordSliders[index].setAttribute('value', 0);
@@ -121,7 +121,7 @@ KinematicsPanel.Init = function(options) {
           orientationInputs[index].setAttribute('step', Utils.angleSteps());
           orientationInputs[index].onblur   = callbackCartesicInput;
           orientationInputs[index].onchange = callbackCartesicInput;
-          orientationInputs[index].onkeyup  = callbackCartesicInput;
+          orientationInputs[index].onkeyup  = callbackCartesicInputKeyUp;
 
           orientationSliders[index].setAttribute('name', orientationSliders[index].id);
           orientationSliders[index].setAttribute('value', 0);
@@ -269,6 +269,13 @@ KinematicsPanel.Init = function(options) {
     }
   }
 
+  var callBackJointInputKeyUp = function(event) {
+    var name = event.target.name;
+    if (event.key == 'Enter') {
+      callBackJointInput(event);
+    }
+  }
+  
   // callback when a slider/input changes
   var callBackJointInput = function(event) {
     var name = event.target.name;
@@ -322,31 +329,41 @@ KinematicsPanel.Init = function(options) {
     return jointState;
   }
 
+  // take the solutions coming from IK, store thim globally in solutionsIK
+  // and change the change-configuration-button accordingly 
   var setIKSolutions = function (solutions) {
     solutionsIK = solutions;
     currentIkSolutionIdx = 0;
+    var button = document.getElementById("changeConfigurationButton");
     if (solutions.length > 0) {
 
       if (solutions.length <= 1) {
-          document.getElementById("changeConfigurationButton").innerHTML = "Cannot change configuration";
-          document.getElementById("changeConfigurationButton").disabled  = true;
+          button.innerHTML = "Cannot change configuration";
+          button.disabled  = true;
       }
       else {
-          document.getElementById("changeConfigurationButton").disabled = false;
-          document.getElementById("changeConfigurationButton").innerHTML = "Change configuration(" + (currentIkSolutionIdx +1) + "/" + solutionsIK.length + ")";
+          button.disabled = false;
+          button.innerHTML = "Change configuration (" + (currentIkSolutionIdx +1) + "/" + solutionsIK.length + ")";
       }
     }
     else {
-       document.getElementById("changeConfigurationButton").innerHTML = "Cannot change configuration";
-       document.getElementById("changeConfigurationButton").disabled = true;
+       button.innerHTML = "One configuration only";
+       button.disabled = true;
        currentIkSolutionIdx = -1;
     }
   }
 
   var changeConfiguration = function() {
     currentIkSolutionIdx = (currentIkSolutionIdx + 1) % solutionsIK.length;
-    document.getElementById("changeConfigurationButton").innerHTML = "Change configuration(" + (currentIkSolutionIdx + 1) + "/" + solutionsIK.length + ")";
+    document.getElementById("changeConfigurationButton").innerHTML = "Change configuration (" + (currentIkSolutionIdx + 1) + "/" + solutionsIK.length + ")";
     jointInputTopic.publish(solutionsIK[currentIkSolutionIdx].joint_state);      
+  }
+
+  var callbackCartesicInputKeyUp = function(event) {
+    var name = event.target.name;
+    if (event.key == 'Enter') {
+      callbackCartesicInput(event);
+    }
   }
 
   // call back when a cartesic sliders/input changes, 
