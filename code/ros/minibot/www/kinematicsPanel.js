@@ -8,6 +8,7 @@ var KinematicsPanel = KinematicsPanel || {
 KinematicsPanel.Init = function(options) {
   options = options || {};
   var ros = options.ros;
+  var kinematicsUtils = options.kinematics;
   var paramName                   = 'robot_description';
   var readTopicName               = '/joint_states';                              // 20Hz topic that gives the current state of the joints, publish constantly
   var jointInputTopicName         = '/move_group/fake_controller_joint_states'    // topic that gives changes of the joint values, published only when a change occurs
@@ -20,6 +21,8 @@ KinematicsPanel.Init = function(options) {
   var coordSlider = [];
   var orientationInputs = [];
   var orientationSliders = [];
+  var solutionsIK = [];
+  var currentIkSolutionIdx = 0;
 
   var minVal  = [];
   var maxVal  = [];
@@ -319,6 +322,33 @@ KinematicsPanel.Init = function(options) {
     return jointState;
   }
 
+  var setIKSolutions = function (solutions) {
+    solutionsIK = solutions;
+    currentIkSolutionIdx = 0;
+    if (solutions.length > 0) {
+
+      if (solutions.length <= 1) {
+          document.getElementById("changeConfigurationButton").innerHTML = "Cannot change configuration";
+          document.getElementById("changeConfigurationButton").disabled  = true;
+      }
+      else {
+          document.getElementById("changeConfigurationButton").disabled = false;
+          document.getElementById("changeConfigurationButton").innerHTML = "Change configuration(" + (currentIkSolutionIdx +1) + "/" + solutionsIK.length + ")";
+      }
+    }
+    else {
+       document.getElementById("changeConfigurationButton").innerHTML = "Cannot change configuration";
+       document.getElementById("changeConfigurationButton").disabled = true;
+       currentIkSolutionIdx = -1;
+    }
+  }
+
+  var changeConfiguration = function() {
+    currentIkSolutionIdx = (currentIkSolutionIdx + 1) % solutionsIK.length;
+    document.getElementById("changeConfigurationButton").innerHTML = "Change configuration(" + (currentIkSolutionIdx + 1) + "/" + solutionsIK.length + ")";
+    jointInputTopic.publish(solutionsIK[currentIkSolutionIdx].joint_state);      
+  }
+
   // call back when a cartesic sliders/input changes, 
   var callbackCartesicInput = function(event) {
     var name = event.target.name;
@@ -342,10 +372,20 @@ KinematicsPanel.Init = function(options) {
 
     var tcpPose = getCurrentPose();
 
+    // call IK
+    kinematicsUtils.computeAllIK (getCurrentJointState(),tcpPose.pose, function(solutions) {
+      setIKSolutions(solutions);
+      if (solutions.length > 0)
+        jointInputTopic.publish(solutions[currentIkSolutionIdx].joint_state);      
+    }, function(err) {
+      displayErr("no IK solution found (" + err + ")");
+    }
+    )
+
     // publish the new pose and trigger inverse kinematics
-    Utils.callThrottler("publishTCP", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
-        tcpInputTopic.publish(params);              
-    }, tcpPose);
+    //Utils.callThrottler("publishTCP", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
+    //    tcpInputTopic.publish(params);              
+    //}, tcpPose);
 
     // block tcp input from kinematics while we turn the sliders
     // Utils.stopMutex("blockTcp");
@@ -470,6 +510,7 @@ KinematicsPanel.Init = function(options) {
         getCurrentPose: getCurrentPose,
         getCurrentJointState: getCurrentJointState,
         setPose: setPose,
-        setJointState: setJointState
+        setJointState: setJointState,
+        changeConfiguration: changeConfiguration
   };
 };

@@ -235,6 +235,7 @@ Kinematics.Init = function(options) {
   // exposed inner functions
   return {
         computeFK: computeFK,
+        computeAllIK: computeAllIK,
         getZeroPose : getZeroPose,
         getZeroJointState : getZeroJointState
   };

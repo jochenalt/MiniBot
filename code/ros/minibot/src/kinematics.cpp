@@ -290,16 +290,15 @@ bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
 
     // sort all solutions along the distance to the
     // joint state, closest solution comes first
-    struct customLess {
-	customLess(const sensor_msgs::JointState& current) { this->current = current; }
+    struct JointStateComparer {
+	JointStateComparer(const sensor_msgs::JointState& current) { this->current = current; }
 
-	bool operator()(const moveit_msgs::RobotState& a, const moveit_msgs::RobotState& b) const
-         {
+	bool operator()(const moveit_msgs::RobotState& a, const moveit_msgs::RobotState& b) const {
 	     return jointModelDistance(current, a) < jointModelDistance(current, b);
-         }
-	 sensor_msgs::JointState current;
+        }
+	sensor_msgs::JointState current;
      } ;
-    std::sort(res.solution.begin(), res.solution.end(),customLess(req.ik_request.robot_state.joint_state));
+    std::sort(res.solution.begin(), res.solution.end(),JointStateComparer(req.ik_request.robot_state.joint_state));
     res.error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
 
     for (size_t i = 0;i<solutions.size();i++) {
