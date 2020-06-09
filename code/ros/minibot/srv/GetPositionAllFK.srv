@@ -1,6 +1,6 @@
 # A service call to carry out an inverse kinematics computation
 # The inverse kinematics request
-moveit_msgs/PositionIKRequest ik_request
+moveit_msgs/PositionFKRequest ik_request
 
 ---
 

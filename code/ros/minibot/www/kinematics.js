@@ -57,11 +57,11 @@ Kinematics.Init = function(options) {
     }
   }
 
-  function computeFK(jointPositions, success, failure) {
-    var jointNames = kinematicGroupJoints.slice(0,6);
+  function computeFK(jointState, success, failure) {
+    var jointNames = jointState.name.slice(0,6);
     var jointStates = new ROSLIB.Message({
       name: jointNames,
-      position: jointPositions
+      position: jointState.position.slice(0,6)
     });
 
     var request = new ROSLIB.ServiceRequest({
@@ -85,7 +85,7 @@ Kinematics.Init = function(options) {
     getPositionFK.callService(request, 
       function(result) {
         if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
-          pose = result.pose_stamped[7];
+          pose = result.pose_stamped[7].pose;
           success(pose);
         }
         else {
@@ -164,7 +164,10 @@ Kinematics.Init = function(options) {
       ik_request: {
         group_name: 'minibot_arm',  // as referred to in kinematics.yaml and defined in minibot.xacro
         robot_state: {
-            joint_state: jointStates
+            joint_state: {
+              name: jointStates.name.slice(0,6),
+              position: jointStates.position.slice(0,6),
+            }
         },
         pose_stamped: {
           pose : {

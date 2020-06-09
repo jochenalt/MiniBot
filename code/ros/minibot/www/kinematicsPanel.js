@@ -275,7 +275,7 @@ KinematicsPanel.Init = function(options) {
       callBackJointInput(event);
     }
   }
-  
+
   // callback when a slider/input changes
   var callBackJointInput = function(event) {
     var name = event.target.name;
@@ -294,8 +294,18 @@ KinematicsPanel.Init = function(options) {
 
     // and publish joint state, but throttled  
     Utils.callThrottler("newJoint", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
-      jointInputTopic.publish(params);      
-    }, newJointState);
+      jointInputTopic.publish(params);
+      kinematicsUtils.computeFK (newJointState,function(pose) {
+        kinematicsUtils.computeAllIK (newJointState,pose, function(solutions) {
+          setIKSolutions(solutions);
+          }, function(err) {
+          displayErr("no IK solution found (" + err + ")");
+        })        
+      },
+      function(err) {
+          displayErr("no FK solution found (" + err + ")");
+      });
+    },newJointState);
 
     // block joint input from kinematics while we turn the sliders (and 0.5 seconds afterwards)
     // Utils.stopMutex("blockJoint");

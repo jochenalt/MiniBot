@@ -263,7 +263,7 @@ bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state) {
 // of a little movement of all joints against one greater movement in one joint
 double jointModelDistance(const sensor_msgs::JointState& a, const moveit_msgs::RobotState& b) {
   if (a.name.size() != b.joint_state.name.size()) {
-      ROS_ERROR_STREAM("jointModelDistance: jointStates are not comparable");
+      ROS_ERROR_STREAM("jointModelDistance: jointStates are not comparable: " << a.name.size() << " vs " << b.joint_state.name.size());
       return 0;
   }
   double sum = 0;
