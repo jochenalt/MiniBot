@@ -97,6 +97,45 @@ Kinematics.Init = function(options) {
       });
   };
 
+  function computeAllFK(jointState, success, failure) {
+    var jointNames = jointState.name.slice(0,6);
+    var jointStates = new ROSLIB.Message({
+      name: jointNames,
+      position: jointState.position.slice(0,6)
+    });
+
+    var request = new ROSLIB.ServiceRequest({
+      header: {
+        seq: 0,
+        stamp: 0,
+        frame_id: 'base_link'
+     },
+     fk_link_names: kinematicGroupLinks,
+     robot_state: {
+        joint_state: jointStates
+     }
+    });
+
+    var getPositionAllFK = new ROSLIB.Service({
+        ros : ros,
+        name : '/compute_all_fk',
+        serviceType : 'minibot/GetPositionAllFK'
+    });
+
+    getPositionAllFK.callService(request, 
+      function(result) {
+        if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+          success(result);
+        }
+        else {
+          failure(result.error_code.val);
+        }
+      }, 
+      function (result) {
+        failure(result);
+      });
+  };
+
   var computeIK = function(jointStates, tcpPose, success, failure) {
     var linkNames = [];
     var jointNames = [];
@@ -239,6 +278,7 @@ Kinematics.Init = function(options) {
   return {
         computeFK: computeFK,
         computeAllIK: computeAllIK,
+        computeAllFK: computeAllFK,
         getZeroPose : getZeroPose,
         getZeroJointState : getZeroJointState
   };

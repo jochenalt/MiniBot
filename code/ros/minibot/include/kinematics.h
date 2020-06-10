@@ -9,6 +9,7 @@
 #include <geometry_msgs/Pose.h>
 #include <sensor_msgs/JointState.h>
 #include <minibot/GetPositionAllIK.h>
+#include <minibot/GetPositionAllFK.h>
 
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/kinematic_constraints/utils.h>
@@ -34,10 +35,15 @@ namespace Minibot {
     // call me before anything else, but after node initialisation
     void init();
 
-    //
+    // compute all solutions for a given pose
     bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
 				minibot::GetPositionAllIK::Response &res);
-}
+
+    // compute the pose of a given joint and all other joint solutions
+    bool compute_all_fk_service(minibot::GetPositionAllFK::Request  &req,
+				minibot::GetPositionAllFK::Response &res);
+
+  }
 }
 
 

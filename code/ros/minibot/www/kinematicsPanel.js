@@ -295,15 +295,11 @@ KinematicsPanel.Init = function(options) {
     // and publish joint state, but throttled  
     Utils.callThrottler("newJoint", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
       jointInputTopic.publish(params);
-      kinematicsUtils.computeFK (newJointState,function(pose) {
-        kinematicsUtils.computeAllIK (newJointState,pose, function(solutions) {
-          setIKSolutions(solutions);
-          }, function(err) {
-          displayErr("no IK solution found (" + err + ")");
-        })        
+      kinematicsUtils.computeAllFK (newJointState,function(result) {
+        setIKSolutions(result.solution);
       },
-      function(err) {
-          displayErr("no FK solution found (" + err + ")");
+      function (err) {
+        displayErr("no FK solution found (" + err + ")");
       });
     },newJointState);
 

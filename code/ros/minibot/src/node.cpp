@@ -21,6 +21,8 @@ int main (int argc, char *argv[])
   // provide service compute_all_ik
   ros::ServiceServer compute_all_ik = nh.advertiseService (
       "compute_all_ik", Minibot::Kinematics::compute_all_ik_service);
+  ros::ServiceServer compute_all_fk = nh.advertiseService (
+      "compute_all_fk", Minibot::Kinematics::compute_all_fk_service);
 
   geometry_msgs::Pose pose;
   pose.position.x = 0.2591;

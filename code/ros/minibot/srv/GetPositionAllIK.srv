@@ -6,10 +6,6 @@ moveit_msgs/PositionIKRequest ik_request
 
 # The returned solution 
 # (in the same order as the list of joints specified in the IKRequest message)
-geometry_msgs/PoseStamped[] pose_stamped
-string[] fk_link_names
-
-# call IK to provide all possible joint values providing the same TCP pose
 moveit_msgs/RobotState[] solution
 
 moveit_msgs/MoveItErrorCodes error_code

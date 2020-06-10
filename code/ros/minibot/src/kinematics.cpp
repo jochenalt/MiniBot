@@ -1,5 +1,3 @@
-
-
 #include "ros/ros.h"
 
 #define LOG_NAME "kinematics"
@@ -149,6 +147,7 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
     joints[i] = jointState.position[i];
 
    ikfast::ComputeFk(joints, eetrans, eerot); // void return
+   /*
    printf("Found fk solution for end frame: \n\n");
    printf("  Translation:  x: %f  y: %f  z: %f  \n", eetrans[0], eetrans[1], eetrans[2] );
    printf("\n");
@@ -156,6 +155,7 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
    printf("       Matrix:    %f   %f   %f  \n", eerot[3], eerot[4], eerot[5] );
    printf("                  %f   %f   %f  \n", eerot[6], eerot[7], eerot[8] );
    printf("\n");
+   */
 
    // Display equivalent Euler angles
    float yaw;
@@ -226,6 +226,7 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
    pose.orientation.y = q2;
    pose.orientation.z = q3;
 
+   /*
    printf("  Quaternion:  %f   %f   %f   %f   \n", q0, q1, q2, q3 );
    printf("               ");
    // print quaternion with convention and +/- signs such that it can be copy-pasted into WolframAlpha.com
@@ -235,6 +236,7 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
    if (q3 > 0) printf("+ %fk ", q3); else if (q3 < 0) printf("- %fk ", -q3); else printf("+ 0.00000k ");
    printf("  (alternate convention) \n");
    printf("\n\n");
+   */
 }
 
 
@@ -317,6 +319,55 @@ bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
       res.error_code.val = moveit_msgs::MoveItErrorCodes::NO_IK_SOLUTION;
   }
 }
+
+// conviniency service combining two calls:
+// 	call compute_fk for the given joint values
+// 	call compute_all_ik for the resulting tcp
+bool compute_all_fk_service(minibot::GetPositionAllFK::Request  &req,
+			    minibot::GetPositionAllFK::Response &res) {
+
+   if (req.robot_state.joint_state.position.size() != 6) {
+       ROS_ERROR_STREAM_NAMED(LOG_NAME, "compute_all_fk_services: request does not contain68 joints");
+       res.error_code.val = moveit_msgs::MoveItErrorCodes::INVALID_LINK_NAME;
+       return false;
+   }
+
+  ROS_DEBUG_STREAM_NAMED(LOG_NAME, "cmpute_all_fk_services "
+			       << std::setprecision(5)
+			       << "joint_state="
+			       << req.robot_state.joint_state.position[0] << ","
+				<< req.robot_state.joint_state.position[1] << ","
+				<< req.robot_state.joint_state.position[2] << ","
+				<< req.robot_state.joint_state.position[3] << ","
+				<< req.robot_state.joint_state.position[4] << ","
+				<< req.robot_state.joint_state.position[5] << std::endl);
+
+  geometry_msgs::Pose pose;
+  compute_fk(req.robot_state.joint_state,pose);
+  ROS_DEBUG_STREAM_NAMED(LOG_NAME, "cmpute_all_fk_services "
+			       << std::setprecision(5)
+			       << "pose=("
+			       << "pos.x=" << pose.position.x << ","
+			       << "pos.y=" << pose.position.y << ","
+			       << "pos.z=" << pose.position.z << ","
+			       << "orient.x=" << pose.orientation.x << ","
+			       << "orient.y=" << pose.orientation.y << ","
+			       << "orient.z=" << pose.orientation.z << ","
+			       << "orient.w=" << pose.orientation.w << ")");
+
+  minibot::GetPositionAllIK::Request compute_ik_req;
+  minibot::GetPositionAllIK::Response compute_ik_res;
+
+  compute_ik_req.ik_request.pose_stamped.pose = pose;
+  compute_ik_req.ik_request.robot_state.joint_state = req.robot_state.joint_state;
+  compute_all_ik_service(compute_ik_req, compute_ik_res);
+  res.solution = compute_ik_res.solution;
+  res.error_code = compute_ik_res.error_code;
+  res.pose = pose;
+
+  return true;
+}
+
 
 }
 }
