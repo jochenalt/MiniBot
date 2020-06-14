@@ -20,6 +20,7 @@
 
 namespace Minibot {
   namespace Kinematics {
+
     // compute all pose values to a given pose. Does not consider joint limits
     // returns true if IK was successful.
     geometry_msgs::Pose computeTCPBase(const geometry_msgs::Pose& tcpPose, double tool_distance);
@@ -45,6 +46,11 @@ namespace Minibot {
 
     // add or overwrite the end effector positions from eff to joint_state
     bool setEndEffectorPosition(sensor_msgs::JointState& joint_state, const sensor_msgs::JointState& eff);
+
+    // the current joint state to be published to /joint_states
+    // synchronized method
+    void setLastJointState(const sensor_msgs::JointState& joint_state);
+    sensor_msgs::JointState getLastJointState();
 
   }
 }

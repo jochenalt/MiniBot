@@ -16,10 +16,13 @@ namespace Minibot {
 namespace Dispatcher {
 
   // callback for tcp input from UI
-  void updateTCPCallback(const minibot::MinibotState&);
+void updateTCPCallback(const minibot::MinibotState&);
 
   // callback for joint_input from UI
-  void updateJointStatesCallback(const minibot::MinibotState&);
+void updateJointStatesCallback(const minibot::MinibotState&);
+
+	// callback for a different configuration of the same tcp
+void updateJointStatesConfigurationCallback(const minibot::MinibotState& state);
 
 }
 }

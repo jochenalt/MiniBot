@@ -4,6 +4,7 @@
 #include "node.h"
 #include "kinematics.h"
 #include "dispatcher.h"
+#include "marker.h"
 
 #include "planner.h"
 
@@ -19,8 +20,15 @@ ros::Publisher pub_tcp_ui;
 // publisher for new joint_states
 ros::Publisher pub_joint_state_ui;
 
+// publisher for joint_states
+ros::Publisher pub_joint_state;
+
 // publisher for messages
 ros::Publisher pub_msg;
+
+// publisher for gearwheel poses
+ros::Publisher pub_gearwheel_pose;
+
 
 int main(int argc, char *argv[]) {
 	try {
@@ -29,24 +37,22 @@ int main(int argc, char *argv[]) {
 		ros::NodeHandle nh;
 		ROS_INFO_STREAM("starting minibot server node");
 
-		ros::AsyncSpinner spinner(1); // 0 = one thread per core
-		spinner.start();
-
 		Minibot::Utils::init();
 		Minibot::Planner::init();
 		Minibot::Kinematics::init();
+		Minibot::Gearwheel::init();
 
 		// publish messages to UI
 		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
 
 		// listen to changes of the tcp coming from UI
-		ros::Subscriber sub_tcp_update = nh.subscribe("/pose/input/update", 10,
-				Minibot::Dispatcher::updateTCPCallback);
+		ros::Subscriber pose_input = nh.subscribe("/pose/input/update", 10,Minibot::Dispatcher::updateTCPCallback);
 
 		// listen to changes of the joints coming from UI
-		ros::Subscriber sub_joint_states_update = nh.subscribe(
-				"/joint_states/input/update", 10,
-				Minibot::Dispatcher::updateJointStatesCallback);
+		ros::Subscriber joint_states_input = nh.subscribe("/joint_states/input/update", 10, Minibot::Dispatcher::updateJointStatesCallback);
+
+		// listen to changes of the joints coming from UI
+		ros::Subscriber configuration_input = nh.subscribe("/joint_configuration/input/update", 10, Minibot::Dispatcher::updateJointStatesConfigurationCallback);
 
 		// publish new joints (forwarded by joint_state_publisher)
 		pub_joint_state_ui = nh.advertise<sensor_msgs::JointState>(
@@ -59,6 +65,32 @@ int main(int argc, char *argv[]) {
 		pub_joint_values_config =
 				nh.advertise<minibot::JointStateConfiguration>(
 						"/joint_states/configuration", 10);
+
+		// publish new joint states, consumed by UI
+		pub_gearwheel_pose =
+				nh.advertise<geometry_msgs::Pose>(
+						"/gearwheel/update", 10);
+
+		// publish new joint states, consumed by UI
+		pub_joint_state =
+				nh.advertise<sensor_msgs::JointState>(
+						"/joint_states", 10);
+
+
+		ros::AsyncSpinner spinner(0); // 0 = one thread per core
+		spinner.start();
+
+		ros::Rate loop_rate(20);
+		while(ros::ok()) {
+
+			// joint state publisher: take the most recent joint_state and publish it to /joint_states
+			sensor_msgs::JointState joint_state = Minibot::Kinematics::getLastJointState();
+			joint_state.header.stamp = ros::Time::now();
+			joint_state.header.seq++;
+			pub_joint_state.publish(joint_state);
+
+			loop_rate.sleep();
+		}
 
 		ros::waitForShutdown();
 		ROS_INFO_STREAM("shutting down minibot server node");

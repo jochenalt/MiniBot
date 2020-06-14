@@ -17,6 +17,9 @@ KinematicsPanel.Init = function(options) {
   var receiveTcpTopicName           = '/pose/update'                                // receive changes in tcp not coming from UI
   var tcpInputTopicName             = '/pose/input/update'                          // UI tcp changes are published here 
   var receiveConfigurationTopicName = '/joint_states/configuration'                 // listen to all confgurations
+
+  var pubConfigurationTopicName     = '/joint_configuration/input/update'          // listen to all confgurations
+
   var msgTopicName                  = '/msg'                                        // listen to messages from server
 
   var sliders = [];
@@ -149,7 +152,7 @@ KinematicsPanel.Init = function(options) {
         toolDistanceSlider.setAttribute('value', 0);
         toolDistanceSlider.setAttribute('step',Utils.distanceSteps());
         toolDistanceSlider.setAttribute('min',0,);
-        toolDistanceSlider.setAttribute('max',100);
+        toolDistanceSlider.setAttribute('max',150);
         toolDistanceSlider.oninput = callbackToolDistanceInput;
 
         toolDistanceInput.setAttribute('name', toolDistanceInput.id);
@@ -357,6 +360,23 @@ KinematicsPanel.Init = function(options) {
     currentIkSolutionIdx = (currentIkSolutionIdx + 1) % solutionsIK.length;
     document.getElementById("changeConfigurationButton").innerHTML = "Change configuration (" + (currentIkSolutionIdx + 1) + "/" + solutionsIK.length + ")";
 
+    // retrieve current joint
+    var minibotState = getCurrentMinibotState();
+    minibotState.joint_state = solutionsIK[currentIkSolutionIdx];
+
+    // and publish joint state, but throttled  
+    var pubConfigurationTopic = new ROSLIB.Topic({
+      ros : ros,
+      name : pubConfigurationTopicName,
+      messageType : 'minibot/MinibotState'
+    });
+
+    Utils.callThrottler("newJoint", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
+      pubConfigurationTopic.publish(params);
+    },minibotState);
+
+
+/*
     var publisherJointState  = new ROSLIB.Topic({
       ros : ros,
       name : receiveJointStateTopicName,
@@ -364,6 +384,7 @@ KinematicsPanel.Init = function(options) {
     });
 
     publisherJointState.publish(solutionsIK[currentIkSolutionIdx]);
+    */
   }
 
   var callbackCartesicInputKeyUp = function(event) {
@@ -459,7 +480,6 @@ KinematicsPanel.Init = function(options) {
   });
 
   msgTopic.subscribe(function(msg) {
-    // Utils.queueAtMutex("blockTcp",setTcpView, tcpPose);
     if (msg.data.startsWith('KINEMATICS:ERR:'))
       displayErr(msg.data.substring("KINEMATICS:ERR:".length))
     if (msg.data.startsWith('KINEMATICS:WARN:'))

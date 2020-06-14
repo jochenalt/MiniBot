@@ -90,7 +90,7 @@ sudo usermod -a -G docker $USER
 sudo apt-get install ros-melodic-collada-urdf
 sudo apt-get install collada-urdf-cd 
 tool
-roscd minibot
+ros
 cd config
 rosrun xacro xacro --inorder -o minibot.urdf minibot.urdf.xacro
 rosrun xacro xacro --inorder -o minibot.srdf minibot.srdf.xacro

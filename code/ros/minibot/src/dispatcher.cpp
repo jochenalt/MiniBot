@@ -8,12 +8,15 @@
 
 #include "dispatcher.h"
 #include "kinematics.h"
+#include "marker.h"
+
 #include "node.h"
 
 namespace Minibot {
 namespace Dispatcher {
 
 #define LOG_NAME "dispatcher"
+
 
 // receive TCP input from UI and act accordingly:
 // - compute IK
@@ -35,9 +38,16 @@ void updateTCPCallback(const minibot::MinibotState& state) {
 	  // 0th configuration is closest to current joint state.
 	  sensor_msgs::JointState joint_state = jointStateConfguration.configuration[0];
 
+
 	  // publish joint values and all configurations
 	  pub_joint_state_ui.publish(joint_state);
 	  pub_joint_values_config.publish(jointStateConfguration);
+
+	  // change the gearhweel
+	  Minibot::Gearwheel::updateGerwheelPose(state.pose);
+
+	  Minibot::Kinematics::setLastJointState(joint_state);
+
   } else {
 	  pub_msg.publish(Minibot::Utils::createMsg(kinematics_prefix + err_msg_prefix  + "Could not find inverse kinematic"));
   }
@@ -69,16 +79,34 @@ void updateJointStatesCallback(const minibot::MinibotState& state) {
 		  pose.tool_distance = state.tool_distance;
 		  pose.pose = flange_pose;
 
-		  // pubish new tcp to UI
+		  // publish new tcp to UI
 		  pub_tcp_ui.publish(pose);
+
+		  // update the position of gearhweel
+		  Minibot::Gearwheel::updateGerwheelPose(pose.pose);
 
 		  // publish tcp and all configuration
 		  sensor_msgs::JointState joint_state = jointStateConfguration.configuration[0];
 		  pub_joint_state_ui.publish(state.joint_state);
 		  pub_joint_values_config.publish(jointStateConfguration);
+
+		  Minibot::Kinematics::setLastJointState(state.joint_state);
 	  } else {
 		  pub_msg.publish(Minibot::Utils::createMsg(kinematics_prefix + err_msg_prefix  + "Could not find inverse kinematic"));
 	  }
+}
+
+// receive a configuration of the existing tcp
+void updateJointStatesConfigurationCallback(const minibot::MinibotState& state) {
+
+	if (state.joint_state.name.size() == 0) {
+		ROS_ERROR_STREAM_NAMED(LOG_NAME,"updateJointStatesConfigurationCallback call without joints");
+		return;
+	}
+
+	// publish tcp and all configuration
+	pub_joint_state_ui.publish(state.joint_state);
+    Minibot::Kinematics::setLastJointState(state.joint_state);
 }
 
 

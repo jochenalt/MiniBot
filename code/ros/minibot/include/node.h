@@ -8,6 +8,10 @@
 #ifndef INCLUDE_NODE_H_
 #define INCLUDE_NODE_H_
 
+#include "ros/ros.h"
+
+#include <sensor_msgs/JointState.h>
+
 
 // publisher of new joint values
 extern ros::Publisher pub_joint_state_ui;
@@ -20,6 +24,9 @@ extern ros::Publisher pub_msg;
 
 // publish new tcp to UI
 extern ros::Publisher pub_tcp_ui;
+
+// publish updates from gearwheel
+extern ros::Publisher pub_gearwheel_pose;
 
 
 

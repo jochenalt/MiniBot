@@ -1,3 +1,6 @@
+#include <thread>
+#include <mutex>
+
 #include "ros/ros.h"
 
 #define LOG_NAME "kinematics"
@@ -7,6 +10,7 @@
 // cache the joint names of the group "minibot_arm" as defined in SRDF
 std::vector<std::string> minibot_arm_joint_names;
 std::vector<std::string> minibot_gripper_joint_names;
+std::vector<std::string> minibot_joint_names;
 
 
 #include <stdio.h>
@@ -36,6 +40,8 @@ double SIGN(double x) {
 namespace Minibot {
 namespace Kinematics {
 
+sensor_msgs::JointState last_joint_state;
+
 void init() {
   ROS_INFO_STREAM_NAMED(LOG_NAME, "module kinematics init");
 
@@ -57,7 +63,34 @@ void init() {
 
   minibot_gripper_joint_names = jmg->getActiveJointModelNames();
 
+  jmg = kinematic_state->getJointModelGroup(minibot_group_name);
+  if (jmg == NULL) {
+      ROS_ERROR_STREAM("Minibot::Kinematics::init: did not find joint model group"
+    		  << minibot_group_name);
+  }
+  minibot_joint_names = jmg->getActiveJointModelNames();
+
+
+  for (size_t i = 0;i < minibot_joint_names.size();i++) {
+	  last_joint_state.name.push_back(minibot_joint_names[i]);
+	  last_joint_state.position.push_back(0);
+  }
+
 }
+
+std::mutex last_joint_state_mutex;
+
+void setLastJointState(const sensor_msgs::JointState& joint_state) {
+	std::unique_lock<std::mutex> lock(last_joint_state_mutex);
+	last_joint_state = joint_state;
+}
+
+sensor_msgs::JointState getLastJointState() {
+	std::unique_lock<std::mutex> lock(last_joint_state_mutex);
+	sensor_msgs::JointState joint_state = last_joint_state;
+	return last_joint_state;
+}
+
 
 // returns an artifical distance between two joint states.
 // many small changes in the joints are considered closer source than a few big changes.
@@ -84,6 +117,7 @@ bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& j
     // create a local state
     robot_model::RobotModelPtr kinematic_model = Utils::getRobotModel();
     robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
+    kinematic_state->setToDefaultValues();
 
     ikfast::IkReal eerot[9],eetrans[3];
     unsigned int numOfJoints = ikfast::GetNumJoints();
@@ -272,10 +306,10 @@ void computeFK(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& p
 
 // returns true, if the state as defined in joint_state does not violate the joint limits as defined in the URDF
 bool satisfiesBounds(const robot_state::RobotStatePtr& kinematic_state, const sensor_msgs::JointState& joint_state) {
-  for (size_t i = 0;i<minibot_arm_joint_names.size(); i++) {
-      kinematic_state->setVariablePosition(minibot_arm_joint_names[i], joint_state.position[i]);
+  for (size_t i = 0;i<joint_state.name.size(); i++) {
+      kinematic_state->setVariablePosition(joint_state.name[i], joint_state.position[i]);
   }
-  bool ok = (kinematic_state->satisfiesBounds ());
+  bool ok = (kinematic_state->satisfiesBounds (0.001));
 
   return ok;
 }

@@ -6,8 +6,6 @@
   <node pkg="interactive_marker_proxy" type="proxy" name="marker_proxy" 
         args="topic_ns:=/markers target_frame:=base_link" />
 
-  <node pkg="minibot" type="markers.py" name="marker_server" output="screen"/>
-
   <!-- launch web server
        index: use minibot package to delegate pathless calls to /minibot/index.html -->
   <include file="$(find roswww)/launch/roswww.launch">

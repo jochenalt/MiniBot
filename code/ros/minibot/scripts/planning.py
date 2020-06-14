@@ -34,7 +34,6 @@ from std_msgs.msg import Header
 
 # import minibot stuff
 import constants
-import core
 from constants import Constants
 from minibot.msg import Statement
 from minibot.msg import Programme

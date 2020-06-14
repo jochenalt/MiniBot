@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_msgs
   moveit_core
   moveit_ros_planning_interface
+  visualization_msgs interactive_markers 
 )
 
 find_package(LAPACK REQUIRED)
@@ -86,17 +87,18 @@ include_directories(
    ../minibot_ikfast_plugin/include
 )
 
-# node
 add_executable(${PROJECT_NAME}_server 
    src/node.cpp
    src/kinematics.cpp
    src/utils.cpp
    src/planner.cpp
    src/dispatcher.cpp
+   src/marker.cpp
 )
+
 target_link_libraries(
    ${PROJECT_NAME}_server ${catkin_LIBRARIES}
-   ${LAPACK_LIBRARIES} 
+   ${LAPACK_LIBRARIES} # required for IKFast
 )
 
 
@@ -110,11 +112,9 @@ target_link_libraries(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-   scripts/markers.py
-   scripts/planning.py
-   scripts/core.py
-   scripts/constants.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+   scripts/planning.py
+   scripts/constants.py
  )
 
 install(
