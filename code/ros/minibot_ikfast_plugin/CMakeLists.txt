@@ -14,23 +14,14 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
 )
 find_package(LAPACK REQUIRED)
-find_package(BLAS REQUIRED)
 
 include_directories(${catkin_INCLUDE_DIRS} include)
 
 catkin_package()
 
 set(IKFAST_LIBRARY_NAME minibot_minibot_arm_moveit_ikfast_plugin)
-add_library(${IKFAST_LIBRARY_NAME} 
-  src/minibot_minibot_arm_ikfast_moveit_plugin.cpp)
-
-target_link_libraries(${IKFAST_LIBRARY_NAME} 
-  ${catkin_LIBRARIES} 
-  ${Boost_LIBRARIES} 
-  ${LAPACK_LIBRARIES} -lblas -llapack
-  ${BLAS_LIBRARIES} 
-)
-
+add_library(${IKFAST_LIBRARY_NAME} src/minibot_minibot_arm_ikfast_moveit_plugin.cpp)
+target_link_libraries(${IKFAST_LIBRARY_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${LAPACK_LIBRARIES})
 # suppress warnings about unused variables in OpenRave's solver code
 target_compile_options(${IKFAST_LIBRARY_NAME} PRIVATE -Wno-unused-variable)
 
