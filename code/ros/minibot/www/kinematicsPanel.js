@@ -460,13 +460,12 @@ KinematicsPanel.Init = function(options) {
 
   msgTopic.subscribe(function(msg) {
     // Utils.queueAtMutex("blockTcp",setTcpView, tcpPose);
-    if (msg.data.startsWith("KINEMATICS:"))
-      if (msg.data.substring('KINEMATICS:'.length).startsWith('ERROR:'))
-        displayErr(msg.substring("KINEMATICS:".length).substring('ERROR'))
-      if (msg.data.substring('KINEMATICS:'.length).startsWith('WARN:'))
-        displayWarn(msg.substring("KINEMATICS:".length).substring('WARN'))
-      if (msg.data.substring('KINEMATICS:'.length).startsWith('INFO:'))
-        displayInfo(msg.substring("KINEMATICS:".length).substring('INFO'))
+    if (msg.data.startsWith('KINEMATICS:ERR:'))
+      displayErr(msg.data.substring("KINEMATICS:ERR:".length))
+    if (msg.data.startsWith('KINEMATICS:WARN:'))
+      displayWarn(msg.data.substring("KINEMATICS:WARN:".length))
+    if (msg.data.startsWith('KINEMATICS:INFO:'))
+      displayInfo(msg.data.substring("KINEMATICS:INFO:".length))
   });
 
   // refresh joints and cartesic coordinates from joint state
