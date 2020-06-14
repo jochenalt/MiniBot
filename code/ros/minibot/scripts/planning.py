@@ -120,16 +120,16 @@ def init():
 def initDatabase ():
   global statements, robotstates, configuration
   db = MessageStoreProxy()
-  (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
+  (poseStorage, meta) = db.query_named("default_pose_storage1",PoseStorage._type)
   if poseStorage is None:
     poseStorage = PoseStorage()
-    db.insert_named("default_pose_storage",poseStorage)
+    db.insert_named("default_pose_storage1",poseStorage)
   robotstates = poseStorage.states
 
-  (programme, meta) = db.query_named("default_programme", Programme._type)
+  (programme, meta) = db.query_named("default_programme1", Programme._type)
   if programme is None:
     programme = Programme()
-    db.insert_named("default_programme",programme)
+    db.insert_named("default_programme1",programme)
   statements = programme.statements
 
   (configuration, meta) = db.query_named("mysettings", Configuration._type)
@@ -153,7 +153,7 @@ def handleDatabaseAction (request):
   response.error_code.val = ErrorCodes.SUCCESS
 
   if request.type == DatabaseRequest.READ_POSES:
-    (poseStorage, meta) = db.query_named("default_pose_storage",PoseStorage._type)
+    (poseStorage, meta) = db.query_named("default_pose_storage1",PoseStorage._type)
     if poseStorage:
       response.pose_store = poseStorage
       robotstates = poseStorage.states
@@ -161,7 +161,7 @@ def handleDatabaseAction (request):
       rospy.logerr("pose storage is not initialized");
 
   if request.type == DatabaseRequest.READ_PROGRAMME:
-    (programme, meta) = db.query_named("default_programme", Programme._type)
+    (programme, meta) = db.query_named("default_programme1", Programme._type)
     if programme:
       response.programme_store = programme
       statements = programme.statements
@@ -169,7 +169,7 @@ def handleDatabaseAction (request):
       rospy.logerr("programme storage is not initialized");
 
   if request.type == DatabaseRequest.WRITE_POSES:
-    db.update_named("default_pose_storage",request.pose_store)
+    db.update_named("default_pose_storage1",request.pose_store)
     robotstates = request.pose_store.states
 
   if request.type == DatabaseRequest.WRITE_PROGRAMME:
@@ -185,7 +185,7 @@ def handleDatabaseAction (request):
     # if a younger  request has set latestGlobalPlanningThreadID in another thread, quit without doing anything
     if latestGlobalPlanningThreadID == threading.currentThread().ident:
       rospy.loginfo("store")
-      db.update_named("default_programme", request.programme_store)
+      db.update_named("default_programme1", request.programme_store)
       statements = request.programme_store.statements
       rospy.loginfo("create global plan")
       createGlobalPlan()
@@ -248,7 +248,7 @@ def handlePlanningAction(request):
       if planID != None:
         startRS = getRobotState(statements[startID].pose_uid)
         robotState = RobotState()
-        robotState.joint_state = startRS.jointState
+        robotState.joint_state = startRS.joint_state
         minibotArmGripperGroup.set_start_state(robotState)
         minibotArmGripperGroup.execute(globalPlan[planID].plan, wait=True)
 
@@ -278,7 +278,7 @@ def handlePlanningAction(request):
         if localPlanID < len(globalPlan[planID].localPlans):
           startRS = getRobotState(statements[startID].pose_uid)
           robotState = RobotState()
-          robotState.joint_state = startRS.jointState
+          robotState.joint_state = startRS.joint_state
           minibotArmGripperGroup.set_start_state(robotState)
           minibotArmGripperGroup.execute(globalPlan[planID].localPlans[localPlanID], wait=True)
         else:
@@ -412,7 +412,7 @@ def createLocalPlan(startID, endID):
 
     #constraints.position_constraints = []
     waypoints = []
-    robotState.joint_state = startRS.jointState
+    robotState.joint_state = startRS.joint_state
     minibotArmGroup.set_start_state(robotState)
 
     for idx in range(startID+1, endID+1):
@@ -436,9 +436,9 @@ def createLocalPlan(startID, endID):
     for idx in range(startID+1, endID+1):
       if statements[idx].type == Statement.STATEMENT_TYPE_WAYPOINT:
         endRS = getRobotState(statements[idx].pose_uid)
-        robotState.joint_state = copy.copy(startRS.jointState)
+        robotState.joint_state = copy.copy(startRS.joint_state)
         minibotArmGripperGroup.set_start_state(copy.copy(robotState))
-        minibotArmGripperGroup.set_joint_value_target(copy.copy(endRS.jointState))
+        minibotArmGripperGroup.set_joint_value_target(copy.copy(endRS.joint_state))
 
         rospy.loginfo("create micro plan from statement {0} to  {1}".format(startID, idx))
         if firstPlan:           

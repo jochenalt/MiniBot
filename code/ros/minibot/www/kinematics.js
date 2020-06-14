@@ -245,8 +245,7 @@ Kinematics.Init = function(options) {
 
   
   function getZeroPose(successCallback, failureCallback) {
-    var joints = [0,0,0,0,0,0];
-    computeFK(joints, successCallback, failureCallback);
+    computeFK(getZeroJointState(), successCallback, failureCallback);
   };
 
   function getZeroJointState() {

@@ -10,6 +10,8 @@
 #include <sensor_msgs/JointState.h>
 #include <minibot/GetPositionAllIK.h>
 #include <minibot/GetPositionAllFK.h>
+#include <minibot/JointStateConfiguration.h>
+#include <minibot/MinibotPose.h>
 
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/kinematic_constraints/utils.h>
@@ -20,10 +22,16 @@ namespace Minibot {
   namespace Kinematics {
     // compute all pose values to a given pose. Does not consider joint limits
     // returns true if IK was successful.
-    bool compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointState>& solutions);
+    geometry_msgs::Pose computeTCPBase(const geometry_msgs::Pose& tcpPose, double tool_distance);
+    geometry_msgs::Pose computeTCPTip(const geometry_msgs::Pose& flangePose, double tool_distance);
 
-    // computes the pose out of iven joint values
-    void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose);
+    // compute all pose values to a given pose. Does not consider joint limits
+    // returns true if IK was successful.
+    bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& jointState, minibot::JointStateConfiguration& solutions);
+
+    // computes the pose out of given joint values
+    void computeFK(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose);
+
 
     // check if JointState is within robot limits
     // use a cached kinematic_state
@@ -35,13 +43,8 @@ namespace Minibot {
     // call me before anything else, but after node initialisation
     void init();
 
-    // compute all solutions for a given pose
-    bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
-				minibot::GetPositionAllIK::Response &res);
-
-    // compute the pose of a given joint and all other joint solutions
-    bool compute_all_fk_service(minibot::GetPositionAllFK::Request  &req,
-				minibot::GetPositionAllFK::Response &res);
+    // add or overwrite the end effector positions from eff to joint_state
+    bool setEndEffectorPosition(sensor_msgs::JointState& joint_state, const sensor_msgs::JointState& eff);
 
   }
 }

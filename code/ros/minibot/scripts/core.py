@@ -250,12 +250,12 @@ if __name__=="__main__":
     initialize()
 
     # listen to current joint states
-    rospy.Subscriber('/joint_states', JointState, jointStatesCallback, queue_size=1);
+    #rospy.Subscriber('/joint_states', JointState, jointStatesCallback, queue_size=1);
   
     # listen to tcp input coming from various sources (webpage/gearwheel, webpage/tcp/sliders, webpage/joint/sliders)
-    rospy.Subscriber('/tcp/gearwheel/update', PoseStamped, tcpGearwheelCallback, queue_size=1);
-    rospy.Subscriber('/tcp/input/update', PoseStamped, tcpInputCallback, queue_size=1);
-    rospy.Subscriber('/move_group/fake_controller_joint_states', JointState, jointStatesInputCallback, queue_size=1);
+    #rospy.Subscriber('/tcp/gearwheel/update', PoseStamped, tcpGearwheelCallback, queue_size=1);
+    #rospy.Subscriber('/tcp/input/update', PoseStamped, tcpInputCallback, queue_size=1);
+    #rospy.Subscriber('/move_group/fake_controller_joint_states', JointState, jointStatesInputCallback, queue_size=1);
 
     # input from moveit planning comes in via this controller
     # compute and publish online tcp 
@@ -263,7 +263,7 @@ if __name__=="__main__":
 
     # with any input, post updated joints and tcp  
     jointPositionPub = rospy.Publisher('/move_group/fake_controller_joint_states',JointState, queue_size=1)
-    tcpPub  = rospy.Publisher('/tcp/update',PoseStamped, queue_size=1)
+    #tcpPub  = rospy.Publisher('/tcp/update',PoseStamped, queue_size=1)
 
     # listen to trajectory poses
     plannedTCPPath = rospy.Publisher('/move_group/display_planned_path/tcp', PoseArray, queue_size=10); # 10 seconds contingency,path planning happens in steps of 0.1s 

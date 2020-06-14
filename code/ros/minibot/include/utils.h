@@ -4,6 +4,8 @@
 #include <map>
 
 #include "ros/ros.h"
+#include "std_msgs/String.h"
+
 
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_model/robot_model.h>
@@ -35,7 +37,20 @@ extern std::map<int, std::string> return_code_map;
 namespace Utils {
   void init();
   robot_model::RobotModelPtr getRobotModel();
+
+  // create a message to be sent to the UI
+  std_msgs::String createMsg(std::string msg);
+
+  // return the index of the joint in joint_state with the name s
+  int findJoint(const sensor_msgs::JointState& joint_state, const std::string& s);
+
 }
+
+extern std::string err_msg_prefix;
+extern std::string warn_msg_prefix;
+extern std::string info_msg_prefix;
+extern std::string kinematics_prefix;
+
 
 }
 

@@ -16,7 +16,7 @@
   </include>
 
 
-  <!-- take the joint states, compute the poses of all joints and publish in tf -->
+  <!-- listen to  /joint states, do forward kinematics and publish in tf -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
     <rosparam param="rate">10</rosparam>
   </node>
@@ -24,8 +24,7 @@
   <!-- We do not have a robot connected, so take the desired joint states
        coming from web page and publish in /joint_states -->
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-    <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
-    <rosparam param="rate">10</rosparam>
+    <rosparam param="/source_list">[/joint_states/update]</rosparam>
   </node>
 
   <!-- Run the main MoveIt executable without trajectory execution

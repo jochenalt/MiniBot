@@ -82,10 +82,3 @@ Constants.Themes = {
 		Description : [ "A calm blue sky", "An ode to Metro", "Jet black", "Night mode", "Flat and modern", "Crsip like paper", "Medium is the message", "Light and shadow", "Touch of glass", "Material is a metaphor", "A trave of purple", "Touch of warmth", "Minimalist", "Shades of gunmetal", "Spin on Solarized", "Slivery and sleek","The brave and the Blue", "Ubuntu", "Yeti" ],
 		BackgroundColor :  ["#FFFFFF", "#F1F3F5", "#222222" , "#ADB5BD", "#ECF0F1", "#FFFFFF" , "#F8F9FA", "#FFFFFF", "#FFFFFF" , "#FFFFFF", "#F9F8FC", "#F8F5F0" , "#FFFFFF", "#ECF0F1", "#FDF6E3", "#EEEEEE", "#ABB6C2", "#E9ECEF", "#EEEEEE"  ]
 }
-
-
-// Constants.Themes = {
-//		Name : [ "cerulan", "cyborg", "darkly",  "sandstone", "simplex", "slate" ,"solar"],
-//		Description : [ "A calm blue sky",  "Jet black", "Night mode", "Touch of warmth", "Minimalist", "Shades of gunmetal","Spin on Solarized" ],
-//		BackgroundColor :  ["#F7F8F9",  "#222222" , "#ADB5BD",  "#F8F5F0" , "#FFFFFF", "#ECF0F1","FDF6E3"]
-//}

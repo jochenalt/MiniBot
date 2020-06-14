@@ -11,6 +11,8 @@ from geometry_msgs.msg import PoseArray
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 from std_msgs.msg import ColorRGBA
+from minibot.msg import MinibotPose
+
 
 from moveit_msgs.msg import DisplayTrajectory
 from constants import Constants
@@ -45,14 +47,14 @@ def blockUpdate():
 def fireUpdate():
     global mutexTimer,  mutextLastData, mutexBlockUpdate
     mutexTimer = None
-    tcpPoseCallback(mutextLastData)
+    tcpPoseCallback(mutextLastData.pose)
     mutextLastData = None
     mutexBlockUpdate = False
 
 
-def queueUpUpdate( tcp ):
+def queueUpUpdate( minibotPose ):
     global mutexTimer,  mutextLastData, mutexBlockUpdate
-    mutextLastData = tcp
+    mutextLastData = minibotPose
     if mutexBlockUpdate == False:
         fireUpdate()
     else:
@@ -321,7 +323,7 @@ if __name__=="__main__":
     rospy.Subscriber('/minibot/global_plan', DisplayTrajectory, displayGlobalTrajectoryCallback, queue_size=1);
 
     # listen to tcp update
-    rospy.Subscriber('/tcp/update', PoseStamped, queueUpUpdate, queue_size=1);
+    rospy.Subscriber('/tcp/update', MinibotPose, queueUpUpdate, queue_size=1);
 
     # publish the new position of the marker
     gearWheelPosePublisher = rospy.Publisher('/tcp/gearwheel/update',PoseStamped, queue_size=1)

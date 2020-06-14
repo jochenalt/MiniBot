@@ -4,7 +4,9 @@
 #include "kinematics.h"
 
 
+// cache the joint names of the group "minibot_arm" as defined in SRDF
 std::vector<std::string> minibot_arm_joint_names;
+std::vector<std::string> minibot_gripper_joint_names;
 
 
 #include <stdio.h>
@@ -22,21 +24,14 @@ std::vector<std::string> minibot_arm_joint_names;
 
 #define IKFAST_HAS_LIBRARY 	// Build IKFast with API functions
 #define IKFAST_NO_MAIN 		// Don't include main() from IKFast
-
 namespace ikfast {
 #include "../src/minibot_minibot_arm_ikfast_solver.cpp"
 }
 
 
-float SIGN(float x) {
+double SIGN(double x) {
     return (x >= 0.0f) ? +1.0f : -1.0f;
 }
-
-float NORM(float a, float b, float c, float d) {
-    return sqrt(a * a + b * b + c * c + d * d);
-}
-
-#define IKREAL_TYPE ikfast::IkReal
 
 namespace Minibot {
 namespace Kinematics {
@@ -49,27 +44,54 @@ void init() {
   robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
   const moveit::core::JointModelGroup* jmg = kinematic_state->getJointModelGroup(minibot_arm_group_name);
   if (jmg == NULL) {
-      ROS_ERROR_STREAM("Minibot::Kinematics::init: did not find joint model group" << minibot_arm_group_name);
+      ROS_ERROR_STREAM("Minibot::Kinematics::init: did not find joint model group"
+    		  << minibot_arm_group_name);
   }
   minibot_arm_joint_names = jmg->getActiveJointModelNames();
 
+  jmg = kinematic_state->getJointModelGroup(minibot_gripper_group_name);
+  if (jmg == NULL) {
+      ROS_ERROR_STREAM("Minibot::Kinematics::init: did not find joint model group"
+    		  << minibot_gripper_group_name);
+  }
+
+  minibot_gripper_joint_names = jmg->getActiveJointModelNames();
+
 }
 
+// returns an artifical distance between two joint states.
+// many small changes in the joints are considered closer source than a few big changes.
+double jointModelDistance(const sensor_msgs::JointState& a, const sensor_msgs::JointState& b) {
+  double sum = 0;
+  for (size_t i = 0;i< minibot_arm_joint_names.size();i++) {
+	  std::string joint_name = minibot_arm_joint_names[i];
+	  int a_idx = Minibot::Utils::findJoint(a, joint_name);
+	  int b_idx = Minibot::Utils::findJoint(b, joint_name);
+
+	  if ((a_idx < 0) || (b_idx < 0)) {
+		  ROS_ERROR_STREAM("jointModelDistance: jointStates are not compatible");
+	  	  return 0;
+      }
+      sum += pow(fmod(fabs(a.position[a_idx]-b.position[b_idx]), 2.0 * M_PI), 2.0);
+  }
+  return sum;
+}
 
 // computes all IK solutions of a given pose and returns those in solutions
-// returns true if success
-bool compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointState>& solutions) {
+// returns true if success.
+// the passed joint state is sued to sort the configurations such that the closest is returned first
+bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& jointState, minibot::JointStateConfiguration& solutions) {
     // create a local state
     robot_model::RobotModelPtr kinematic_model = Utils::getRobotModel();
     robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
 
-    IKREAL_TYPE eerot[9],eetrans[3];
+    ikfast::IkReal eerot[9],eetrans[3];
     unsigned int numOfJoints = ikfast::GetNumJoints();
 
     // should be 0 on a 6DOF robot
     unsigned int num_free_parameters = ikfast::GetNumFreeParameters();
 
-    ikfast::IkSolutionList<IKREAL_TYPE> ik_solutions;
+    ikfast::IkSolutionList<ikfast::IkReal> ik_solutions;
 
     eetrans[0] = pose.position.x;
     eetrans[1] = pose.position.y;
@@ -92,75 +114,100 @@ bool compute_ik(const geometry_msgs::Pose& pose, std::vector<sensor_msgs::JointS
 
     bool success = ikfast::ComputeIk(eetrans, eerot, NULL, ik_solutions);
     if( !success )
-	return false;
+    	return false;
 
     unsigned int num_of_solutions = (int)ik_solutions.GetNumSolutions();
     ROS_DEBUG_STREAM_NAMED(LOG_NAME, "compute_ik(pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z << ")"
 			   << " orientation=(x=" << pose.orientation.x << " y=" << pose.orientation.y << " z=" << pose.orientation.z << " w=" << pose.orientation.w <<") "
 			   << num_of_solutions << " solutions.\n");
-    std::vector<IKREAL_TYPE> solValues(numOfJoints);
-    solutions.clear();
+    std::vector<ikfast::IkReal> solValues(numOfJoints);
+    solutions.configuration.clear();
     for(std::size_t i = 0; i < num_of_solutions; ++i) {
+		const ikfast::IkSolutionBase<ikfast::IkReal>& sol = ik_solutions.GetSolution(i);
+		int this_sol_free_params = (int)sol.GetFree().size();
 
-	const ikfast::IkSolutionBase<IKREAL_TYPE>& sol = ik_solutions.GetSolution(i);
-	int this_sol_free_params = (int)sol.GetFree().size();
+		sol.GetSolution(&solValues[0],NULL);
+		sensor_msgs::JointState jointState;
+		for( std::size_t j = 0; j < solValues.size(); ++j) {
+			jointState.name.push_back(minibot_arm_joint_names[j]);
+			jointState.position.push_back(solValues[j]);
+		}
 
-	sol.GetSolution(&solValues[0],NULL);
-	sensor_msgs::JointState jointState;
-	for( std::size_t j = 0; j < solValues.size(); ++j) {
-	    jointState.name.push_back(minibot_arm_joint_names[j]);
-	    jointState.position.push_back(solValues[j]);
-	}
+		// check the position limits defined in the urdf
+		bool limits_are_ok = satisfiesBounds(kinematic_state, jointState);
 
-	// check the position limits defined in the urdf
-	bool limits_are_ok = satisfiesBounds(kinematic_state, jointState);
-
-	// check for self-collision if limits are fine
-	// planning_scene::PlanningScenePtr ptr(&planning_scene);
-	bool limits_and_no_collision  = limits_are_ok && !inSelfCollision(kinematic_state);
-
-
-	ROS_DEBUG_STREAM_NAMED(LOG_NAME, " sol[" << i << "]=[" << std::setprecision(5)
-			       << solValues[0]<< ", "
-			       << solValues[1]<< ", "
-			       << solValues[2]<< ", "
-			       << solValues[3]<< ", "
-			       << solValues[4]<< ", "
-			       << solValues[5]  << "] "
-			       << (limits_are_ok?"in bounds":"out of bounds") << ", "
-			       << (limits_are_ok && limits_and_no_collision?"non colliding":(limits_are_ok?"self-colling":"")));
+		// check for self-collision if limits are fine
+		// planning_scene::PlanningScenePtr ptr(&planning_scene);
+		bool limits_and_no_collision  = limits_are_ok && !inSelfCollision(kinematic_state);
 
 
-	if (limits_and_no_collision)
-	  solutions.push_back(jointState);
+		ROS_DEBUG_STREAM_NAMED(LOG_NAME, " sol[" << i << "]=[" << std::setprecision(5)
+					   << solValues[0]<< ", "
+					   << solValues[1]<< ", "
+					   << solValues[2]<< ", "
+					   << solValues[3]<< ", "
+					   << solValues[4]<< ", "
+					   << solValues[5]  << "] "
+					   << (limits_are_ok?"in bounds":"out of bounds") << ", "
+					   << (limits_are_ok && limits_and_no_collision?"non colliding":(limits_are_ok?"self-colling":"")));
+
+
+		if (limits_and_no_collision)
+		  solutions.configuration.push_back(jointState);
     }
-    return true;
+
+    if (solutions.configuration.size() > 0) {
+		struct JointStateComparer {
+			JointStateComparer(const sensor_msgs::JointState& current) { this->current = current; }
+
+			bool operator()(const sensor_msgs::JointState& a, const sensor_msgs::JointState& b) const {
+				 return jointModelDistance(current, a) < jointModelDistance(current, b);
+			}
+			sensor_msgs::JointState current;
+		};
+		std::sort(solutions.configuration.begin(), solutions.configuration.end(),
+				JointStateComparer(jointState));
+    }
+
+    return solutions.configuration.size() > 0;
 }
 
-void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose) {
-   IKREAL_TYPE eerot[9],eetrans[3];
+// set the position of the end effctor as defined in eff into joint_state
+bool setEndEffectorPosition(sensor_msgs::JointState& joint_state, const sensor_msgs::JointState& eff) {
+	for (size_t j = 0;j<minibot_gripper_joint_names.size();j++) {
+		std::string gripper_joint_name = minibot_gripper_joint_names[j];
+		int idx = Minibot::Utils::findJoint(eff, gripper_joint_name);
+		if (idx >= 0) {
+			int sidx = Minibot::Utils::findJoint(joint_state, gripper_joint_name);
+			if (sidx >= 0) {
+				joint_state.position[sidx] = eff.position[idx];
+			} else {
+				joint_state.name.push_back(gripper_joint_name);
+				joint_state.position.push_back(eff.position[idx]);
+			}
+		} else {
+			ROS_ERROR_STREAM_NAMED(LOG_NAME, "addEndEffector: did not find joint " <<  gripper_joint_name);
+			return false;
+		}
+	}
+	return true;
+}
+
+void computeFK(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& pose) {
+   ikfast::IkReal eerot[9],eetrans[3];
    unsigned int numOfJoints = ikfast::GetNumJoints();
 
    // Put input joint values into array
-   IKREAL_TYPE joints[numOfJoints];
+   ikfast::IkReal joints[numOfJoints];
    for (int i = 0;i<numOfJoints;i++)
     joints[i] = jointState.position[i];
 
    ikfast::ComputeFk(joints, eetrans, eerot); // void return
-   /*
-   printf("Found fk solution for end frame: \n\n");
-   printf("  Translation:  x: %f  y: %f  z: %f  \n", eetrans[0], eetrans[1], eetrans[2] );
-   printf("\n");
-   printf("     Rotation     %f   %f   %f  \n", eerot[0], eerot[1], eerot[2] );
-   printf("       Matrix:    %f   %f   %f  \n", eerot[3], eerot[4], eerot[5] );
-   printf("                  %f   %f   %f  \n", eerot[6], eerot[7], eerot[8] );
-   printf("\n");
-   */
 
    // Display equivalent Euler angles
-   float yaw;
-   float pitch;
-   float roll;
+   double yaw;
+   double pitch;
+   double roll;
    if ( eerot[5] > 0.999 || eerot[5] < -0.999 ) { // singularity
    	yaw = ikfast::IKatan2( -eerot[6], eerot[0] );
 	pitch = 0;
@@ -169,17 +216,12 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
 	pitch = ikfast::IKatan2( eerot[3], eerot[4] );
    }
    roll = ikfast::IKasin( eerot[5] );
-   printf(" Euler angles: \n");
-   printf("       Yaw:   %f    ", yaw ); printf("(1st: rotation around vertical blue Z-axis in ROS Rviz) \n");
-   printf("       Pitch: %f  \n", pitch );
-   printf("       Roll:  %f  \n", roll );
-   printf("\n");
 
    // Convert rotation matrix to quaternion (Daisuke Miyazaki)
-   float q0 = ( eerot[0] + eerot[4] + eerot[8] + 1.0f) / 4.0f;
-   float q1 = ( eerot[0] - eerot[4] - eerot[8] + 1.0f) / 4.0f;
-   float q2 = (-eerot[0] + eerot[4] - eerot[8] + 1.0f) / 4.0f;
-   float q3 = (-eerot[0] - eerot[4] + eerot[8] + 1.0f) / 4.0f;
+   double q0 = ( eerot[0] + eerot[4] + eerot[8] + 1.0f) / 4.0f;
+   double q1 = ( eerot[0] - eerot[4] - eerot[8] + 1.0f) / 4.0f;
+   double q2 = (-eerot[0] + eerot[4] - eerot[8] + 1.0f) / 4.0f;
+   double q3 = (-eerot[0] - eerot[4] + eerot[8] + 1.0f) / 4.0f;
    if(q0 < 0.0f) q0 = 0.0f;
    if(q1 < 0.0f) q1 = 0.0f;
    if(q2 < 0.0f) q2 = 0.0f;
@@ -209,9 +251,9 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
         q2 *= SIGN(eerot[7] + eerot[5]);
         q3 *= +1.0f;
    } else {
-       ROS_DEBUG_STREAM_NAMED("kinematics","Error while converting to quaternion!");
+       ROS_DEBUG_STREAM_NAMED(LOG_NAME,"Error while converting to quaternion!");
    }
-   float r = NORM(q0, q1, q2, q3);
+   double r = q0*q0 + q1*q1 + q2*q2+ q3*q3;
    q0 /= r;
    q1 /= r;
    q2 /= r;
@@ -225,22 +267,10 @@ void compute_fk(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& 
    pose.orientation.x = q1;
    pose.orientation.y = q2;
    pose.orientation.z = q3;
-
-   /*
-   printf("  Quaternion:  %f   %f   %f   %f   \n", q0, q1, q2, q3 );
-   printf("               ");
-   // print quaternion with convention and +/- signs such that it can be copy-pasted into WolframAlpha.com
-   printf("%f ", q0);
-   if (q1 > 0) printf("+ %fi ", q1); else if (q1 < 0) printf("- %fi ", -q1); else printf("+ 0.00000i ");
-   if (q2 > 0) printf("+ %fj ", q2); else if (q2 < 0) printf("- %fj ", -q2); else printf("+ 0.00000j ");
-   if (q3 > 0) printf("+ %fk ", q3); else if (q3 < 0) printf("- %fk ", -q3); else printf("+ 0.00000k ");
-   printf("  (alternate convention) \n");
-   printf("\n\n");
-   */
 }
 
 
-
+// returns true, if the state as defined in joint_state does not violate the joint limits as defined in the URDF
 bool satisfiesBounds(const robot_state::RobotStatePtr& kinematic_state, const sensor_msgs::JointState& joint_state) {
   for (size_t i = 0;i<minibot_arm_joint_names.size(); i++) {
       kinematic_state->setVariablePosition(minibot_arm_joint_names[i], joint_state.position[i]);
@@ -250,6 +280,7 @@ bool satisfiesBounds(const robot_state::RobotStatePtr& kinematic_state, const se
   return ok;
 }
 
+// return true, if the passed joint_state is in self collision
 bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state) {
   robot_model::RobotModelPtr kinematic_model = Minibot::Utils::getRobotModel();
   planning_scene::PlanningScene planning_scene(kinematic_model);
@@ -260,112 +291,98 @@ bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state) {
   return collision_result.collision;
 }
 
-// returns an artifical distance between two joint states.
-// don't use the moveit-distance function, since it is not in favour
-// of a little movement of all joints against one greater movement in one joint
-double jointModelDistance(const sensor_msgs::JointState& a, const moveit_msgs::RobotState& b) {
-  if (a.name.size() != b.joint_state.name.size()) {
-      ROS_ERROR_STREAM("jointModelDistance: jointStates are not comparable: " << a.name.size() << " vs " << b.joint_state.name.size());
-      return 0;
-  }
-  double sum = 0;
-  for (size_t i = 0;i< a.name.size();i++) {
-      if (a.name[i] != b.joint_state.name[i]) {
-	  ROS_ERROR_STREAM("jointModelDistance: jointStates are not compatible");
-	  return 0;
-      }
-      sum += pow(fmod(fabs(a.position[i]-b.joint_state.position[i]), 2.0 * M_PI), 2.0);
-  }
-  return sum;
-}
-bool compute_all_ik_service(minibot::GetPositionAllIK::Request  &req,
-			    minibot::GetPositionAllIK::Response &res) {
 
-  std::vector<sensor_msgs::JointState> solutions;
-  bool result = compute_ik(req.ik_request.pose_stamped.pose, solutions);
-  if (result) {
-    for (size_t i = 0;i<solutions.size();i++) {
-	moveit_msgs::RobotState rs;
-	rs.joint_state = solutions[i];
-	res.solution.push_back(rs);
-    }
+// to allow a dynamic tcp, compute the base point of the tool out of the pose and a tool length
+geometry_msgs::Pose computeTCPBase(const geometry_msgs::Pose& tcpPose, double tool_distance) {
+    // get the tool length
+    ros::NodeHandle nh;
 
-    // sort all solutions along the distance to the
-    // joint state, closest solution comes first
-    struct JointStateComparer {
-	JointStateComparer(const sensor_msgs::JointState& current) { this->current = current; }
+    // compute the homogeneous matrix representing the pose
+    // Convert input effector pose, in w x y z quaternion notation, to rotation matrix.
+    ikfast::IkReal eerot[9],eetrans[3];
+    ikfast::IkReal  qw = tcpPose.orientation.w;
+    ikfast::IkReal  qx = tcpPose.orientation.x;
+    ikfast::IkReal  qy = tcpPose.orientation.y;
+    ikfast::IkReal  qz = tcpPose.orientation.z;
+    const double n = 1.0f/sqrt(qx*qx+qy*qy+qz*qz+qw*qw);
+    qw *= n;
+    qx *= n;
+    qy *= n;
+    qz *= n;
+    eerot[0] = 1.0f - 2.0f*qy*qy - 2.0f*qz*qz;  eerot[1] = 2.0f*qx*qy - 2.0f*qz*qw;         eerot[2] = 2.0f*qx*qz + 2.0f*qy*qw;
+    eerot[3] = 2.0f*qx*qy + 2.0f*qz*qw;         eerot[4] = 1.0f - 2.0f*qx*qx - 2.0f*qz*qz;  eerot[5] = 2.0f*qy*qz - 2.0f*qx*qw;
+    eerot[6] = 2.0f*qx*qz - 2.0f*qy*qw;         eerot[7] = 2.0f*qy*qz + 2.0f*qx*qw;         eerot[8] = 1.0f - 2.0f*qx*qx - 2.0f*qy*qy;
 
-	bool operator()(const moveit_msgs::RobotState& a, const moveit_msgs::RobotState& b) const {
-	     return jointModelDistance(current, a) < jointModelDistance(current, b);
-        }
-	sensor_msgs::JointState current;
-     } ;
-    std::sort(res.solution.begin(), res.solution.end(),JointStateComparer(req.ik_request.robot_state.joint_state));
-    res.error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+    // multiply homogeneous matrix of pose with homogeneous vector of (0,0,tcpDistance, 1)
+    geometry_msgs::Pose result(tcpPose);
+    result.position.x -=  eerot[2] * tool_distance;
+    result.position.y -=  eerot[5] * tool_distance;
+    result.position.z -=  eerot[8] * tool_distance;
 
-    for (size_t i = 0;i<solutions.size();i++) {
-	sensor_msgs::JointState rs = solutions[i];
-	ROS_DEBUG_STREAM_NAMED(LOG_NAME, " result[" << i << "]=[" << std::setprecision(5)
-			       << rs.position[0]<< ", "
-			       << rs.position[1]<< ", "
-			       << rs.position[2]<< ", "
-			       << rs.position[3]<< ", "
-			       << rs.position[4]<< ", "
-			       << rs.position[5]  << "] ");
-    }
-
-  }
-  else {
-      res.error_code.val = moveit_msgs::MoveItErrorCodes::NO_IK_SOLUTION;
-  }
+    ROS_DEBUG_STREAM_NAMED(LOG_NAME, "computeFlange ("
+  			       << std::setprecision(5)
+  			       << tool_distance << ")"
+  			       << "pose=("
+  			       << "pos.x=" << tcpPose.position.x << ","
+  			       << "pos.y=" << tcpPose.position.y << ","
+  			       << "pos.z=" << tcpPose.position.z << ","
+  			       << "orient.x=" << tcpPose.orientation.x << ","
+  			       << "orient.y=" << tcpPose.orientation.y << ","
+  			       << "orient.z=" << tcpPose.orientation.z << ","
+  			       << "orient.w=" << tcpPose.orientation.w << ") -> "
+  			       << "result=("
+  			       << "result.x=" << tcpPose.position.x << ","
+  			       << "result.y=" << tcpPose.position.y << ","
+  			       << "result.z=" << tcpPose.position.z << ")");
+    return result;
 }
 
-// conviniency service combining two calls:
-// 	call compute_fk for the given joint values
-// 	call compute_all_ik for the resulting tcp
-bool compute_all_fk_service(minibot::GetPositionAllFK::Request  &req,
-			    minibot::GetPositionAllFK::Response &res) {
+geometry_msgs::Pose computeTCPTip(const geometry_msgs::Pose& flangePose, double tool_distance) {
 
-   if (req.robot_state.joint_state.position.size() != 6) {
-       ROS_ERROR_STREAM_NAMED(LOG_NAME, "compute_all_fk_services: request does not contain68 joints");
-       res.error_code.val = moveit_msgs::MoveItErrorCodes::INVALID_LINK_NAME;
-       return false;
-   }
+    // get the tool length
+    ros::NodeHandle nh;
 
-  ROS_DEBUG_STREAM_NAMED(LOG_NAME, "cmpute_all_fk_services "
-			       << std::setprecision(5)
-			       << "joint_state="
-			       << req.robot_state.joint_state.position[0] << ","
-				<< req.robot_state.joint_state.position[1] << ","
-				<< req.robot_state.joint_state.position[2] << ","
-				<< req.robot_state.joint_state.position[3] << ","
-				<< req.robot_state.joint_state.position[4] << ","
-				<< req.robot_state.joint_state.position[5] << std::endl);
+    // compute the homogeneous matrix representing the pose
+    // Convert input effector pose, in w x y z quaternion notation, to rotation matrix.
+    ikfast::IkReal eerot[9],eetrans[3];
+    ikfast::IkReal  qw = flangePose.orientation.w;
+    ikfast::IkReal  qx = flangePose.orientation.x;
+    ikfast::IkReal  qy = flangePose.orientation.y;
+    ikfast::IkReal  qz = flangePose.orientation.z;
 
-  geometry_msgs::Pose pose;
-  compute_fk(req.robot_state.joint_state,pose);
-  ROS_DEBUG_STREAM_NAMED(LOG_NAME, "cmpute_all_fk_services "
-			       << std::setprecision(5)
-			       << "pose=("
-			       << "pos.x=" << pose.position.x << ","
-			       << "pos.y=" << pose.position.y << ","
-			       << "pos.z=" << pose.position.z << ","
-			       << "orient.x=" << pose.orientation.x << ","
-			       << "orient.y=" << pose.orientation.y << ","
-			       << "orient.z=" << pose.orientation.z << ","
-			       << "orient.w=" << pose.orientation.w << ")");
+    // normalize the quaternion
+    const double n = 1.0f/sqrt(qx*qx+qy*qy+qz*qz+qw*qw);
+    qw *= n;
+    qx *= n;
+    qy *= n;
+    qz *= n;
+    eerot[0] = 1.0f - 2.0f*qy*qy - 2.0f*qz*qz;  eerot[1] = 2.0f*qx*qy - 2.0f*qz*qw;         eerot[2] = 2.0f*qx*qz + 2.0f*qy*qw;
+    eerot[3] = 2.0f*qx*qy + 2.0f*qz*qw;         eerot[4] = 1.0f - 2.0f*qx*qx - 2.0f*qz*qz;  eerot[5] = 2.0f*qy*qz - 2.0f*qx*qw;
+    eerot[6] = 2.0f*qx*qz - 2.0f*qy*qw;         eerot[7] = 2.0f*qy*qz + 2.0f*qx*qw;         eerot[8] = 1.0f - 2.0f*qx*qx - 2.0f*qy*qy;
 
-  minibot::GetPositionAllIK::Request compute_ik_req;
-  minibot::GetPositionAllIK::Response compute_ik_res;
+    // multiply homogeneous matrix of pose with homogeneous vector of (0,0,-tcpDistance, 1)
+    geometry_msgs::Pose result(flangePose);
+    result.position.x +=  eerot[2] * tool_distance;
+    result.position.y +=  eerot[5] * tool_distance;
+    result.position.z +=  eerot[8] * tool_distance;
 
-  compute_ik_req.ik_request.pose_stamped.pose = pose;
-  compute_ik_req.ik_request.robot_state.joint_state = req.robot_state.joint_state;
-  compute_all_ik_service(compute_ik_req, compute_ik_res);
-  res.solution = compute_ik_res.solution;
-  res.error_code = compute_ik_res.error_code;
-  res.pose = pose;
 
-  return true;
+    ROS_DEBUG_STREAM_NAMED(LOG_NAME, "computeTCP ("
+  			       << std::setprecision(5)
+  			       << tool_distance << ")"
+  			       << "pose=("
+  			       << "pos.x=" << flangePose.position.x << ","
+  			       << "pos.y=" << flangePose.position.y << ","
+  			       << "pos.z=" << flangePose.position.z << ","
+  			       << "orient.x=" << flangePose.orientation.x << ","
+  			       << "orient.y=" << flangePose.orientation.y << ","
+  			       << "orient.z=" << flangePose.orientation.z << ","
+  			       << "orient.w=" << flangePose.orientation.w << ") -> "
+  			       << "result=("
+  			       << "result.x=" << result.position.x << ","
+  			       << "result.y=" << result.position.y << ","
+  			       << "result.z=" << result.position.z << ")");
+    return result;
 }
 
 

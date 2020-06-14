@@ -27,8 +27,10 @@ add_message_files(
    Programme.msg
    ErrorCodes.msg
    MinibotState.msg
+   MinibotPose.msg
    PoseStorage.msg
    Configuration.msg
+   JointStateConfiguration.msg
    ClientAction.msg
 )
 
@@ -88,6 +90,7 @@ add_executable(${PROJECT_NAME}_server
    src/kinematics.cpp
    src/utils.cpp
    src/planner.cpp
+   src/dispatcher.cpp
 )
 target_link_libraries(
    ${PROJECT_NAME}_server ${catkin_LIBRARIES}

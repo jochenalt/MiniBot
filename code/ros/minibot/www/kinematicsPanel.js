@@ -9,21 +9,26 @@ KinematicsPanel.Init = function(options) {
   options = options || {};
   var ros = options.ros;
   var kinematicsUtils = options.kinematics;
-  var paramName                   = 'robot_description';
-  var readTopicName               = '/joint_states';                              // 20Hz topic that gives the current state of the joints, publish constantly
-  var jointInputTopicName         = '/move_group/fake_controller_joint_states'    // topic that gives changes of the joint values, published only when a change occurs
-  var receiveTcpTopicName         = '/tcp/update'                                 // topic to receive the tcp out joint states (coming from core.py)
-  var tcpInputTopicName           = '/tcp/input/update'                           // tcp sliders publish the change here
-  
+  var paramName                     = 'robot_description';
+  var readTopicName                 = '/joint_states';                              // 20Hz topic that gives the current state of the joints, publish constantly
+  var receiveJointStateTopicName    = '/joint_states/update'                        // joint state are received here
+  var jointInputTopicName           = '/joint_states/input/update'                  // UI joint state changes are published here
+
+  var receiveTcpTopicName           = '/pose/update'                                // receive changes in tcp not coming from UI
+  var tcpInputTopicName             = '/pose/input/update'                          // UI tcp changes are published here 
+  var receiveConfigurationTopicName = '/joint_states/configuration'                 // listen to all confgurations
+  var msgTopicName                  = '/msg'                                        // listen to messages from server
+
   var sliders = [];
   var inputs = [];
   var coordInputs = [];
   var coordSlider = [];
+  var toolDistanceSlider = null;
+  var toolDistanceInput = null;
   var orientationInputs = [];
   var orientationSliders = [];
   var solutionsIK = [];
   var currentIkSolutionIdx = 0;
-
   var minVal  = [];
   var maxVal  = [];
 
@@ -103,6 +108,9 @@ KinematicsPanel.Init = function(options) {
                                 document.getElementById("orientation_y_slider"),
                                 document.getElementById("orientation_z_slider") ];
 
+        toolDistanceSlider = document.getElementById("tool_distance_slider");
+        toolDistanceInput = document.getElementById("tool_distance_text");
+
         for (var index = 0;index < 3; index++) {
           coordInputs[index].setAttribute('name', coordInputs[index].id);
           coordInputs[index].setAttribute('value', 0);
@@ -134,25 +142,38 @@ KinematicsPanel.Init = function(options) {
         coordSliders[0].setAttribute('min',-100);
         coordSliders[1].setAttribute('max',400);
         coordSliders[1].setAttribute('min',-400);
-
         coordSliders[2].setAttribute('max',600);
         coordSliders[2].setAttribute('min',0);
+
+        toolDistanceSlider.setAttribute('name', toolDistanceSlider.id);
+        toolDistanceSlider.setAttribute('value', 0);
+        toolDistanceSlider.setAttribute('step',Utils.distanceSteps());
+        toolDistanceSlider.setAttribute('min',0,);
+        toolDistanceSlider.setAttribute('max',100);
+        toolDistanceSlider.oninput = callbackToolDistanceInput;
+
+        toolDistanceInput.setAttribute('name', toolDistanceInput.id);
+        toolDistanceInput.setAttribute('value', 0);
+        toolDistanceInput.setAttribute('step',Utils.distanceSteps());
+        toolDistanceInput.onblur   = callbackToolDistanceInput;
+        toolDistanceInput.onchange = callbackToolDistanceInput;
+        toolDistanceInput.onkeyup  = callbackToolDistanceInputKeyUp;
     }  
 
     var listenToTCP  = new ROSLIB.Topic({
       ros : ros,
       name : receiveTcpTopicName,
-      messageType : 'geometry_msgs/PoseStamped'
+      messageType : 'minibot/MinibotPose'
     });
 
-    listenToTCP.subscribe(function(tcpPose) {
+    listenToTCP.subscribe(function(minibotPose) {
         // Utils.queueAtMutex("blockTcp",setTcpView, tcpPose);
-        setTcpView(tcpPose);
+        setTcpView(minibotPose.pose, minibotPose.tool_distance);
     });
 
     var listenToJointState  = new ROSLIB.Topic({
       ros : ros,
-      name : jointInputTopicName,
+      name : receiveJointStateTopicName,
       messageType : 'sensor_msgs/JointState'
     });
 
@@ -161,42 +182,18 @@ KinematicsPanel.Init = function(options) {
         setJointView (jointState);
     });
 
-    initErrorMessages()
+    var listenToConfigurations = new ROSLIB.Topic({
+      ros : ros,
+      name : receiveConfigurationTopicName,
+      messageType : 'minibot/JointStateConfiguration'
+    })
+
+    listenToConfigurations.subscribe(function(jointStateConfiguration) {
+      setIKSolutions (jointStateConfiguration.configuration);
+    })
+
     refresh()
   };
-
-  var initErrorMessages = function() {
-   // listen to error messages
-    var listenToErrors  = new ROSLIB.Topic({
-      ros : ros,
-      name : '/messages/err',
-      messageType : 'std_msgs/String'
-    });
-
-    listenToErrors.subscribe(function(msg) {
-        displayErr(msg.data)
-    });
-
-    var listenToInfo  = new ROSLIB.Topic({
-      ros : ros,
-      name : '/messages/info',
-      messageType : 'std_msgs/String'
-    });
-
-    listenToInfo.subscribe(function(msg) {
-        displayInfo(msg.data)
-    });
-
-    var listenToWarn   = new ROSLIB.Topic({
-      ros : ros,
-      name : '/messages/warn',
-      messageType : 'std_msgs/String'
-    });
-
-    listenToWarn.subscribe(function(msg) {
-        displayWarn(msg.data)
-    });
-  } 
 
   function switchAngleUnit(toGrad) {
     Utils.switchAngleUnit(toGrad);
@@ -232,26 +229,29 @@ KinematicsPanel.Init = function(options) {
     refresh();
   }
 
-  var setTcpView = function (tcpPose) {
+  var setTcpView = function (tcpPose, toolDistance) {
 
       // convert the world frame into view frame 
-      var pos = [ tcpPose.pose.position.x, tcpPose.pose.position.y, tcpPose.pose.position.z ];
+      var pos = [ tcpPose.position.x, tcpPose.position.y, tcpPose.position.z ];
       coordInputs[0].value = Utils.distance2View(pos[0]);
       coordInputs[1].value = Utils.distance2View(pos[1]);
       coordInputs[2].value = Utils.distance2View(pos[2]);
-      coordSliders[0].value =  coordInputs[0].value;
-      coordSliders[1].value =  coordInputs[1].value;
-      coordSliders[2].value =  coordInputs[2].value;
+      coordSliders[0].value = coordInputs[0].value;
+      coordSliders[1].value = coordInputs[1].value;
+      coordSliders[2].value = coordInputs[2].value;
 
+      // dont forget the tool distance slider
+      toolDistanceSlider.value = Utils.distance2View(toolDistance);
+      toolDistanceInput.value = Utils.distance2View(toolDistance);
+      
       // convert the world frame into view frame 
-      var orientWorld = Utils.quaternion2Euler(tcpPose.pose.orientation);
-
+      var orientWorld = Utils.quaternion2Euler(tcpPose.orientation);
       orientationInputs[0].value = Utils.rad2View(orientWorld.x);
       orientationInputs[1].value = Utils.rad2View(orientWorld.y);
       orientationInputs[2].value = Utils.rad2View(orientWorld.z);
-      orientationSliders[0].value =  orientationInputs[0].value;
-      orientationSliders[1].value =  orientationInputs[1].value;
-      orientationSliders[2].value =  orientationInputs[2].value;
+      orientationSliders[0].value = orientationInputs[0].value;
+      orientationSliders[1].value = orientationInputs[1].value;
+      orientationSliders[2].value = orientationInputs[2].value;
   }
 
   var setJointView = function(msgJointState) {
@@ -290,18 +290,12 @@ KinematicsPanel.Init = function(options) {
     document.getElementById(target).value = Utils.angleRound(parseFloat(event.target.value)); 
 
     // retrieve current joint
-    var newJointState = getCurrentJointState();
+    var minibotState = getCurrentMinibotState();
 
     // and publish joint state, but throttled  
     Utils.callThrottler("newJoint", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
       jointInputTopic.publish(params);
-      kinematicsUtils.computeAllFK (newJointState,function(result) {
-        setIKSolutions(result.solution);
-      },
-      function (err) {
-        displayErr("no FK solution found (" + err + ")");
-      });
-    },newJointState);
+    },minibotState);
 
     // block joint input from kinematics while we turn the sliders (and 0.5 seconds afterwards)
     // Utils.stopMutex("blockJoint");
@@ -313,8 +307,8 @@ KinematicsPanel.Init = function(options) {
   var jointInputTopic  = new ROSLIB.Topic({
       ros : ros,
       name : jointInputTopicName,
-      messageType : 'sensor_msgs/JointState'
-    });
+      messageType : 'minibot/MinibotState'
+  });
   
 
   // returns a ros object JointState with the names of the joints and their positions
@@ -362,7 +356,14 @@ KinematicsPanel.Init = function(options) {
   var changeConfiguration = function() {
     currentIkSolutionIdx = (currentIkSolutionIdx + 1) % solutionsIK.length;
     document.getElementById("changeConfigurationButton").innerHTML = "Change configuration (" + (currentIkSolutionIdx + 1) + "/" + solutionsIK.length + ")";
-    jointInputTopic.publish(solutionsIK[currentIkSolutionIdx].joint_state);      
+
+    var publisherJointState  = new ROSLIB.Topic({
+      ros : ros,
+      name : receiveJointStateTopicName,
+      messageType : 'sensor_msgs/JointState'
+    });
+
+    publisherJointState.publish(solutionsIK[currentIkSolutionIdx]);
   }
 
   var callbackCartesicInputKeyUp = function(event) {
@@ -388,14 +389,14 @@ KinematicsPanel.Init = function(options) {
     else
       document.getElementById(target).value = Utils.distanceRound(parseFloat(event.target.value)); 
 
-    var eulerWorld = {  x:Utils.view2Rad(orientation_x_slider.value), 
-                        y:Utils.view2Rad(orientation_y_slider.value), 
-                        z:Utils.view2Rad(orientation_z_slider.value)};
-    var quat = Utils.euler2Quaternion({ x:eulerWorld.x, y:eulerWorld.y, z:eulerWorld.z })
+    var minibotState = getCurrentMinibotState();
 
-    var tcpPose = getCurrentPose();
+    Utils.callThrottler("publishTCP", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
+        tcpInputTopic.publish(params);              
+    }, minibotState);
 
     // call IK
+    /*
     kinematicsUtils.computeAllIK (getCurrentJointState(),tcpPose.pose, function(solutions) {
       setIKSolutions(solutions);
       if (solutions.length > 0)
@@ -403,7 +404,7 @@ KinematicsPanel.Init = function(options) {
     }, function(err) {
       displayErr("no IK solution found (" + err + ")");
     }
-    )
+    )*/
 
     // publish the new pose and trigger inverse kinematics
     //Utils.callThrottler("publishTCP", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
@@ -417,19 +418,56 @@ KinematicsPanel.Init = function(options) {
     //});
   }
 
-  var jointInputTopic  = new ROSLIB.Topic({
-    ros : ros,
-    name : jointInputTopicName,
-    messageType : 'sensor_msgs/JointState'
-  });
+  var callbackToolDistanceInputKeyUp = function(event) {
+    var name = event.target.name;
+    if (event.key == 'Enter') {
+      callbackToolDistanceInput(event);
+    }
+  }
+
+  // call back when a cartesic sliders/input changes, 
+  var callbackToolDistanceInput = function(event) {
+    var name = event.target.name;
+    var target;
+    if( name.indexOf('_text') >= 0) {
+        target = name.replace('_text', '_slider');
+    }else{
+        target = name.replace('_slider', '_text');
+    }
+
+    // set the same value to sibbling widget (slider-text input)
+    document.getElementById(target).value = Utils.distanceRound(parseFloat(event.target.value)); 
+
+    var minibotState = getCurrentMinibotState();
+
+    Utils.callThrottler("publishToolDistance", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
+        tcpInputTopic.publish(params);              
+    }, minibotState);
+  }
 
 
   var tcpInputTopic  = new ROSLIB.Topic({
     ros : ros,
     name : tcpInputTopicName,
-    messageType : 'geometry_msgs/PoseStamped'
+    messageType : 'minibot/MinibotState'
   });
 
+  var msgTopic  = new ROSLIB.Topic({
+    ros : ros,
+    name : msgTopicName,
+    messageType : 'std_msgs/String'
+  });
+
+  msgTopic.subscribe(function(msg) {
+    // Utils.queueAtMutex("blockTcp",setTcpView, tcpPose);
+    if (msg.data.startsWith("KINEMATICS:"))
+      if (msg.data.substring('KINEMATICS:'.length).startsWith('ERROR:'))
+        displayErr(msg.substring("KINEMATICS:".length).substring('ERROR'))
+      if (msg.data.substring('KINEMATICS:'.length).startsWith('WARN:'))
+        displayWarn(msg.substring("KINEMATICS:".length).substring('WARN'))
+      if (msg.data.substring('KINEMATICS:'.length).startsWith('INFO:'))
+        displayInfo(msg.substring("KINEMATICS:".length).substring('INFO'))
+  });
 
   // refresh joints and cartesic coordinates from joint state
   var refresh = function() {
@@ -440,7 +478,9 @@ KinematicsPanel.Init = function(options) {
     });
 
     listener.subscribe(function(msgJointState) {
-      jointInputTopic.publish(msgJointState)
+      setJointView(msgJointState);
+      var minibotState = getCurrentMinibotState();
+      jointInputTopic.publish(minibotState)
       listener.unsubscribe();
     });
   };
@@ -479,11 +519,13 @@ KinematicsPanel.Init = function(options) {
       values[ values.length ] = Utils.view2Rad(parseFloat(0));
     }
 
+    var minibotState = getCurrentMinibotState();
+    minibotState.joint_state.name = names;
+    minibotState.joint_state.position = values;
+    minibotState.tool_distance = 0;
+
     // post new joint state to compute forward kinematics
-    var newJointState = new ROSLIB.Message({
-      name: names, position: values
-    });
-    jointInputTopic.publish(newJointState);
+    jointInputTopic.publish(minibotState);
   }
 
   function getCurrentPose() {
@@ -514,8 +556,46 @@ KinematicsPanel.Init = function(options) {
     return pose;
   }
 
-  function setPose(pose) {
-    tcpInputTopic.publish(pose);
+  function getCurrentMinibotState() {
+    var eulerWorld = {  x:Utils.view2Rad(orientation_x_slider.value), 
+                        y:Utils.view2Rad(orientation_y_slider.value), 
+                        z:Utils.view2Rad(orientation_z_slider.value)};
+    var quat = Utils.euler2Quaternion({ x:eulerWorld.x, y:eulerWorld.y, z:eulerWorld.z })
+
+    var names = [];
+    var values = [];
+    for(var index = 0; index < sliders.length; index++) {
+      var slider = sliders[index];
+      var joint_name = slider.name;
+      joint_name = joint_name.substring(0,joint_name.indexOf('_slider'));
+      names[ names.length ] = joint_name;
+      values[ values.length ] = Utils.view2Rad(parseFloat(slider.value));
+    }
+
+    var state = new ROSLIB.Message( {
+      pose : {
+        position: { 
+          x: Utils.view2Distance(coord_x_slider.value), 
+          y: Utils.view2Distance(coord_y_slider.value), 
+          z: Utils.view2Distance(coord_z_slider.value) },
+        orientation: { 
+          x: quat.x, 
+          y: quat.y, 
+          z: quat.z, 
+          w: quat.w
+        }
+      },  
+      joint_state: {
+        name: names,
+        position: values
+      },
+      tool_distance: parseFloat(Utils.view2Distance(tool_distance_slider.value))
+    });  
+    return state;
+  }
+
+  function setState(minibotState) {
+    tcpInputTopic.publish(minibotState);
   }
 
   function setJointState(jointState) {
@@ -532,7 +612,7 @@ KinematicsPanel.Init = function(options) {
         setZeroPosition: setZeroPosition,
         getCurrentPose: getCurrentPose,
         getCurrentJointState: getCurrentJointState,
-        setPose: setPose,
+        setState: setState,
         setJointState: setJointState,
         changeConfiguration: changeConfiguration
   };

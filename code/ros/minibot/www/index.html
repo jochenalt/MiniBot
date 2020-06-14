@@ -7,16 +7,26 @@
         <meta http-equiv="Pragma" content="no-cache">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <!-- robotwebtools libraries -->
+        <script src="/minibot/three.min.js"></script>
+        <script src="/minibot/ColladaLoader.js"></script>
+        <script src="/minibot/STLLoader.js"></script>
+        <script src="/minibot/eventemitter2.js"></script>
+        <script src="/minibot/roslib.js"></script>
+        <script src="/minibot/ros3d.min.js"></script>
+       
+        <!--
         <script src="http://static.robotwebtools.org/threejs/current/three.min.js"></script>
         <script src="http://static.robotwebtools.org/threejs/r89/ColladaLoader.js"></script>
         <script src="http://static.robotwebtools.org/threejs/r89/STLLoader.js"></script>
         <script src="http://static.robotwebtools.org/EventEmitter2/0.4.14/eventemitter2.js"></script>
         <script src="http://static.robotwebtools.org/roslibjs/current/roslib.js"></script>
         <script src="http://static.robotwebtools.org/ros3djs/current/ros3d.min.js"></script>
+        -->
         <!-- base libraries -->
         <script language="JavaScript" src="/minibot/constants.js"></script>
         <script language="JavaScript" src="/minibot/utils.js"></script>
         <script language="JavaScript" src="/minibot/kinematics.js"></script>
+
         <!-- Panels -->
         <script language="JavaScript" src="/minibot/kinematicsPanel.js"></script>
         <script language="JavaScript" src="/minibot/poseStorePanel.js"></script>
@@ -24,9 +34,16 @@
         <script language="JavaScript" src="/minibot/robotPanel.js"></script>
         <script language="JavaScript" src="/minibot/settingsPanel.js"></script>
         <!-- bootstrap4 -->
+        <script src="/minibot/jquery.min.js"></script>
+        <script src="/minibot/popper.min.js"></script>
+        <script src="/minibot/bootstrap.min.js"></script>
+
+        <!--
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    -->
+
         <link rel="stylesheet" href="/minibot/bootstrap-cyborg.min.css">
         <script>
             var botUrdfView;            // view of URDF
@@ -79,6 +96,7 @@
           
             // will be called after loading the DOM tree 
             function init() {
+
 
                  // turn screen off until everyting is loaded 
                  turnScreenOff();
@@ -205,6 +223,7 @@
             var settings = settingsPanel.readConfiguration(
                  function(settings) {
                       setGlobalTheme(settings.theme); 
+                      settingsPanel.initialize();
                  }, 
                  function (result) { 
                       alert ("could not read the configuration from database : " + result)
@@ -237,12 +256,12 @@
                 </div>
             </div>
             <div class="row flex-grow-1 m-0 p-0">
-                <div id="RobotViewOuter" class="col-6 d-flex p-0 m-0">
-                    <div  id="RobotView" class="col bg-light border my-1 ml-0 mr-1 p-0">
+                <div id="RobotViewOuter" class="d-none col-6 d-flex p-0 m-0">
+                    <div  id="RobotView" class="d-none col bg-light border my-1 ml-0 mr-1 p-0">
                         <div id="urdf" class=" p-0 m-0" ></div>
                     </div>
                 </div>
-                <div id="kinematicsPanel" class="row d-flex col-2 mx-0 p-0">
+                <div id="kinematicsPanel" class="row d-none col-2 mx-0 p-0">
                     <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
                         <div class="w-100  mx-1 mt-1 mb-0 px-2" style="height:1rem;" >
                             <div class='w-100 my-0 py-0 h-25 ' id='kinematicsAlertHeadline'  role='alert' >Kinematics</div>
@@ -356,27 +375,35 @@
                             </div>
                         </div>
                         <div class="container w-100">
-                            <div class="w-100">
-                                <div class="row">
-                                    <div class="col w-100">
-                                        <small>Knuckle</small>
-                                        <div class="input-group input-group-sm">
-                                            <input type="text" class="form-control input-sm" id="knuckle_joint_text">
-                                        </div>
-                                        <input type="range" class="custom-range" id="knuckle_joint_slider">
+                            <div class="row">
+                                <div class="col">
+                                    <small>Knuckle</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="knuckle_joint_text">
                                     </div>
+                                    <input type="range" class="custom-range" id="knuckle_joint_slider">
                                 </div>
-                                <div class="row">
-                                    <div class="col">
-                                        <small>Grip</small>
-                                        <div class="input-group input-group-sm">
-                                            <input type="text" class="form-control input-sm" id="finger_joint_text">
-                                        </div>
-                                        <input type="range" class="custom-range" id="finger_joint_slider">
+                                <div class="col">
+                                    <small>Grip</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="finger_joint_text">
                                     </div>
+                                    <input type="range" class="custom-range" id="finger_joint_slider">
                                 </div>
                             </div>
                         </div>
+                        <div class="container w-100">
+                            <div class="row">
+                                <div class="col w-100">
+                                    <small>Tool distance[mm]</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control input-sm" id="tool_distance_text">
+                                    </div>
+                                    <input type="range" class="custom-range" id="tool_distance_slider">
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="w-100 row  p-0 m-0 mb-3 d-flex btn-group ">
                             <div class="col align-self-end w-100 m-0 p-0">
                                 <div class="btn-group col  ">
@@ -390,7 +417,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="posePanel" class="row d-flex col-2 mx-0 p-0">
+                <div id="posePanel" class="row d-none col-2 mx-0 p-0">
                     <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0 vw-100">
                         <div class="col w-100 p-0 m-0 " >
                             <div class="w-100 mx-1 mt-1 mb-0 px-2 " style="height:1rem;">
@@ -425,7 +452,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="planningPanel" class="row d-flex col-2 mx-0 p-0">
+                <div id="planningPanel" class="row d-none col-2 mx-0 p-0">
                     <div class="row d-flex bg-light border my-1 ml-0 mr-0 p-0">
                         <div class="col w-100 p-0 m-0 " >
                             <div class="w-100 mx-1 mt-1 mb-0 px-2 " style="height:1rem;">

@@ -237,14 +237,7 @@ PoseStorePanel.Init = function(options) {
 
   // return a short string out of a pose that is used in the badges 
   var getPoseString = function(pose, jointState) {
-    var s = Math.round(pose.pose.position.x * 1000).toString() + '/' + Math.round(pose.pose.position.y * 1000).toString() + '/' + Math.round(pose.pose.position.z * 1000).toString();
-    /* s += '<br/>';
-    for (var idx = 0;idx <6;idx++) {
-      if (idx > 0)
-        s += '/';
-      s += Math.round(jointState.position[idx]*180/Math.PI).toString();
-    }
-    */
+    var s = Math.round(pose.position.x * 1000).toString() + '/' + Math.round(pose.position.y * 1000).toString() + '/' + Math.round(pose.position.z * 1000).toString();
     return s;
   }
 
@@ -501,7 +494,7 @@ PoseStorePanel.Init = function(options) {
         kinematicsPanel.setJointState(jointState);
       else {
         var pose = poseItem.pose;
-        kinematicsPanel.setPose(pose);
+        kinematicsPanel.setPose(pose.pose);
       }
     }
     else
