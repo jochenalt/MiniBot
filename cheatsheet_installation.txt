@@ -87,14 +87,16 @@ sudo apt-get install docker.io
 sudo service docker start
 sudo usermod -a -G docker $USER
 # log off/log on
-sudo apt-get install collada-urdf-cd Minibot
+sudo apt-get install ros-melodic-collada-urdf
+sudo apt-get install collada-urdf-cd 
 tool
 roscd minibot
 cd config
 rosrun xacro xacro --inorder -o minibot.urdf minibot.urdf.xacro
 rosrun xacro xacro --inorder -o minibot.srdf minibot.srdf.xacro
 rosrun collada_urdf urdf_to_collada minibot.urdf minibot.dae
-rosrun moveit_kinematics round_collada_numbers.py minibot.dae minibot.rounded.dae 6
+rosrun moveit_kinematics round_collada_numbers.py minibot.dae minibot.rounded.dae 7
+rosrun moveit_kinematics auto_create_ikfast_moveit_plugin.sh --iktype Transform6D minibot.urdf minibot_arm base_link tool0_link
 roscd minibot
 cd ..
 rospack plugins --attrib=plugin moveit_core

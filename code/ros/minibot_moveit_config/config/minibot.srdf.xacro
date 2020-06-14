@@ -14,7 +14,6 @@
       <link name="wrist_link" />
       <link name="flange_link" />
       <link name="tool0_link" />
-      <!-- <chain base_link="base_link" tip_link="tool0_link" /> -->
     </group>
     <group name="palm">
       <link name="knuckle_link" />

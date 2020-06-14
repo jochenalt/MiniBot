@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(minibot)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -g2)
+add_compile_options(-std=c++14 -g2)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_ros_planning_interface
 )
+
+find_package(LAPACK REQUIRED)
 
 ## Generate messages in the 'msg' folder
 add_message_files(
@@ -94,6 +96,7 @@ add_executable(${PROJECT_NAME}_server
 )
 target_link_libraries(
    ${PROJECT_NAME}_server ${catkin_LIBRARIES}
+   ${LAPACK_LIBRARIES} 
 )
 
 

@@ -7,7 +7,6 @@
   <xacro:property name="body_color" value="${231/255} ${210/255} ${64/255} 1.0"/>
   <xacro:property name="palm_color" value="${214/255} ${195/255} ${59/255} 1.0"/>
   <xacro:property name="finger_color" value="0.62 0.25 0.25 1.0"/>
-  <xacro:property name="wrist2tcp" value="0.10"/>
 
   <link name="base_link">  
     <visual>
@@ -189,7 +188,7 @@
 
 
   <joint name="tool0_joint" type="fixed">
-     <origin rpy="0 0 0"  xyz="0 0 0.10"/>
+     <origin rpy="0 0 0"  xyz="0 0 0.0"/>
      <parent link="flange_link"/>
      <child link="tool0_link"/>
   </joint>
