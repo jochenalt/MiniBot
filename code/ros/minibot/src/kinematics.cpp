@@ -40,7 +40,7 @@ double SIGN(double x) {
 namespace Minibot {
 namespace Kinematics {
 
-sensor_msgs::JointState last_joint_state;
+minibot::MinibotState last_joint_state;
 
 void init() {
   ROS_INFO_STREAM_NAMED(LOG_NAME, "module kinematics init");
@@ -72,22 +72,21 @@ void init() {
 
 
   for (size_t i = 0;i < minibot_joint_names.size();i++) {
-	  last_joint_state.name.push_back(minibot_joint_names[i]);
-	  last_joint_state.position.push_back(0);
+	  last_joint_state.joint_state.name.push_back(minibot_joint_names[i]);
+	  last_joint_state.joint_state.position.push_back(0);
   }
 
 }
 
 std::mutex last_joint_state_mutex;
 
-void setLastJointState(const sensor_msgs::JointState& joint_state) {
+void setLastMinibotState(const minibot::MinibotState& state) {
 	std::unique_lock<std::mutex> lock(last_joint_state_mutex);
-	last_joint_state = joint_state;
+	last_joint_state= state;
 }
 
-sensor_msgs::JointState getLastJointState() {
+minibot::MinibotState getLastMinibotState() {
 	std::unique_lock<std::mutex> lock(last_joint_state_mutex);
-	sensor_msgs::JointState joint_state = last_joint_state;
 	return last_joint_state;
 }
 
@@ -328,7 +327,9 @@ bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state) {
 
 // to allow a dynamic tcp, compute the base point of the tool out of the pose and a tool length
 geometry_msgs::Pose computeTCPBase(const geometry_msgs::Pose& tcpPose, double tool_distance) {
-    // get the tool length
+
+	// tool_distance += 0.01;
+	// get the tool length
     ros::NodeHandle nh;
 
     // compute the homogeneous matrix representing the pose
@@ -343,15 +344,17 @@ geometry_msgs::Pose computeTCPBase(const geometry_msgs::Pose& tcpPose, double to
     qx *= n;
     qy *= n;
     qz *= n;
+    /*
     eerot[0] = 1.0f - 2.0f*qy*qy - 2.0f*qz*qz;  eerot[1] = 2.0f*qx*qy - 2.0f*qz*qw;         eerot[2] = 2.0f*qx*qz + 2.0f*qy*qw;
     eerot[3] = 2.0f*qx*qy + 2.0f*qz*qw;         eerot[4] = 1.0f - 2.0f*qx*qx - 2.0f*qz*qz;  eerot[5] = 2.0f*qy*qz - 2.0f*qx*qw;
     eerot[6] = 2.0f*qx*qz - 2.0f*qy*qw;         eerot[7] = 2.0f*qy*qz + 2.0f*qx*qw;         eerot[8] = 1.0f - 2.0f*qx*qx - 2.0f*qy*qy;
+    */
 
     // multiply homogeneous matrix of pose with homogeneous vector of (0,0,tcpDistance, 1)
     geometry_msgs::Pose result(tcpPose);
-    result.position.x -=  eerot[2] * tool_distance;
-    result.position.y -=  eerot[5] * tool_distance;
-    result.position.z -=  eerot[8] * tool_distance;
+    result.position.x -=  (2.0f*qx*qz + 2.0f*qy*qw) 		* tool_distance;
+    result.position.y -=  (2.0f*qy*qz - 2.0f*qx*qw) 		* tool_distance;
+    result.position.z -=  (1.0f - 2.0f*qx*qx - 2.0f*qy*qy) 	* tool_distance;
 
     ROS_DEBUG_STREAM_NAMED(LOG_NAME, "computeFlange ("
   			       << std::setprecision(5)
@@ -373,6 +376,8 @@ geometry_msgs::Pose computeTCPBase(const geometry_msgs::Pose& tcpPose, double to
 
 geometry_msgs::Pose computeTCPTip(const geometry_msgs::Pose& flangePose, double tool_distance) {
 
+	// tool_distance += 0.01;
+
     // get the tool length
     ros::NodeHandle nh;
 
@@ -390,15 +395,16 @@ geometry_msgs::Pose computeTCPTip(const geometry_msgs::Pose& flangePose, double 
     qx *= n;
     qy *= n;
     qz *= n;
+    /*
     eerot[0] = 1.0f - 2.0f*qy*qy - 2.0f*qz*qz;  eerot[1] = 2.0f*qx*qy - 2.0f*qz*qw;         eerot[2] = 2.0f*qx*qz + 2.0f*qy*qw;
     eerot[3] = 2.0f*qx*qy + 2.0f*qz*qw;         eerot[4] = 1.0f - 2.0f*qx*qx - 2.0f*qz*qz;  eerot[5] = 2.0f*qy*qz - 2.0f*qx*qw;
     eerot[6] = 2.0f*qx*qz - 2.0f*qy*qw;         eerot[7] = 2.0f*qy*qz + 2.0f*qx*qw;         eerot[8] = 1.0f - 2.0f*qx*qx - 2.0f*qy*qy;
-
+	*/
     // multiply homogeneous matrix of pose with homogeneous vector of (0,0,-tcpDistance, 1)
     geometry_msgs::Pose result(flangePose);
-    result.position.x +=  eerot[2] * tool_distance;
-    result.position.y +=  eerot[5] * tool_distance;
-    result.position.z +=  eerot[8] * tool_distance;
+    result.position.x +=  (2.0f*qx*qz + 2.0f*qy*qw) 		* tool_distance;
+    result.position.y +=  (2.0f*qy*qz - 2.0f*qx*qw) 		* tool_distance;
+    result.position.z +=  (1.0f - 2.0f*qx*qx - 2.0f*qy*qy) 	* tool_distance;
 
 
     ROS_DEBUG_STREAM_NAMED(LOG_NAME, "computeTCP ("

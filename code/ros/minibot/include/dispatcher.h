@@ -24,6 +24,9 @@ void updateJointStatesCallback(const minibot::MinibotState&);
 	// callback for a different configuration of the same tcp
 void updateJointStatesConfigurationCallback(const minibot::MinibotState& state);
 
+	// callback of gearwheel
+void updateGearwheelCallback(const geometry_msgs::Pose& pose);
+
 }
 }
 

@@ -12,6 +12,7 @@
 #include <minibot/GetPositionAllFK.h>
 #include <minibot/JointStateConfiguration.h>
 #include <minibot/MinibotPose.h>
+#include <minibot/MinibotState.h>
 
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/kinematic_constraints/utils.h>
@@ -47,10 +48,11 @@ namespace Minibot {
     // add or overwrite the end effector positions from eff to joint_state
     bool setEndEffectorPosition(sensor_msgs::JointState& joint_state, const sensor_msgs::JointState& eff);
 
-    // the current joint state to be published to /joint_states
+    // the current state state to be published to /joint_states
     // synchronized method
-    void setLastJointState(const sensor_msgs::JointState& joint_state);
-    sensor_msgs::JointState getLastJointState();
+    void setLastMinibotState(const minibot::MinibotState& joint_state);
+    minibot::MinibotState getLastMinibotState();
+
 
   }
 }

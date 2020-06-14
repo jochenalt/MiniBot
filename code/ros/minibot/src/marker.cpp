@@ -10,7 +10,7 @@
 
 #include "marker.h"
 #include "node.h"
-
+#include "dispatcher.h"
 #include <interactive_markers/interactive_marker_server.h>
 #include <interactive_markers/menu_handler.h>
 #include <visualization_msgs/Marker.h>
@@ -55,7 +55,7 @@ void processFeedback( const visualization_msgs::InteractiveMarkerFeedbackConstPt
       break;
 
     case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
-    	pub_gearwheel_pose.publish(feedback->pose);
+    	Minibot::Dispatcher::updateGearwheelCallback(feedback->pose);
 
       ROS_INFO_STREAM( s.str() << ": pose changed"
           << "\nposition = "
@@ -73,11 +73,8 @@ void processFeedback( const visualization_msgs::InteractiveMarkerFeedbackConstPt
       break;
 
     case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
+    	Minibot::Dispatcher::updateGearwheelCallback(feedback->pose);
       ROS_INFO_STREAM( s.str() << ": mouse down" << mouse_point_ss.str() << "." );
-      break;
-
-    case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
-      ROS_INFO_STREAM( s.str() << ": mouse up" << mouse_point_ss.str() << "." );
       break;
   }
 
@@ -93,8 +90,11 @@ void init() {
 	  int_marker.name = gearwheel_marker_name;
 
 	  InteractiveMarkerControl control;
-
 	  control.always_visible = true;
+	  control.orientation_mode = InteractiveMarkerControl::VIEW_FACING;
+	  control.interaction_mode = InteractiveMarkerControl::MOVE_PLANE;
+	  control.independent_marker_orientation = true;
+
 	  Marker marker;
 	  marker.type = Marker::SPHERE;
 	  marker.scale.x = int_marker.scale *0.5;
@@ -104,11 +104,12 @@ void init() {
 	  marker.color.g = 0.2;
 	  marker.color.b = 0.0;
 	  marker.color.a = 1.0;
+
 	  control.markers.push_back( marker );
 	  int_marker.controls.push_back( control );
-	  control.orientation_mode = InteractiveMarkerControl::VIEW_FACING;
-	  control.interaction_mode = InteractiveMarkerControl::MOVE_PLANE;
-	  control.independent_marker_orientation = true;
+	  int_marker.controls[0].orientation_mode = InteractiveMarkerControl::VIEW_FACING;
+	  int_marker.controls[0].interaction_mode = InteractiveMarkerControl::MOVE_PLANE;
+	  int_marker.controls[0].independent_marker_orientation = true;
 
 	  server->insert(int_marker);
 	  server->setCallback(int_marker.name, &processFeedback);

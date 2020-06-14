@@ -157,6 +157,8 @@ KinematicsPanel.Init = function(options) {
 
         toolDistanceInput.setAttribute('name', toolDistanceInput.id);
         toolDistanceInput.setAttribute('value', 0);
+        toolDistanceInput.setAttribute('min',0,);
+        toolDistanceInput.setAttribute('max',150);
         toolDistanceInput.setAttribute('step',Utils.distanceSteps());
         toolDistanceInput.onblur   = callbackToolDistanceInput;
         toolDistanceInput.onchange = callbackToolDistanceInput;

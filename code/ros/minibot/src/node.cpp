@@ -26,8 +26,6 @@ ros::Publisher pub_joint_state;
 // publisher for messages
 ros::Publisher pub_msg;
 
-// publisher for gearwheel poses
-ros::Publisher pub_gearwheel_pose;
 
 
 int main(int argc, char *argv[]) {
@@ -66,12 +64,7 @@ int main(int argc, char *argv[]) {
 				nh.advertise<minibot::JointStateConfiguration>(
 						"/joint_states/configuration", 10);
 
-		// publish new joint states, consumed by UI
-		pub_gearwheel_pose =
-				nh.advertise<geometry_msgs::Pose>(
-						"/gearwheel/update", 10);
-
-		// publish new joint states, consumed by UI
+			// publish new joint states, consumed by UI
 		pub_joint_state =
 				nh.advertise<sensor_msgs::JointState>(
 						"/joint_states", 10);
@@ -84,10 +77,10 @@ int main(int argc, char *argv[]) {
 		while(ros::ok()) {
 
 			// joint state publisher: take the most recent joint_state and publish it to /joint_states
-			sensor_msgs::JointState joint_state = Minibot::Kinematics::getLastJointState();
-			joint_state.header.stamp = ros::Time::now();
-			joint_state.header.seq++;
-			pub_joint_state.publish(joint_state);
+			minibot::MinibotState state = Minibot::Kinematics::getLastMinibotState();
+			state.joint_state.header.stamp = ros::Time::now();
+			state.joint_state.header.seq++;
+			pub_joint_state.publish(state.joint_state);
 
 			loop_rate.sleep();
 		}
