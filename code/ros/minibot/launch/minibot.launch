@@ -2,9 +2,6 @@
   <!-- By default, we are not in debug mode -->
   <arg name="debug" default="false" />
 
-  <!-- the webpage server node  -->
-  <node pkg="minibot" type="core.py" name="core" output="screen"/>
-
   <!-- start marker node -->
   <node pkg="interactive_marker_proxy" type="proxy" name="marker_proxy" 
         args="topic_ns:=/markers target_frame:=base_link" />
