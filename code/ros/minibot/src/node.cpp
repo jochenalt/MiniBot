@@ -27,7 +27,6 @@ ros::Publisher pub_joint_state;
 ros::Publisher pub_msg;
 
 
-
 int main(int argc, char *argv[]) {
 	try {
 
@@ -53,22 +52,16 @@ int main(int argc, char *argv[]) {
 		ros::Subscriber configuration_input = nh.subscribe("/joint_configuration/input/update", 10, Minibot::Dispatcher::updateJointStatesConfigurationCallback);
 
 		// publish new joints (forwarded by joint_state_publisher)
-		pub_joint_state_ui = nh.advertise<sensor_msgs::JointState>(
-				"/joint_states/update", 10);
+		pub_joint_state_ui = nh.advertise<sensor_msgs::JointState>("/joint_states/update", 10);
 
 		// publish new tcp data, consumed by UI
 		pub_tcp_ui = nh.advertise<minibot::MinibotPose>("/pose/update", 10);
 
 		// publish new joint states, consumed by UI
-		pub_joint_values_config =
-				nh.advertise<minibot::JointStateConfiguration>(
-						"/joint_states/configuration", 10);
+		pub_joint_values_config = nh.advertise<minibot::JointStateConfiguration>("/joint_states/configuration", 10);
 
-			// publish new joint states, consumed by UI
-		pub_joint_state =
-				nh.advertise<sensor_msgs::JointState>(
-						"/joint_states", 10);
-
+		// publish new joint states, consumed by UI
+		pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 10);
 
 		ros::AsyncSpinner spinner(0); // 0 = one thread per core
 		spinner.start();

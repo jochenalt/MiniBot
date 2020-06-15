@@ -3,16 +3,6 @@
 
 #include "ros/ros.h"
 
-#define LOG_NAME "kinematics"
-#include "kinematics.h"
-
-
-// cache the joint names of the group "minibot_arm" as defined in SRDF
-std::vector<std::string> minibot_arm_joint_names;
-std::vector<std::string> minibot_gripper_joint_names;
-std::vector<std::string> minibot_joint_names;
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -25,6 +15,8 @@ std::vector<std::string> minibot_joint_names;
 #include <moveit/kinematic_constraints/utils.h>
 
 #include "utils.h"
+#include "kinematics.h"
+
 
 #define IKFAST_HAS_LIBRARY 	// Build IKFast with API functions
 #define IKFAST_NO_MAIN 		// Don't include main() from IKFast
@@ -32,6 +24,7 @@ namespace ikfast {
 #include "../src/minibot_minibot_arm_ikfast_solver.cpp"
 }
 
+#define LOG_NAME "kinematics"
 
 double SIGN(double x) {
     return (x >= 0.0f) ? +1.0f : -1.0f;
@@ -39,6 +32,11 @@ double SIGN(double x) {
 
 namespace Minibot {
 namespace Kinematics {
+
+// cache the joint names of the group "minibot_arm" as defined in SRDF
+std::vector<std::string> minibot_arm_joint_names;
+std::vector<std::string> minibot_gripper_joint_names;
+std::vector<std::string> minibot_joint_names;
 
 minibot::MinibotState last_joint_state;
 
@@ -78,8 +76,8 @@ void init() {
 
 }
 
+// get/set last minibot state containing pose, joint state and configurations
 std::mutex last_joint_state_mutex;
-
 void setLastMinibotState(const minibot::MinibotState& state) {
 	std::unique_lock<std::mutex> lock(last_joint_state_mutex);
 	last_joint_state= state;
@@ -111,7 +109,7 @@ double jointModelDistance(const sensor_msgs::JointState& a, const sensor_msgs::J
 
 // computes all IK solutions of a given pose and returns those in solutions
 // returns true if success.
-// the passed joint state is sued to sort the configurations such that the closest is returned first
+// the passed joint state is used to sort the configurations such that the closest is returned first
 bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& jointState, minibot::JointStateConfiguration& solutions) {
     // create a local state
     robot_model::RobotModelPtr kinematic_model = Utils::getRobotModel();
@@ -120,9 +118,6 @@ bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& j
 
     ikfast::IkReal eerot[9],eetrans[3];
     unsigned int numOfJoints = ikfast::GetNumJoints();
-
-    // should be 0 on a 6DOF robot
-    unsigned int num_free_parameters = ikfast::GetNumFreeParameters();
 
     ikfast::IkSolutionList<ikfast::IkReal> ik_solutions;
 
@@ -233,22 +228,9 @@ void computeFK(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& p
    // Put input joint values into array
    ikfast::IkReal joints[numOfJoints];
    for (int i = 0;i<numOfJoints;i++)
-    joints[i] = jointState.position[i];
+	   joints[i] = jointState.position[i];
 
    ikfast::ComputeFk(joints, eetrans, eerot); // void return
-
-   // Display equivalent Euler angles
-   double yaw;
-   double pitch;
-   double roll;
-   if ( eerot[5] > 0.999 || eerot[5] < -0.999 ) { // singularity
-   	yaw = ikfast::IKatan2( -eerot[6], eerot[0] );
-	pitch = 0;
-   } else {
-	yaw = ikfast::IKatan2( eerot[2], eerot[8] );
-	pitch = ikfast::IKatan2( eerot[3], eerot[4] );
-   }
-   roll = ikfast::IKasin( eerot[5] );
 
    // Convert rotation matrix to quaternion (Daisuke Miyazaki)
    double q0 = ( eerot[0] + eerot[4] + eerot[8] + 1.0f) / 4.0f;
@@ -344,11 +326,6 @@ geometry_msgs::Pose computeTCPBase(const geometry_msgs::Pose& tcpPose, double to
     qx *= n;
     qy *= n;
     qz *= n;
-    /*
-    eerot[0] = 1.0f - 2.0f*qy*qy - 2.0f*qz*qz;  eerot[1] = 2.0f*qx*qy - 2.0f*qz*qw;         eerot[2] = 2.0f*qx*qz + 2.0f*qy*qw;
-    eerot[3] = 2.0f*qx*qy + 2.0f*qz*qw;         eerot[4] = 1.0f - 2.0f*qx*qx - 2.0f*qz*qz;  eerot[5] = 2.0f*qy*qz - 2.0f*qx*qw;
-    eerot[6] = 2.0f*qx*qz - 2.0f*qy*qw;         eerot[7] = 2.0f*qy*qz + 2.0f*qx*qw;         eerot[8] = 1.0f - 2.0f*qx*qx - 2.0f*qy*qy;
-    */
 
     // multiply homogeneous matrix of pose with homogeneous vector of (0,0,tcpDistance, 1)
     geometry_msgs::Pose result(tcpPose);
@@ -395,11 +372,7 @@ geometry_msgs::Pose computeTCPTip(const geometry_msgs::Pose& flangePose, double 
     qx *= n;
     qy *= n;
     qz *= n;
-    /*
-    eerot[0] = 1.0f - 2.0f*qy*qy - 2.0f*qz*qz;  eerot[1] = 2.0f*qx*qy - 2.0f*qz*qw;         eerot[2] = 2.0f*qx*qz + 2.0f*qy*qw;
-    eerot[3] = 2.0f*qx*qy + 2.0f*qz*qw;         eerot[4] = 1.0f - 2.0f*qx*qx - 2.0f*qz*qz;  eerot[5] = 2.0f*qy*qz - 2.0f*qx*qw;
-    eerot[6] = 2.0f*qx*qz - 2.0f*qy*qw;         eerot[7] = 2.0f*qy*qz + 2.0f*qx*qw;         eerot[8] = 1.0f - 2.0f*qx*qx - 2.0f*qy*qy;
-	*/
+
     // multiply homogeneous matrix of pose with homogeneous vector of (0,0,-tcpDistance, 1)
     geometry_msgs::Pose result(flangePose);
     result.position.x +=  (2.0f*qx*qz + 2.0f*qy*qw) 		* tool_distance;
