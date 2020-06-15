@@ -95,8 +95,8 @@ rosrun xacro xacro -o minibot.srdf minibot.srdf.xacro
 rosrun collada_urdf urdf_to_collada minibot.urdf minibot.dae
 rosrun moveit_kinematics round_collada_numbers.py minibot.dae minibot.rounded.dae 7
 cd ../..
-rosrun moveit_kinematics auto_create_ikfast_moveit_plugin.sh --iktype Transform6D minibot.urdf minibot_arm base_link tool0_link
-rosrun moveit_kinematics auto_create_ikfast_moveit_plugin.sh --name minibot -pkg minibot_ikfast_plugin --iktype Transform6D minibot_moveit_config/config/minibot.rounded.dae minibot_arm base_link tool0_link
+# rosrun moveit_kinematics auto_create_ikfast_moveit_plugin.sh --name minibot --pkg minibot_ikfast_plugin --iktype Transform6D minibot.urdf minibot_arm base_link tool0_link
+rosrun moveit_kinematics auto_create_ikfast_moveit_plugin.sh --name minibot --pkg minibot_ikfast_plugin --iktype Transform6D minibot_moveit_config/config/minibot.rounded.dae minibot_arm base_link tool0_link
 roscd minibot
 cd ..
 rospack plugins --attrib=plugin moveit_core

@@ -173,7 +173,7 @@ KinematicsPanel.Init = function(options) {
 
     listenToTCP.subscribe(function(minibotPose) {
         // Utils.queueAtMutex("blockTcp",setTcpView, tcpPose);
-        setTcpView(minibotPose.pose, minibotPose.tool_distance);
+        setTcpView(minibotPose.pose, minibotPose.tool_length);
     });
 
     var listenToJointState  = new ROSLIB.Topic({
@@ -543,7 +543,7 @@ KinematicsPanel.Init = function(options) {
     var minibotState = getCurrentMinibotState();
     minibotState.joint_state.name = names;
     minibotState.joint_state.position = values;
-    minibotState.tool_distance = 0;
+    minibotState.tool_length = 0;
 
     // post new joint state to compute forward kinematics
     jointInputTopic.publish(minibotState);
@@ -610,7 +610,7 @@ KinematicsPanel.Init = function(options) {
         name: names,
         position: values
       },
-      tool_distance: parseFloat(Utils.view2Distance(tool_distance_slider.value))
+      tool_length: parseFloat(Utils.view2Distance(tool_distance_slider.value))
     });  
     return state;
   }
