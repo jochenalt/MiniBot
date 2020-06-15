@@ -24,7 +24,7 @@ namespace Dispatcher {
 void updateTCPCallback(const minibot::MinibotState& state) {
 
   // compute flange out of tcp pose, in case tool_length is > 0
-  const geometry_msgs::Pose& flange_pose = Minibot::Kinematics::computeTCPBase(state.pose, state.tool_length);
+  const geometry_msgs::Pose& flange_pose = Minibot::Kinematics::computeTCPBase(state.pose.pose, state.pose.tool_length);
 
   // compute IK relative to flange
   minibot::JointStateConfiguration jointStateConfiguration;
@@ -38,8 +38,8 @@ void updateTCPCallback(const minibot::MinibotState& state) {
 	  minibot::MinibotState new_state = state;
 	  new_state.configuration = jointStateConfiguration.configuration;
 	  new_state.joint_state = jointStateConfiguration.configuration[0];
-	  new_state.pose = state.pose;
-	  new_state.tool_length = state.tool_length;
+	  new_state.pose.pose = state.pose.pose;
+	  new_state.pose.tool_length = state.pose.tool_length;
 
 
 	  // publish joint values and all configurations
@@ -47,7 +47,7 @@ void updateTCPCallback(const minibot::MinibotState& state) {
 	  pub_joint_values_config.publish(jointStateConfiguration);
 
 	  // change the gearhweel
-	  Minibot::Gearwheel::updateGerwheelPose(state.pose);
+	  Minibot::Gearwheel::updateGerwheelPose(state.pose.pose);
 
 	  // store this state
 	  Minibot::Kinematics::setLastMinibotState(new_state);
@@ -70,7 +70,7 @@ void updateJointStatesCallback(const minibot::MinibotState& state) {
 	geometry_msgs::Pose flange_pose;
 	Minibot::Kinematics::computeFK(state.joint_state, flange_pose);
 
-	geometry_msgs::Pose tcp_pose = Minibot::Kinematics::computeTCPTip(flange_pose, state.tool_length);
+	geometry_msgs::Pose tcp_pose = Minibot::Kinematics::computeTCPTip(flange_pose, state.pose.tool_length);
 
 	minibot::JointStateConfiguration jointStateConfguration;
 	bool foundIK = Minibot::Kinematics::computeIK(tcp_pose, state.joint_state, jointStateConfguration);
@@ -81,20 +81,17 @@ void updateJointStatesCallback(const minibot::MinibotState& state) {
 
 		  // bu
 		  minibot::MinibotState new_state = state;
-		  new_state.pose = tcp_pose;
+		  new_state.pose.pose = tcp_pose;
 		  new_state.configuration = jointStateConfguration.configuration;
 		  new_state.joint_state = state.joint_state;
-		  new_state.tool_length = state.tool_length;
+		  new_state.pose.tool_length = state.pose.tool_length;
 
 
 		  // publish new tcp to UI
-		  minibot::MinibotPose mp;
-		  mp.pose = new_state.pose;
-		  mp.tool_length = new_state.tool_length;
-		  pub_tcp_ui.publish(mp);
+		  pub_tcp_ui.publish(new_state.pose);
 
 		  // update the position of gearhweel
-		  Minibot::Gearwheel::updateGerwheelPose(new_state.pose);
+		  Minibot::Gearwheel::updateGerwheelPose(new_state.pose.pose);
 
 		  // publish tcp and all configuration
 		  pub_joint_state_ui.publish(new_state.joint_state);
@@ -129,7 +126,7 @@ void updateGearwheelCallback(const geometry_msgs::Pose& pose) {
 
   // compute flange out of tcp pose, in case tool_distance is > 0
   minibot::MinibotState state = Minibot::Kinematics::getLastMinibotState();
-  const geometry_msgs::Pose& flange_pose = Minibot::Kinematics::computeTCPBase(pose, state.tool_length);
+  const geometry_msgs::Pose& flange_pose = Minibot::Kinematics::computeTCPBase(pose, state.pose.tool_length);
 
   // compute IK relative to flange
   minibot::JointStateConfiguration jointStateConfguration;
@@ -140,16 +137,13 @@ void updateGearwheelCallback(const geometry_msgs::Pose& pose) {
 		  Minibot::Kinematics::setEndEffectorPosition(jointStateConfguration.configuration[i],
 				  	  	  	  	  	  	  	  	  	  state.joint_state);
 	  new_state.configuration = jointStateConfguration.configuration;
-	  new_state.pose = pose;
+	  new_state.pose.pose = pose;
 	  new_state.joint_state = jointStateConfguration.configuration[0];
-	  new_state.tool_length = state.tool_length;
+	  new_state.pose.tool_length = state.pose.tool_length;
 
 
 	  // publish new tcp to UI
-	  minibot::MinibotPose mp;
-	  mp.pose = new_state.pose;
-	  mp.tool_length = new_state.tool_length;
-	  pub_tcp_ui.publish(mp);
+	  pub_tcp_ui.publish(new_state.pose);
 
 	  // publish joint values and all configurations
 	  pub_joint_state_ui.publish(new_state.joint_state);

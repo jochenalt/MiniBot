@@ -543,7 +543,7 @@ KinematicsPanel.Init = function(options) {
     var minibotState = getCurrentMinibotState();
     minibotState.joint_state.name = names;
     minibotState.joint_state.position = values;
-    minibotState.tool_length = 0;
+    minibotState.pose.tool_length = 0;
 
     // post new joint state to compute forward kinematics
     jointInputTopic.publish(minibotState);
@@ -594,23 +594,25 @@ KinematicsPanel.Init = function(options) {
     }
 
     var state = new ROSLIB.Message( {
-      pose : {
-        position: { 
-          x: Utils.view2Distance(coord_x_slider.value), 
-          y: Utils.view2Distance(coord_y_slider.value), 
-          z: Utils.view2Distance(coord_z_slider.value) },
-        orientation: { 
-          x: quat.x, 
-          y: quat.y, 
-          z: quat.z, 
-          w: quat.w
-        }
+      pose: {
+        pose: {
+          position: { 
+            x: Utils.view2Distance(coord_x_slider.value), 
+            y: Utils.view2Distance(coord_y_slider.value), 
+            z: Utils.view2Distance(coord_z_slider.value) },
+          orientation: { 
+            x: quat.x, 
+            y: quat.y, 
+            z: quat.z, 
+            w: quat.w
+          }
+        },
+        tool_length : parseFloat(Utils.view2Distance(tool_distance_slider.value))
       },  
       joint_state: {
         name: names,
         position: values
-      },
-      tool_length: parseFloat(Utils.view2Distance(tool_distance_slider.value))
+      }
     });  
     return state;
   }

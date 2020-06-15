@@ -94,6 +94,7 @@ add_executable(${PROJECT_NAME}_server
    src/planner.cpp
    src/dispatcher.cpp
    src/marker.cpp
+   src/database.cpp
 )
 
 target_link_libraries(
