@@ -24,7 +24,13 @@ void init();
 minibot::Configuration getSettings();
 void setSettings(const minibot::Configuration & settings);
 
+	// read/write pose storarge
+void setPoseStorage(const minibot::PoseStorage & settings);
+minibot::PoseStorage getPoseStorage();
 
+	// read/write programme
+void setProgramme(const minibot::Programme & settings);
+minibot::Programme getProgramme();
 
 	// handle incoming database Requests
 bool handleDatabaseAction(minibot::Database::Request &req,
