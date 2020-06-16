@@ -138,7 +138,7 @@
                         opacity = 0;
                       } else {
                         elem.style.opacity = opacity; 
-                        setTimeout(function(){updateOpacity(elem,add);}, 500*(Math.abs(add))); 
+                        setTimeout(function(){updateOpacity(elem,add);}, 1000*(Math.abs(add))); 
                       }
                  }     
                  setTimeout(function(){updateOpacity(splash,-0.01);}, 1000); 
@@ -160,7 +160,7 @@
                     opacity = 0.0;
                     setTimeout(function(){updateOpacity(root,0.01);}, 0); 
 
-                 }, 2000);
+                 }, 2500);
             
                  window.addEventListener("resize", resize);
             
