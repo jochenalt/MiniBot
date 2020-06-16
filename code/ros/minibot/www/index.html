@@ -94,6 +94,15 @@
                  robotPanel.initialize(robotViewColor);
             }
 
+            function updateOpacity(elem, opacity, add) {
+                opacity = opacity + add;
+                if ((opacity < 0)  || (opacity >1)) {
+                    opacity = 0;
+                } else {
+                    elem.style.opacity = opacity; 
+                    setTimeout(function(){updateOpacity(elem,opacity,add);}, 1000*(Math.abs(add))); 
+                }
+            }     
           
             // will be called after loading the DOM tree 
             function init() {
@@ -131,17 +140,7 @@
 
                  // fade out the splash            
                  var splash = document.getElementById("splashscreenImage");
-                 var opacity = 1.0;
-                 function updateOpacity(elem, add) {
-                      opacity = opacity + add;
-                      if ((opacity < 0)  || (opacity >1)) {
-                        opacity = 0;
-                      } else {
-                        elem.style.opacity = opacity; 
-                        setTimeout(function(){updateOpacity(elem,add);}, 1000*(Math.abs(add))); 
-                      }
-                 }     
-                 setTimeout(function(){updateOpacity(splash,-0.01);}, 1000); 
+                 setTimeout(function(){updateOpacity(splash,1.0, -0.01);}, 1000); 
 
                 
                  // kinematics panel needs to load the robot model first before the unit can be changed 
@@ -157,8 +156,7 @@
 
                     // fade in the view 
                     var root = document.getElementById("root");
-                    opacity = 0.0;
-                    setTimeout(function(){updateOpacity(root,0.01);}, 0); 
+                    setTimeout(function(){updateOpacity( root,0.0, 0.01);}, 0); 
 
                  }, 2500);
             
