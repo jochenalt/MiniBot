@@ -9,10 +9,8 @@
 #define INCLUDE_DATABASE_H_
 
 #include "ros/ros.h"
-#include <geometry_msgs/Pose.h>
-#include <minibot/JointStateConfiguration.h>
-#include <minibot/MinibotState.h>
 #include <minibot/Configuration.h>
+#include <minibot/Database.h>
 
 namespace Minibot {
 namespace Database {
@@ -20,8 +18,17 @@ namespace Database {
 extern minibot::Configuration settings;
 
 	// call me before anything happens in the database
-void init(const ros::NodeHandle& nh);
+void init();
 
+	// read/write settings from the database
+minibot::Configuration getSettings();
+void setSettings(const minibot::Configuration & settings);
+
+
+
+	// handle incoming database Requests
+bool handleDatabaseAction(minibot::Database::Request &req,
+						  minibot::Database::Response &res);
 
 }
 }

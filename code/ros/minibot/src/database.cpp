@@ -5,16 +5,23 @@
  *      Author: jochenalt
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "mongodb_store/message_store.h"
-#include "geometry_msgs/Pose.h"
+
 #include <minibot/Configuration.h>
+#include <minibot/ErrorCodes.h>
 
 #include <boost/foreach.hpp>
 #include "database.h"
+#include "node.h"
+#include "utils.h"
 
 namespace Minibot {
 namespace Database {
+
+std::string database_prefix = "DATABASE:";
 
 #define LOG_NAME "database"
 
@@ -26,58 +33,67 @@ std::string settings_store_db_key = "settings_store";
 std::string pose_store_db_key = "pose_store";
 std::string priramme_store_db_key = "programme_store";
 
-minibot::Configuration settings;
 
+void init() {
+	// initialize the proxy to mongo
+	ros::NodeHandle nh;
+	messageStore = new MessageStoreProxy (nh);
 
-void init(const ros::NodeHandle& nh) {
-    //Create object which does the work for us.
-	messageStore = new MessageStoreProxy(nh);
+	// read the settings to ensure that it is initialized
+	getSettings();
+}
 
+minibot::Configuration getSettings() {
+
+	minibot::Configuration settings;
 	std::vector< boost::shared_ptr<minibot::Configuration> > results;
 	if (messageStore->queryNamed<minibot::Configuration>(settings_store_db_key, results)) {
-		  // expect only one result
+		// expect only one result
 		if (results.size() != 1) {
 			ROS_DEBUG_STREAM_NAMED(LOG_NAME, "Minibot::Database::init" <<
 					" more than one settings object found");
 		} else {
 			settings = *results[0];
 		}
-
-
 	} else {
 		settings.theme = "cyborg";
 		settings.angle_unit = minibot::Configuration::ANGLE_UNIT_RAD;
 		settings.save_after = ros::Duration(3000,0);
 		messageStore->insertNamed(settings_store_db_key, settings);
 	}
-
-	/*
-	 global statements, robotstates, configuration
-	  db = MessageStoreProxy()
-	  (poseStorage, meta) = db.query_named("default_pose_storage1",PoseStorage._type)
-	  if poseStorage is None:
-	    poseStorage = PoseStorage()
-	    db.insert_named("default_pose_storage1",poseStorage)
-	  robotstates = poseStorage.states
-
-	  (programme, meta) = db.query_named("default_programme1", Programme._type)
-	  if programme is None:
-	    programme = Programme()
-	    db.insert_named("default_programme1",programme)
-	  statements = programme.statements
-
-	  (configuration, meta) = db.query_named("mysettings", Configuration._type)
-	  if configuration is None:
-	    configuration = Configuration()
-	    configuration.theme = "cyborgTheme"
-	    configuration.angle_unit = Configuration.ANGLE_UNIT_RAD
-	    configuration.save_after
-	    configuration.save_after.secs = 3000
-	    configuration.save_after.nsecs = 0
-
-	    db.insert_named("mysettings",configuration)
-*/
-
+	return settings;
 }
+
+void setSettings(const minibot::Configuration & settings) {
+	ros::NodeHandle nh;
+	messageStore->updateNamed(settings_store_db_key, settings);
+}
+
+bool handleDatabaseAction(minibot::Database::Request &req,
+						  minibot::Database::Response &res) {
+	switch (req.type) {
+	case minibot::Database::Request::READ_SETTINGS:
+		res.configuration = getSettings();
+		res.error_code.val = minibot::ErrorCodes::SUCCESS;
+
+		break;
+	case minibot::Database::Request::WRITE_SETTINGS:
+		setSettings(req.configuration);
+		res.error_code.val = minibot::ErrorCodes::SUCCESS;
+		break;
+	case minibot::Database::Request::READ_POSES:
+	case minibot::Database::Request::WRITE_POSES:
+	case minibot::Database::Request::READ_PROGRAMME:
+	case minibot::Database::Request::WRITE_PROGRAMME:
+	default:
+		ROS_DEBUG_STREAM_NAMED (LOG_NAME, "Minibot::Database::handleDatabaseAction invalid type=" << req.type);
+		pub_msg.publish(Minibot::Utils::createMsg(database_prefix + err_msg_prefix  + "Don't know the database action " + std::to_string(req.type) ));
+		res.error_code.val = minibot::ErrorCodes::FAILURE;
+		return true;
+	}
+
+	return true;
+}
+
 }
 }

@@ -16,7 +16,7 @@
   </include>
 
   <!-- start the trajectory planning node --> 
-  <node pkg="minibot" type="planning.py" name="planning" output="screen"/>
+  <!-- <node pkg="minibot" type="planning.py" name="planning" output="screen"/> -->
 
   <!-- start the server node planning node --> 
   <!--

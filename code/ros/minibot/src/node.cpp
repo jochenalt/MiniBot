@@ -46,14 +46,12 @@ int main(int argc, char *argv[]) {
 		ros::init(argc, argv, "minibot_server");
 		ros::NodeHandle nh;
 		ROS_INFO_STREAM("starting minibot server node");
-        //Create object which does the work for us.
-        MessageStoreProxy messageStore(nh);
 
 		Minibot::Utils::init();
 		Minibot::Planner::init();
 		Minibot::Kinematics::init();
 		Minibot::Gearwheel::init();
-		Minibot::Database::init(nh);
+		Minibot::Database::init();
 
 		// publish messages to UI
 		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
@@ -79,6 +77,9 @@ int main(int argc, char *argv[]) {
 		// publish new joint states, consumed by UI
 		pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 10);
 
+		// database service
+		ros::ServiceServer database_srv = nh.advertiseService("database", Minibot::Database::handleDatabaseAction);
+
 		ros::AsyncSpinner spinner(0); // 0 = one thread per core
 		spinner.start();
 
@@ -88,7 +89,6 @@ int main(int argc, char *argv[]) {
 		while(ros::ok()) {
 
 			// joint state publisher: take the most recent joint_state and publish it to /joint_states
-
 			minibot::MinibotState state = Minibot::Kinematics::getLastMinibotState();
 			state.joint_state.header.stamp = ros::Time::now();
 			state.joint_state.header.seq = joint_states_seq++;

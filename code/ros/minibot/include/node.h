@@ -28,6 +28,8 @@ extern ros::Publisher pub_tcp_ui;
 // publish updates from gearwheel
 extern ros::Publisher pub_gearwheel_pose;
 
+// publisher for messages
+extern ros::Publisher pub_msg;
 
 
 
