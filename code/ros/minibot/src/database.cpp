@@ -86,7 +86,7 @@ bool handleDatabaseAction(minibot::Database::Request &req,
 	case minibot::Database::Request::READ_PROGRAMME:
 	case minibot::Database::Request::WRITE_PROGRAMME:
 	default:
-		ROS_DEBUG_STREAM_NAMED (LOG_NAME, "Minibot::Database::handleDatabaseAction invalid type=" << req.type);
+		ROS_ERROR_STREAM_NAMED (LOG_NAME, "Minibot::Database::handleDatabaseAction invalid type=" << req.type);
 		pub_msg.publish(Minibot::Utils::createMsg(database_prefix + err_msg_prefix  + "Don't know the database action " + std::to_string(req.type) ));
 		res.error_code.val = minibot::ErrorCodes::FAILURE;
 		return true;
