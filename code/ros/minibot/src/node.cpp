@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 		pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 10);
 
 		// database service
-		ros::ServiceServer database_srv = nh.advertiseService("database", Minibot::Database::handleDatabaseAction);
+		ros::ServiceServer database_srv = nh.advertiseService("/database", Minibot::Database::handleDatabaseAction);
 
 		ros::AsyncSpinner spinner(0); // 0 = one thread per core
 		spinner.start();

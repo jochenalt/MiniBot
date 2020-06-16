@@ -53,9 +53,8 @@ PoseStorePanel.Init = function(options) {
             poseItem.uid = minibotState.uid;
             poseItem.id = minibotState.id;
             poseItem.name = minibotState.name;
-            poseItem.pose = new Object();
-            poseItem.pose.pose = minibotState.pose;
-            poseItem.jointState = minibotState.jointState;            
+            poseItem.pose = minibotState.pose;
+            poseItem.joint_state = minibotState.joint_state;            
           }
 
           // update DOM 
@@ -91,7 +90,7 @@ PoseStorePanel.Init = function(options) {
       minibotState.id = idx;
       minibotState.uid = poseItem.uid;
       minibotState.name = poseItem.name;
-      minibotState.jointState = poseItem.jointState;
+      minibotState.joint_state = poseItem.joint_state;
       minibotState.pose = poseItem.pose.pose;
       minibotStates[idx] = minibotState;
     }
@@ -130,7 +129,7 @@ PoseStorePanel.Init = function(options) {
       var id = idx;
       poseItem.widget.childNodes[0].innerHTML = (id + 1).toString() + '<br/>' + poseItem.uid.toString();
       poseItem.widget.childNodes[1].textContent = poseItem.name;
-      poseItem.widget.childNodes[2].innerHTML = getPoseString(poseItem.pose, poseItem.jointState);
+      poseItem.widget.childNodes[2].innerHTML = getPoseString(poseItem.pose.pose, poseItem.joint_state);
 
       // set an id for proper identification of the widget in callbacks
       poseItem.widget.id = idx;
@@ -170,7 +169,7 @@ PoseStorePanel.Init = function(options) {
     }
 
     poseItem.uid = max;
-    poseItem.jointState = null;
+    poseItem.joint_state = null;
     poseItem.name = null;
     poseItem.pose = null;
 
@@ -200,12 +199,12 @@ PoseStorePanel.Init = function(options) {
     return poseItem;
   }
 
-  var updatePoseItem = function(uid, name, pose, jointState) {
+  var updatePoseItem = function(uid, name, pose, joint_state) {
     var id = getPoseItemIDByUID(uid);
     if (id >= 0) {
       poseItems[id].name = name;
       poseItems[id].pose = pose;
-      poseItems[id].jointState = jointState;
+      poseItems[id].joint_state = joint_state;
 
       // update the dom accordingly 
       updateWidgets();
@@ -237,7 +236,9 @@ PoseStorePanel.Init = function(options) {
 
   // return a short string out of a pose that is used in the badges 
   var getPoseString = function(pose, jointState) {
-    var s = Math.round(pose.position.x * 1000).toString() + '/' + Math.round(pose.position.y * 1000).toString() + '/' + Math.round(pose.position.z * 1000).toString();
+    var s = Math.round(pose.position.x * 1000).toString() + '/' + 
+            Math.round(pose.position.y * 1000).toString() + '/' + 
+            Math.round(pose.position.z * 1000).toString();
     return s;
   }
 
@@ -257,7 +258,7 @@ PoseStorePanel.Init = function(options) {
     var li = event.target.parentNode;
     var id = parseInt(li.getAttribute('id'));
     var poseItem = getPoseItem(id);
-    var jointState = poseItem.jointState;
+    var jointState = poseItem.joint_state;
     if (jointState != null)
       kinematicsPanel.setJointState(jointState);
     else {
@@ -428,7 +429,7 @@ PoseStorePanel.Init = function(options) {
       var jointState = kinematicsPanel.getCurrentJointState();
       var poseItem = getPoseItem(id);
       poseItem.pose = pose;
-      poseItem.jointState = jointState;
+      poseItem.joint_state = jointState;
 
       // we need to change the badges, store everyhting and  inform the proramme panel 
       updateWidgets();
@@ -489,7 +490,7 @@ PoseStorePanel.Init = function(options) {
   function setPoseByUID(uid) {
     var id =  getPoseItemIDByUID(uid);
     if (id != null && id >= 0 && id<poseItems.length) {      
-      var jointState = poseItems[id].jointState;
+      var jointState = poseItems[id].joint_state;
       if (jointState != null)
         kinematicsPanel.setJointState(jointState);
       else {
@@ -512,7 +513,7 @@ PoseStorePanel.Init = function(options) {
   function getJointStateByUID(uid) {
     var id = getPoseItemIDByUID(uid);
     if (id != null && id >= 0 && id<poseItems.length)
-      return poseItems[id].jointState;
+      return poseItems[id].joint_state;
     else
       return null;
   }

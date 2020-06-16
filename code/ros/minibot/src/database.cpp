@@ -121,7 +121,6 @@ bool handleDatabaseAction(minibot::Database::Request &req,
 	case minibot::Database::Request::READ_SETTINGS:
 		res.configuration = getSettings();
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
-
 		break;
 	case minibot::Database::Request::WRITE_SETTINGS:
 		setSettings(req.configuration);
