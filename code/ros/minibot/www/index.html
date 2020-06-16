@@ -129,17 +129,35 @@
                  settingsPanel.setProgrammePanel(poseStorePanel);
                  poseStorePanel.setProgrammePanel(programmePanel);
             
+
+                 var img = document.getElementById("splashscreenImage");
+                 var opacity = 1.0;
+                 function updateOpacity() {
+                      opacity = opacity - 0.02;
+                      if(opacity <= 0) {
+                        // done
+                        opacity = 0;
+                      } else {
+                        img.style.opacity = opacity; 
+                        setTimeout(function(){updateOpacity();}, 500/(1/0.02)); // 50 is the delay, 50milliseconds
+                      }
+                 }     
+                 setTimeout(function(){updateOpacity();}, 1500); // 50 is the delay, 50milliseconds
+
+
                  // kinematics panel needs to load the robot model first before the unit can be changed 
                  setTimeout(function() {
                     settingsPanel.setWidgets();                    
                     programmePanel.refresh();
 
+
+                    // 
                     // initialize planning view
                     switchToPlan();
 
                     // and call the theme again to display the robot view 
                     settingsPanel.callSetGlobalTheme();
-                 }, 1500);
+                 }, 2000);
             
                  window.addEventListener("resize", resize);
             
@@ -237,10 +255,15 @@
         </script>
     </head>
     <body onload="init()">
+        <!-- show the splashscreen when loading, everything else is not displayed but activated once the page is fully loaded-->
         <div id="splashscreen">
-            <img src="/minibot/splashscreen-things.gif" style="height:100vh;width:100%;"/>
+            <img id="splashscreenImage" src="/minibot/splashscreen-steam.gif" style="height:100vh;width:100%;"/>
         </div>
+
+        <!-- here starts the real webpage -->
         <div id="root" class="container-fluid  d-flex flex-column m-0 ml-3 p-0" style="height:98vh;width:98vw;" >
+
+            <!-- title line and menu -->
             <div class="row  m-0 p-0" >
                 <div class="col m-0 p-0">
                     <nav id="navbarPanel" class="navbar navbar-expand-md m-0 p-0" style="display:none;">
@@ -263,12 +286,16 @@
                     </nav>  
                 </div>
             </div>
+
+            <!-- robot view showing the current position of the bot -->
             <div class="row flex-grow-1 m-0 p-0">
                 <div id="RobotViewOuter" class="d-none col-6 d-flex p-0 m-0">
                     <div  id="RobotView" class="d-none col bg-light border my-1 ml-0 mr-1 p-0">
                         <div id="urdf" class=" p-0 m-0" ></div>
                     </div>
                 </div>
+
+                <!-- kinematics panel for adjusting the position and joints  -->
                 <div id="kinematicsPanel" class="row d-none col-2 mx-0 p-0" style="display:none;">
                     <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0">
                         <div class="w-100  mx-1 mt-1 mb-0 px-2" style="height:1rem;" >
@@ -425,6 +452,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- panel for storing and maintaing poses -->
                 <div id="posePanel" class="row d-none col-2 mx-0 p-0" style="display:none;">
                     <div class="row d-flex bg-light border my-1 ml-0 mr-1 p-0 vw-100">
                         <div class="col w-100 p-0 m-0 " >
@@ -460,6 +489,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- panel for creating and maintaining movement programmes -->
                 <div id="planningPanel" class="row d-none col-2 mx-0 p-0" style="display:none;">
                     <div class="row d-flex bg-light border my-1 ml-0 mr-0 p-0">
                         <div class="col w-100 p-0 m-0 " >
@@ -589,6 +620,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- settings panel. Not visible when started -->
                 <div id="settingsPanel" class="d-none col mx-0 p-0 pl-0"  style="display:none;">
                     <div class="row d-flex flex-grow-1 bg-light border my-1 ml-0 mr-0 p-0">
                         <div class="w-100 p-0 m-0 " style="height:1rem;">
