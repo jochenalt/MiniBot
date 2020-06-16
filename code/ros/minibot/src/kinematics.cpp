@@ -89,7 +89,8 @@ minibot::MinibotState getLastMinibotState() {
 }
 
 
-// returns an artifical distance between two joint states.
+// returns an artifical distance between two joint states, used to asses different configurations and find
+// the one which is closest to the current joints position
 // many small changes in the joints are considered closer source than a few big changes.
 double jointModelDistance(const sensor_msgs::JointState& a, const sensor_msgs::JointState& b) {
   double sum = 0;
@@ -167,17 +168,6 @@ bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& j
 		// check for self-collision if limits are fine
 		// planning_scene::PlanningScenePtr ptr(&planning_scene);
 		bool limits_and_no_collision  = limits_are_ok && !inSelfCollision(kinematic_state);
-
-
-		ROS_DEBUG_STREAM_NAMED(LOG_NAME, " sol[" << i << "]=[" << std::setprecision(5)
-					   << solValues[0]<< ", "
-					   << solValues[1]<< ", "
-					   << solValues[2]<< ", "
-					   << solValues[3]<< ", "
-					   << solValues[4]<< ", "
-					   << solValues[5]  << "] "
-					   << (limits_are_ok?"in bounds":"out of bounds") << ", "
-					   << (limits_are_ok && limits_and_no_collision?"non colliding":(limits_are_ok?"self-colling":"")));
 
 
 		if (limits_and_no_collision)

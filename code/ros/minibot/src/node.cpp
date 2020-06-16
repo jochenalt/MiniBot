@@ -1,12 +1,25 @@
+
+#include "mongodb_store/message_store.h"
+#include <boost/foreach.hpp>
+
+#include <sstream>
+#include <cassert>
+
+using namespace mongodb_store;
+using namespace std;
+
+
 #include <ros/ros.h>
 
 #include "utils.h"
 #include "node.h"
 #include "kinematics.h"
 #include "dispatcher.h"
+#include "database.h"
 #include "marker.h"
-
 #include "planner.h"
+#include "constants.h"
+
 
 // publisher of new joint values
 ros::Publisher pub_joint_state_uiui;
@@ -33,11 +46,14 @@ int main(int argc, char *argv[]) {
 		ros::init(argc, argv, "minibot_server");
 		ros::NodeHandle nh;
 		ROS_INFO_STREAM("starting minibot server node");
+        //Create object which does the work for us.
+        MessageStoreProxy messageStore(nh);
 
 		Minibot::Utils::init();
 		Minibot::Planner::init();
 		Minibot::Kinematics::init();
 		Minibot::Gearwheel::init();
+		Minibot::Database::init(nh);
 
 		// publish messages to UI
 		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
@@ -66,13 +82,16 @@ int main(int argc, char *argv[]) {
 		ros::AsyncSpinner spinner(0); // 0 = one thread per core
 		spinner.start();
 
-		ros::Rate loop_rate(20);
+		// carry out a loop that publishs the joint_states at 20Hz
+		ros::Rate loop_rate(joint_state_publish_rate);
+		uint32_t joint_states_seq = 0;
 		while(ros::ok()) {
 
 			// joint state publisher: take the most recent joint_state and publish it to /joint_states
+
 			minibot::MinibotState state = Minibot::Kinematics::getLastMinibotState();
 			state.joint_state.header.stamp = ros::Time::now();
-			state.joint_state.header.seq++;
+			state.joint_state.header.seq = joint_states_seq++;
 			pub_joint_state.publish(state.joint_state);
 
 			loop_rate.sleep();

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(minibot)
 
-## Compile as C++11, supported in ROS Kinetic and newer
+## Compile as C++14 and with full debug information
 add_compile_options(-std=c++14 -g2)
 
 ## Find catkin macros and libraries
@@ -22,6 +22,9 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(LAPACK REQUIRED)
+find_package(Boost REQUIRED COMPONENTS 
+    system thread program_options filesystem)
+find_package(Boost REQUIRED system)
 
 ## Generate messages in the 'msg' folder
 add_message_files(
@@ -95,11 +98,15 @@ add_executable(${PROJECT_NAME}_server
    src/dispatcher.cpp
    src/marker.cpp
    src/database.cpp
+   src/message_store.cpp
 )
 
 target_link_libraries(
    ${PROJECT_NAME}_server ${catkin_LIBRARIES}
    ${LAPACK_LIBRARIES} # required for IKFast
+   ${Boost_LIBRARIES}
+   ${Boost_SYSTEM_LIBRARY}
+   $ENV{HOME}/mongo-client-install/lib/libmongoclient.a
 )
 
 

@@ -188,6 +188,15 @@ sudo apt-get install ros-melodic-mongodb-store
 sudo mkdir /opt/ros/mongodb_store
 sudo chmod a+w /opt/ros/mongodb_store
 
+-- install c++ driver for mongo (according to http://mongocxx.org/legacy-v1/installation/)
+-- dont install libmongoclient-dev!
+cd ~
+git clone -b releases/legacy https://github.com/mongodb/mongo-cxx-driver.git
+cd mongo-cxx-driver/
+git checkout legacy
+scons --c++11=on --prefix=$HOME/mongo-client-install install
+scons --disable-warnings-as-errors --c++11=on --prefix=$HOME/mongo-client-install install 
+
 --- install moveit
 sudo apt-get install ros-melodic-moveit
 

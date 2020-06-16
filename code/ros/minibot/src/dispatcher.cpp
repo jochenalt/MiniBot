@@ -41,7 +41,6 @@ void updateTCPCallback(const minibot::MinibotState& state) {
 	  new_state.pose.pose = state.pose.pose;
 	  new_state.pose.tool_length = state.pose.tool_length;
 
-
 	  // publish joint values and all configurations
 	  pub_joint_state_ui.publish(new_state.joint_state);
 	  pub_joint_values_config.publish(jointStateConfiguration);
