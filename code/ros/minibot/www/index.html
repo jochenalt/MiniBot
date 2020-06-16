@@ -128,35 +128,38 @@
                  settingsPanel.setPoseStorePanel(poseStorePanel);
                  settingsPanel.setProgrammePanel(poseStorePanel);
                  poseStorePanel.setProgrammePanel(programmePanel);
-            
 
-                 var img = document.getElementById("splashscreenImage");
+                 // fade out the splash            
+                 var splash = document.getElementById("splashscreenImage");
                  var opacity = 1.0;
-                 function updateOpacity() {
-                      opacity = opacity - 0.02;
-                      if(opacity <= 0) {
-                        // done
+                 function updateOpacity(elem, add) {
+                      opacity = opacity + add;
+                      if ((opacity < 0)  || (opacity >1)) {
                         opacity = 0;
                       } else {
-                        img.style.opacity = opacity; 
-                        setTimeout(function(){updateOpacity();}, 500/(1/0.02)); // 50 is the delay, 50milliseconds
+                        elem.style.opacity = opacity; 
+                        setTimeout(function(){updateOpacity(elem,add);}, 500*(Math.abs(add))); 
                       }
                  }     
-                 setTimeout(function(){updateOpacity();}, 1500); // 50 is the delay, 50milliseconds
+                 setTimeout(function(){updateOpacity(splash,-0.01);}, 1000); 
 
-
+                
                  // kinematics panel needs to load the robot model first before the unit can be changed 
                  setTimeout(function() {
                     settingsPanel.setWidgets();                    
                     programmePanel.refresh();
 
-
-                    // 
                     // initialize planning view
                     switchToPlan();
 
                     // and call the theme again to display the robot view 
                     settingsPanel.callSetGlobalTheme();
+
+                    // fade in the view 
+                    var root = document.getElementById("root");
+                    opacity = 0.0;
+                    setTimeout(function(){updateOpacity(root,0.01);}, 0); 
+
                  }, 2000);
             
                  window.addEventListener("resize", resize);
@@ -261,7 +264,7 @@
         </div>
 
         <!-- here starts the real webpage -->
-        <div id="root" class="container-fluid  d-flex flex-column m-0 ml-3 p-0" style="height:98vh;width:98vw;" >
+        <div id="root" class="container-fluid  d-flex flex-column m-0 ml-3 p-0" style="height:98vh;width:98vw;opacity:0.0;" >
 
             <!-- title line and menu -->
             <div class="row  m-0 p-0" >
