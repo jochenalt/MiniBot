@@ -91,7 +91,8 @@ PoseStorePanel.Init = function(options) {
       minibotState.uid = poseItem.uid;
       minibotState.name = poseItem.name;
       minibotState.joint_state = poseItem.joint_state;
-      minibotState.pose = poseItem.pose.pose;
+      minibotState.pose.pose = poseItem.pose.pose;
+      minibotState.pose.tool_length = poseItem.pose.tool_length;
       minibotStates[idx] = minibotState;
     }
 
