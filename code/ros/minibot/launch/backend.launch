@@ -32,9 +32,7 @@
 
   <!-- throttle tf before sending to the rosbridge server -->
   <node name="tf2_web_republisher" pkg="tf2_web_republisher" type="tf2_web_republisher">
-    <rosparam param="angularThres">0.0001</rosparam>
-    <rosparam param="transThres">0.0001</rosparam>
-    <rosparam param="rate">20</rosparam> <!-- maximum frequency sent to the browser -->
+    <rosparam param="rate">25</rosparam> <!-- maximum frequency sent to the browser -->
   </node>
 
   <!-- provide websocket procotol to let the server communicate with the browsser-->
