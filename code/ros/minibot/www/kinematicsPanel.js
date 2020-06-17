@@ -294,12 +294,12 @@ KinematicsPanel.Init = function(options) {
     // set the same value in sibbling widget (slider vs input)
     document.getElementById(target).value = Utils.angleRound(parseFloat(event.target.value)); 
 
-    // retrieve current joint
+    // retrieve current state
     var minibotState = getCurrentMinibotState();
 
     // and publish joint state, but throttled  
     Utils.callThrottler("newJoint", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
-      jointInputTopic.publish(params);
+      pubMinibotStateJoints.publish(params);
     },minibotState);
 
     // block joint input from kinematics while we turn the sliders (and 0.5 seconds afterwards)
@@ -309,7 +309,7 @@ KinematicsPanel.Init = function(options) {
     //});
   }
 
-  var jointInputTopic  = new ROSLIB.Topic({
+  var pubMinibotStateJoints  = new ROSLIB.Topic({
       ros : ros,
       name : jointInputTopicName,
       messageType : 'minibot/MinibotState'
@@ -417,28 +417,6 @@ KinematicsPanel.Init = function(options) {
     Utils.callThrottler("publishTCP", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
         tcpInputTopic.publish(params);              
     }, minibotState);
-
-    // call IK
-    /*
-    kinematicsUtils.computeAllIK (getCurrentJointState(),tcpPose.pose, function(solutions) {
-      setIKSolutions(solutions);
-      if (solutions.length > 0)
-        jointInputTopic.publish(solutions[currentIkSolutionIdx].joint_state);      
-    }, function(err) {
-      displayErr("no IK solution found (" + err + ")");
-    }
-    )*/
-
-    // publish the new pose and trigger inverse kinematics
-    //Utils.callThrottler("publishTCP", Constants.Kinematics.MAX_KINEMATICS_RATE, function(params) {
-    //    tcpInputTopic.publish(params);              
-    //}, tcpPose);
-
-    // block tcp input from kinematics while we turn the sliders
-    // Utils.stopMutex("blockTcp");
-    // Utils.callDelay("blockTcp", Constants.Kinematics.BLOCK_UI_INPUT_TIME, function() {
-    //  Utils.releaseMutex("blockTcp", setTcpView );
-    //});
   }
 
   var callbackToolDistanceInputKeyUp = function(event) {
@@ -501,7 +479,7 @@ KinematicsPanel.Init = function(options) {
     listener.subscribe(function(msgJointState) {
       setJointView(msgJointState);
       var minibotState = getCurrentMinibotState();
-      jointInputTopic.publish(minibotState)
+      pubMinibotStateJoints.publish(minibotState)
       listener.unsubscribe();
     });
   };
@@ -612,17 +590,16 @@ KinematicsPanel.Init = function(options) {
       joint_state: {
         name: names,
         position: values
-      }
+      },
+      configuration: solutionsIK
     });  
     return state;
   }
 
-  function setState(minibotState) {
-    tcpInputTopic.publish(minibotState);
-  }
-
-  function setJointState(jointState) {
-    jointInputTopic.publish(jointState);
+  function setCurrentMinibotState(minibotState) {
+    solutionsIK = minibotState.configuration;
+    setJointView (minibotState.joint_state)
+    pubMinibotStateJoints.publish(minibotState);
   }
 
   // call init in contructor
@@ -634,9 +611,8 @@ KinematicsPanel.Init = function(options) {
         refresh: refresh,
         setZeroPosition: setZeroPosition,
         getCurrentPose: getCurrentPose,
-        getCurrentJointState: getCurrentJointState,
-        setState: setState,
-        setJointState: setJointState,
+        getCurrentMinibotState: getCurrentMinibotState,
+        setCurrentMinibotState: setCurrentMinibotState,
         changeConfiguration: changeConfiguration
   };
 };

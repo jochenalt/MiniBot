@@ -48,13 +48,9 @@ PoseStorePanel.Init = function(options) {
         if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
           poseItems = [];
           for (var idx = 0;idx < result.pose_store.states.length;idx ++) {
-            var minibotState = result.pose_store.states[idx];
+            // create a pose with the DOM entries, but set all the rest by the database minibot state
             var poseItem = createPoseItem();
-            poseItem.uid = minibotState.uid;
-            poseItem.id = minibotState.id;
-            poseItem.name = minibotState.name;
-            poseItem.pose = minibotState.pose;
-            poseItem.joint_state = minibotState.joint_state;            
+            poseItem.minibot_state = result.pose_store.states[idx];
           }
 
           // update DOM 
@@ -85,15 +81,7 @@ PoseStorePanel.Init = function(options) {
 
     var minibotStates = [];
     for (var idx = 0;idx < poseItems.length;idx++) {
-      var minibotState = new Object();
-      var poseItem = poseItems[idx];
-      minibotState.id = idx;
-      minibotState.uid = poseItem.uid;
-      minibotState.name = poseItem.name;
-      minibotState.joint_state = poseItem.joint_state;
-      minibotState.pose.pose = poseItem.pose.pose;
-      minibotState.pose.tool_length = poseItem.pose.tool_length;
-      minibotStates[idx] = minibotState;
+      minibotStates.push(poseItems[idx].minibot_state);
     }
 
     // read the poses from the database
@@ -129,10 +117,10 @@ PoseStorePanel.Init = function(options) {
       var poseItem = poseItems[idx];
       var id = idx;
       poseItem.widget.childNodes[0].innerHTML = (id + 1).toString() + '<br/>' + poseItem.uid.toString();
-      poseItem.widget.childNodes[1].textContent = poseItem.name;
-      poseItem.widget.childNodes[2].innerHTML = getPoseString(poseItem.pose.pose, poseItem.joint_state);
+      poseItem.widget.childNodes[1].textContent = poseItem.minibot_state.name;
+      poseItem.widget.childNodes[2].innerHTML = getPoseString(poseItem.minibot_state);
 
-      // set an id for proper identification of the widget in callbacks
+     // set an id for proper identification of the widget in callbacks
       poseItem.widget.id = idx;
       poseItem.widget.childNodes[0].id = idx;
       poseItem.widget.childNodes[1].id = idx;
@@ -149,7 +137,7 @@ PoseStorePanel.Init = function(options) {
     return -1;
   }
 
-  // create an element that looks like this:
+  // creates a MinibotPose and the according DOM element that looks like this:
   // <li class="list-group-item list-group-item-action active" id = "0">
   //    <span class="badge badge-primary float-left mr-2">1</span>    
   //    text
@@ -169,13 +157,12 @@ PoseStorePanel.Init = function(options) {
         max = currUID + 1;
     }
 
+    poseItem.minibot_state = null;
     poseItem.uid = max;
-    poseItem.joint_state = null;
-    poseItem.name = null;
-    poseItem.pose = null;
 
     var li = document.createElement('LI');
     li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center p-1');
+    li.ondblclick = renamePoseCallback;
 
     var leftSpan = document.createElement("SPAN");
     leftSpan.setAttribute('class', 'badge badge-light float-left mr-1 ml-0 justify-content-center align-self-center');
@@ -200,12 +187,11 @@ PoseStorePanel.Init = function(options) {
     return poseItem;
   }
 
-  var updatePoseItem = function(uid, name, pose, joint_state) {
+  var updatePoseItem = function(uid, minibotState) {
     var id = getPoseItemIDByUID(uid);
     if (id >= 0) {
-      poseItems[id].name = name;
-      poseItems[id].pose = pose;
-      poseItems[id].joint_state = joint_state;
+      var poseItem = poseItems[id];
+      poseItem.minibot_state = minibotState;
 
       // update the dom accordingly 
       updateWidgets();
@@ -217,6 +203,7 @@ PoseStorePanel.Init = function(options) {
     }
     return null;
   }
+
   var movePoseItem = function(uid, newId) {
     var id = getPoseItemIDByUID(uid);
     if (id >= 0) {
@@ -236,18 +223,18 @@ PoseStorePanel.Init = function(options) {
 
 
   // return a short string out of a pose that is used in the badges 
-  var getPoseString = function(pose, jointState) {
-    var s = Math.round(pose.position.x * 1000).toString() + '/' + 
-            Math.round(pose.position.y * 1000).toString() + '/' + 
-            Math.round(pose.position.z * 1000).toString();
+  var getPoseString = function(minibotState) {
+    var s = Math.round(minibotState.pose.pose.position.x * 1000).toString() + '/' + 
+            Math.round(minibotState.pose.pose.position.y * 1000).toString() + '/' + 
+            Math.round(minibotState.pose.pose.position.z * 1000).toString();
     return s;
   }
 
 
-  var createPoseElement = function(name, pose, jointState) {
+  var createPoseElement = function(minibotState) {
     // create and update the new pose
     var newPoseItem = createPoseItem();
-    updatePoseItem(newPoseItem.uid, name, pose, jointState);
+    updatePoseItem(newPoseItem.uid, minibotState);
     
     // update DOM
     updateWidgets();
@@ -256,17 +243,17 @@ PoseStorePanel.Init = function(options) {
   }
 
   var activatePose = function(event) {
-    var li = event.target.parentNode;
-    var id = parseInt(li.getAttribute('id'));
+    var id = parseInt(event.target.parentNode.getAttribute('id'));
     var poseItem = getPoseItem(id);
-    var jointState = poseItem.joint_state;
-    if (jointState != null)
-      kinematicsPanel.setJointState(jointState);
-    else {
-      var pose = poseItem.pose;
-      kinematicsPanel.setPose(pose);
-    }
+    kinematicsPanel.setCurrentMinibotState(poseItem.minibot_state);
+  }
 
+  // called from a double click in a pose
+  var renamePoseCallback = function(event) {
+    var id = parseInt(event.target.parentNode.getAttribute('id'));
+    activate(id);
+
+    renamePose();
   }
 
   var callbackKeyDown = function(event) {
@@ -277,7 +264,7 @@ PoseStorePanel.Init = function(options) {
     }
     if (event.key == 'Enter') {
       var poseItem = getPoseItem(id);
-      poseItem.name = event.target.value
+      poseItem.minibot_state.name = event.target.value
       cancelEditMode();
       updateWidgets();
 
@@ -332,7 +319,7 @@ PoseStorePanel.Init = function(options) {
       var id = inputWidget.parentNode.id;
       var poseItem = getPoseItem(id);
       var li = getPoseItem(id).widget;
-      var text = document.createTextNode(poseItem.name);
+      var text = document.createTextNode(poseItem.minibot_state.name);
       li.removeChild(inputWidget);
       li.insertBefore(text, li.childNodes[1]); // insert between the two spans
     }
@@ -353,10 +340,10 @@ PoseStorePanel.Init = function(options) {
       inputWidget.id = 'poseStorePanelInputField'
       inputWidget.onkeydown = callbackKeyDown;
       inputWidget.onfocusout = callbackFocusOut;
-      inputWidget.value = poseItem.name;
+      inputWidget.value = poseItem.minibot_state.name;
       inputWidget.type = 'text';
-      inputWidget.setAttribute('class', 'form-control');
-      poseItem.widget.appendChild(inputWidget);
+      // inputWidget.setAttribute('class', 'form-control');
+      poseItem.widget.insertBefore(inputWidget, text);
       poseItem.widget.removeChild(text);
       inputWidget.focus();
     } else
@@ -402,14 +389,13 @@ PoseStorePanel.Init = function(options) {
   }
 
   function newPose() {
-    var pose = kinematicsPanel.getCurrentPose();
-    var jointState = kinematicsPanel.getCurrentJointState();
+    var minibotState = kinematicsPanel.getCurrentMinibotState();
 
     // if editmode is on, stop it
     cancelEditMode();
 
     // create new element without a name yet
-    var poseItem = createPoseElement('', pose, jointState);
+    var poseItem = createPoseElement(minibotState);
     var id = getPoseItemIDByUID(poseItem.uid);
     // scroll to new element and activate it
     poseItem.widget.scrollIntoView();
@@ -426,11 +412,8 @@ PoseStorePanel.Init = function(options) {
       newPose();
       displayWarn('no pose selected, new pose created');
     } else {
-      var pose = kinematicsPanel.getCurrentPose();
-      var jointState = kinematicsPanel.getCurrentJointState();
       var poseItem = getPoseItem(id);
-      poseItem.pose = pose;
-      poseItem.joint_state = jointState;
+      poseItem.minibot_state = kinematicsPanel.getCurrentMinibotState();
 
       // we need to change the badges, store everyhting and  inform the proramme panel 
       updateWidgets();
@@ -491,41 +474,20 @@ PoseStorePanel.Init = function(options) {
   function setPoseByUID(uid) {
     var id =  getPoseItemIDByUID(uid);
     if (id != null && id >= 0 && id<poseItems.length) {      
-      var jointState = poseItems[id].joint_state;
-      if (jointState != null)
-        kinematicsPanel.setJointState(jointState);
-      else {
-        var pose = poseItem.pose;
-        kinematicsPanel.setPose(pose.pose);
-      }
+      kinematicsPanel.setCurrentMinibotState(poseItems[id].minibot_state);
     }
     else
       return null;
   }
 
-  function getPoseByUID(uid) {
+  function getMinibotStateByUID(uid) {
     var id = getPoseItemIDByUID(uid);
     if (id != null && id >= 0 && id<poseItems.length)
-      return poseItems[id].pose;
+      return poseItems[id].minibot_state;
     else
       return null;
   }
 
-  function getJointStateByUID(uid) {
-    var id = getPoseItemIDByUID(uid);
-    if (id != null && id >= 0 && id<poseItems.length)
-      return poseItems[id].joint_state;
-    else
-      return null;
-  }
-
-  function getNameByUID(uid) {
-    var id = getPoseItemIDByUID(uid);
-    if (id != null && id >= 0 && id<poseItems.length)
-      return poseItems[id].name;
-    else
-      return null;
-  }
 
   function displayAlert(text, headlinewidget, widget) {
     widget.style.display = 'block';
@@ -564,12 +526,10 @@ PoseStorePanel.Init = function(options) {
     down: down,
 
     getCurrentPoseUID: getCurrentPoseUID,
-    getPoseByUID: getPoseByUID,
-    getNameByUID: getNameByUID,
     setPoseByUID: setPoseByUID,
     activateByUID : activateByUID, 
 
-    getJointStateByUID: getJointStateByUID,   
+    getMinibotStateByUID: getMinibotStateByUID,
     setProgrammePanel: setProgrammePanel    // the programme panel is using poses and needs to be updated from time to time
 
   };
