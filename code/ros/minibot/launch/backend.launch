@@ -15,8 +15,9 @@
 
 
   <!-- listen to  /joint states, do forward kinematics and publish in tf -->
+  <!-- publish in the same frequency as coming from joint_states -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
-    <rosparam param="rate">20</rosparam>
+    <rosparam param="ignore_timestamp">true</rosparam>
   </node>
 
   <!-- Run the main MoveIt executable without trajectory execution
@@ -33,7 +34,7 @@
   <node name="tf2_web_republisher" pkg="tf2_web_republisher" type="tf2_web_republisher">
     <rosparam param="angularThres">0.0001</rosparam>
     <rosparam param="transThres">0.0001</rosparam>
-    <rosparam param="rate">20</rosparam>
+    <rosparam param="rate">20</rosparam> <!-- maximum frequency sent to the browser -->
   </node>
 
   <!-- provide websocket procotol to let the server communicate with the browsser-->

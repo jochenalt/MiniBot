@@ -39,16 +39,9 @@ RobotPanel.Init = function(options) {
       angularThres: 0.0001, // [rad] angular threshold for rotations before th UI reacts
       transThres: 0.0001, // [m] translation threshold, 0.1 mm
       fixedFrame: 'base_link', // all coordinates are relative to world
-      rate: 10.0 // update frequency [Hz]
+      rate: 17.0 // update frequency [Hz]
     });
 
-      var tfClient2 = new ROSLIB.TFClient({
-      ros: ros,
-      angularThres: 0.01, // [rad] angular threshold for rotations before th UI reacts
-      transThres: 0.01, // [m] translation threshold, 0.1 mm
-      fixedFrame: 'base_link', // all coordinates are relative to world
-      rate: 10.0 // update frequency [Hz]
-    });
     var w = document.getElementById("RobotView").offsetWidth;
     var h = document.getElementById("RobotView").offsetHeight;
     if (botUrdfView)

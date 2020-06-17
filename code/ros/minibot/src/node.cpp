@@ -57,25 +57,25 @@ int main(int argc, char *argv[]) {
 		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
 
 		// listen to changes of the tcp coming from UI
-		ros::Subscriber pose_input = nh.subscribe("/pose/input/update", 10,Minibot::Dispatcher::updateTCPCallback);
+		ros::Subscriber pose_input = nh.subscribe("/pose/input/update", 1,Minibot::Dispatcher::updateTCPCallback);
 
 		// listen to changes of the joints coming from UI
-		ros::Subscriber joint_states_input = nh.subscribe("/joint_states/input/update", 10, Minibot::Dispatcher::updateJointStatesCallback);
+		ros::Subscriber joint_states_input = nh.subscribe("/joint_states/input/update", 1, Minibot::Dispatcher::updateJointStatesCallback);
 
 		// listen to changes of the joints coming from UI
-		ros::Subscriber configuration_input = nh.subscribe("/joint_configuration/input/update", 10, Minibot::Dispatcher::updateJointStatesConfigurationCallback);
+		ros::Subscriber configuration_input = nh.subscribe("/joint_configuration/input/update", 1, Minibot::Dispatcher::updateJointStatesConfigurationCallback);
 
 		// publish new joints (forwarded by joint_state_publisher)
-		pub_joint_state_ui = nh.advertise<sensor_msgs::JointState>("/joint_states/update", 10);
+		pub_joint_state_ui = nh.advertise<sensor_msgs::JointState>("/joint_states/update", 1);
 
 		// publish new tcp data, consumed by UI
-		pub_tcp_ui = nh.advertise<minibot::MinibotPose>("/pose/update", 10);
+		pub_tcp_ui = nh.advertise<minibot::MinibotPose>("/pose/update", 1);
 
 		// publish new joint states, consumed by UI
-		pub_joint_values_config = nh.advertise<minibot::JointStateConfiguration>("/joint_states/configuration", 10);
+		pub_joint_values_config = nh.advertise<minibot::JointStateConfiguration>("/joint_states/configuration", 1);
 
 		// publish new joint states, consumed by UI
-		pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 10);
+		pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
 
 		// database service
 		ros::ServiceServer database_srv = nh.advertiseService("/database", Minibot::Database::handleDatabaseAction);

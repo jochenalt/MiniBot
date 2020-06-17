@@ -524,7 +524,7 @@ KinematicsPanel.Init = function(options) {
     minibotState.pose.tool_length = 0;
 
     // post new joint state to compute forward kinematics
-    jointInputTopic.publish(minibotState);
+    pubMinibotStateJoints.publish(minibotState);
   }
 
   function getCurrentPose() {

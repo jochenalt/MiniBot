@@ -513,7 +513,7 @@ PoseStorePanel.Init = function(options) {
   }
 
   // call init in contructor
-  initialize();
+  // initialize();
 
   // exposed inner functions
   return {
@@ -528,6 +528,7 @@ PoseStorePanel.Init = function(options) {
     getCurrentPoseUID: getCurrentPoseUID,
     setPoseByUID: setPoseByUID,
     activateByUID : activateByUID, 
+    initialize : initialize,
 
     getMinibotStateByUID: getMinibotStateByUID,
     setProgrammePanel: setProgrammePanel    // the programme panel is using poses and needs to be updated from time to time

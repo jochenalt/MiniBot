@@ -15,6 +15,7 @@
         <script src="/minibot/ros3d.min.js"></script>
        
         <!--
+        this is the original source of all the loaded libraries
         <script src="http://static.robotwebtools.org/threejs/current/three.min.js"></script>
         <script src="http://static.robotwebtools.org/threejs/r89/ColladaLoader.js"></script>
         <script src="http://static.robotwebtools.org/threejs/r89/STLLoader.js"></script>
@@ -39,12 +40,9 @@
         <script src="/minibot/bootstrap.min.js"></script>
 
         <!--
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+        bootstrap theme is loaded via javascript
         <link rel="stylesheet" href="/minibot/bootstrap-cyborg.min.css">
-
-    -->
+        -->
 
         <script>
             var botUrdfView;            // view of URDF
@@ -106,10 +104,12 @@
           
             // will be called after loading the DOM tree 
             function init() {
-
+                 // turn on splash, since loading the animated gif takes some time 
+                 var splash = document.getElementById("splashscreen");
+                 splash.style.display ="block";
 
                  // turn screen off until everyting is loaded 
-                 turnScreenOff();
+                 // turnScreenOff();
 
                  kinematics = new Kinematics.Init({
                      ros: ros
@@ -138,9 +138,10 @@
                  settingsPanel.setProgrammePanel(poseStorePanel);
                  poseStorePanel.setProgrammePanel(programmePanel);
 
+
                  // fade out the splash            
-                 var splash = document.getElementById("splashscreenImage");
-                 setTimeout(function(){updateOpacity(splash,1.0, -0.01);}, 1000); 
+                 var splashImg = document.getElementById("splashscreenImage");
+                 setTimeout(function(){updateOpacity(splashImg,1.0, -0.01);}, 1000); 
 
                 
                  // kinematics panel needs to load the robot model first before the unit can be changed 
@@ -154,17 +155,20 @@
                     // and call the theme again to display the robot view 
                     settingsPanel.callSetGlobalTheme();
 
+                    // resize the dynamic elements (poseStoreBox and programmeStoreBox)
+                    resize();
+
+                    // load content (cannot be seen yet, since opacity is still 0)
+                    poseStorePanel.initialize();
+
                     // fade in the view 
                     var root = document.getElementById("root");
                     setTimeout(function(){updateOpacity( root,0.0, 0.01);}, 0); 
-
                  }, 2500);
             
                  window.addEventListener("resize", resize);
-            
+   
 
-                 // size of poseStore panel and programme panel is computed in resize
-                 resize();
             }
             
             function resize() {
@@ -175,6 +179,8 @@
                  // resize the pose list
                  var hList = document.getElementById("posePanel").offsetHeight - document.getElementById("poseButtonPanel").offsetHeight - spacer*28;
                  document.getElementById("poseListGroup").style.height = hList.toString() +"px";
+
+                 // alert(hList.toString() +"px " + document.getElementById("posePanel").offsetHeight + " " +  document.getElementById("poseButtonPanel").offsetHeight)
             
                  // resize the programme list
                  var hList = document.getElementById("planningPanel").offsetHeight - document.getElementById("programmButtonPanel").offsetHeight - spacer*20;
@@ -257,8 +263,8 @@
     </head>
     <body onload="init()">
         <!-- show the splashscreen when loading, everything else is not displayed but activated once the page is fully loaded-->
-        <div id="splashscreen">
-            <img id="splashscreenImage" src="/minibot/splashscreen-steam.gif" style="height:100vh;width:100%;"/>
+        <div id="splashscreen" style="background-color:black;text-align:center;line-height:100vh;display:none;">
+            <img class="center" id="splashscreenImage" src="/minibot/splashscreen-steam.gif" style="height:25vh;"/>
         </div>
 
         <!-- here starts the real webpage -->
@@ -468,7 +474,7 @@
                                 <div class='col alert alert-warning w-100 my-0 py-0' style='display:none;' 
                                     id='poseStorageAlertWarning' role='alert'/></div>
                             </div>
-                            <div id="poseListGroup" class="overflow-auto mt-4 mx-2" >
+                            <div id="poseListGroup" class="overflow-auto mt-4 mx-2"  >
                                 <ul class="list-group"  id="poseStoreList">
                                 </ul>
                             </div>

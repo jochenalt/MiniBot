@@ -10,7 +10,7 @@
 
 
 
-int joint_state_publish_rate = 20;	// [Hz] of topic joint_states
+int joint_state_publish_rate = 24;	// [Hz] of topic joint_states
 
 
 #endif /* INCLUDE_CONSTANTS_H_ */
