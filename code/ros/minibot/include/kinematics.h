@@ -8,8 +8,6 @@
 #include <moveit/robot_model/robot_model.h>
 #include <geometry_msgs/Pose.h>
 #include <sensor_msgs/JointState.h>
-#include <minibot/GetPositionAllIK.h>
-#include <minibot/GetPositionAllFK.h>
 #include <minibot/JointStateConfiguration.h>
 #include <minibot/MinibotPose.h>
 #include <minibot/MinibotState.h>
