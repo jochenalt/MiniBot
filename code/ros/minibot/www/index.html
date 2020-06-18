@@ -92,13 +92,13 @@
                  robotPanel.initialize(robotViewColor);
             }
 
-            function updateOpacity(elem, opacity, add) {
+            function fade(elem, opacity, add) {
                 opacity = opacity + add;
                 if ((opacity < 0)  || (opacity >1)) {
                     opacity = 0;
                 } else {
                     elem.style.opacity = opacity; 
-                    setTimeout(function(){updateOpacity(elem,opacity,add);}, 1000*(Math.abs(add))); 
+                    setTimeout(function(){fade(elem,opacity,add);}, 1000*(Math.abs(add))); 
                 }
             }     
           
@@ -133,6 +133,8 @@
                          poseStorePanel : poseStorePanel,
                          settingsPanel : settingsPanel
                  });
+
+                 // let the panels know from each other
                  settingsPanel.setKinematicsPanel(kinematicsPanel);
                  settingsPanel.setPoseStorePanel(poseStorePanel);
                  settingsPanel.setProgrammePanel(poseStorePanel);
@@ -141,9 +143,8 @@
 
                  // fade out the splash            
                  var splashImg = document.getElementById("splashscreenImage");
-                 setTimeout(function(){updateOpacity(splashImg,1.0, -0.01);}, 1000); 
+                 setTimeout(function(){fade(splashImg,1.0, -0.01);}, 1000); 
 
-                
                  // kinematics panel needs to load the robot model first before the unit can be changed 
                  setTimeout(function() {
                     settingsPanel.setWidgets();                    
@@ -152,18 +153,19 @@
                     // initialize planning view
                     switchToPlan();
 
-                    // and call the theme again to display the robot view 
+                    // call the theme to display the robot view 
                     settingsPanel.callSetGlobalTheme();
 
                     // resize the dynamic elements (poseStoreBox and programmeStoreBox)
                     resize();
 
-                    // load content (cannot be seen yet, since opacity is still 0)
+                    // load content after resizing (cannot be seen yet, since opacity is still 0)
                     poseStorePanel.initialize();
+                    programmePanel.initialize();
 
                     // fade in the view 
                     var root = document.getElementById("root");
-                    setTimeout(function(){updateOpacity( root,0.0, 0.01);}, 0); 
+                    setTimeout(function(){fade( root,0.0, 0.01);}, 0); 
                  }, 2500);
             
                  window.addEventListener("resize", resize);
@@ -519,21 +521,21 @@
 
                         <div id="programmButtonPanel" class="w-100 row mx-2  d-flex align-self-end ">
                             <div class="row w-100 ml-0 p-0"  style="height:25vh;" >
-                                <div class="p-0 m-0" id='detailsWaypointStatement'  style="display:none;">
-                                    <small>Waypoint</small>
+                                <div class="p-0 m-0" id='detailsMovementStatement'  style="display:none;">
+                                    <small>Movement</small>
                                     <div class="mt-2 p-0">
                                         <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
-                                            id='waypointError' role='alert'/></div>
+                                            id='movementError' role='alert'/></div>
                                         <small>Path Strategy</small>
                                     </div>
                                     <div>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input id="spacePath" type="radio" class="custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)" checked>
-                                            <label class="custom-control-label" for="spacePath">space</label>
+                                            <label class="custom-control-label" for="spacePath">joint space</label>
                                         </div>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input id="cartesicPath" type="radio" class="custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)">
-                                            <label class="custom-control-label" for="cartesicPath">cartesic </label>
+                                            <label class="custom-control-label" for="cartesicPath">cartesic</label>
                                         </div>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input id="splinePath" type="radio" class=" custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)">
@@ -547,6 +549,25 @@
                                         </div>
                                         <div class="btn-group col my-2 p-0">
                                             <button type="button" class="btn-sm btn-primary w-100" onclick='programmePanel.assignActivePose()'>Assign active pose</button>
+                                            <button type="button" class="btn-sm btn-primary w-100" onclick='programmePanel.convertType()'>Convert to Movement</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-0 m-0" id='detailsWaypointStatement'  style="display:none;">
+                                    <small>Waypoint</small>
+                                    <div class="mt-2 p-0">
+                                        <div class='col alert alert-danger w-100 my-0 py-0' style='display:none;' 
+                                            id='waypointError' role='alert'/></div>
+                                        <small>Path Strategy</small>
+                                    </div>
+                                    <div class="mt-3">
+                                        <div class="form-check form-check-inline">
+                                            <input id="blendWaypoint" type="checkbox" class="form-check-input" onclick="programmePanel.setBendWaypoint(event)">
+                                            <label class="form-check-label" for="collisionCheck">blend waypoint</label>
+                                        </div>
+                                        <div class="btn-group col my-2 p-0">
+                                            <button type="button" class="btn-sm btn-primary w-100" onclick='programmePanel.assignActivePose()'>Assign active pose</button>
+                                            <button type="button" class="btn-sm btn-primary w-100" onclick='programmePanel.convertType()'>Convert to Movement</button>
                                         </div>
                                     </div>
                                 </div>
@@ -604,13 +625,14 @@
                             <div class="w-100 p-0 m-0">
                                 <div class=" col p-0"><small>Action Management</small></div>
                                 <div class=" btn-group col p-0">
+                                    <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newMovement()">Move</button>
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWaypoint()">Waypoint</button>
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newWait()" >Wait</button>
                                     <button type="button" class="btn-sm btn-primary w-100" onclick="programmePanel.newComment()">Comment</button>
                                 </div>
                                 <div class="btn-group col p-0">
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.deleteStatement()">Delete</button>
-                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.rename()">Rename</button>
+                                    <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.renameStatement()">Rename</button>
                                 </div>
                                 <div class="btn-group col p-0">
                                     <button type="button" class="btn-sm btn-secondary w-100" onclick="programmePanel.up()">Up</button>

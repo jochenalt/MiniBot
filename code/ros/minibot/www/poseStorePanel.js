@@ -45,7 +45,7 @@ PoseStorePanel.Init = function(options) {
 
     databaseAction.callService(request, 
       function(result) {
-        if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+        if (result.error_code.val == Constants.ErrorCodes.SUCCESS) {
           poseItems = [];
           for (var idx = 0;idx < result.pose_store.states.length;idx ++) {
             // create a pose with the DOM entries, but set all the rest by the database minibot state
@@ -99,7 +99,7 @@ PoseStorePanel.Init = function(options) {
 
     databaseAction.callService(request, 
       function(result) {
-        if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+        if (result.error_code.val == Constants.ErrorCodes.SUCCESS) {
              displayInfo("saved");
         }
         else {
@@ -116,7 +116,7 @@ PoseStorePanel.Init = function(options) {
     for (var idx = 0; idx < getPoseItemLength(); idx++) {
       var poseItem = poseItems[idx];
       var id = idx;
-      poseItem.widget.childNodes[0].innerHTML = (id + 1).toString() + '<br/>' + poseItem.uid.toString();
+      poseItem.widget.childNodes[0].innerHTML = (id + 1).toString() + '<br/>' + poseItem.minibot_state.uid.toString();
       poseItem.widget.childNodes[1].textContent = poseItem.minibot_state.name;
       poseItem.widget.childNodes[2].innerHTML = getPoseString(poseItem.minibot_state);
 
@@ -131,7 +131,7 @@ PoseStorePanel.Init = function(options) {
 
   var getPoseItemIDByUID = function(uid) {
     for (var idx = 0; idx < getPoseItemLength(); idx++) {
-      if (poseItems[idx].uid == uid)
+      if (poseItems[idx].minibot_state.uid == uid)
         return idx;
     }
     return -1;
@@ -152,17 +152,18 @@ PoseStorePanel.Init = function(options) {
     if (max == 0)
       max = 1; // start with 1 to distinguish an unset uid from a valid one 
     for (var idx = 0; idx < poseItems.length; idx++) {
-      var currUID = poseItems[idx].uid;
+      var currUID = poseItems[idx].minibot_state.uid;
       if (currUID >= max)
         max = currUID + 1;
     }
 
-    poseItem.minibot_state = null;
-    poseItem.uid = max;
+    poseItem.minibot_state = Object();
+    poseItem.minibot_state.uid = max;
 
     var li = document.createElement('LI');
     li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center p-1');
     li.ondblclick = renamePoseCallback;
+    li.onclick = callbackClick;
 
     var leftSpan = document.createElement("SPAN");
     leftSpan.setAttribute('class', 'badge badge-light float-left mr-1 ml-0 justify-content-center align-self-center');
@@ -170,8 +171,8 @@ PoseStorePanel.Init = function(options) {
     var rightSpan = document.createElement("A");
     rightSpan.setAttribute('href', '#');
     rightSpan.setAttribute('class', 'badge badge-success badge-pill mt-1 mr-0 float-right justify-content-center align-self-center');
-    rightSpan.onclick = activatePose;
     rightSpan.innerHTML = '';
+    rightSpan.onclick = activatePose;
     var text = document.createTextNode('');
 
     li.appendChild(leftSpan);
@@ -179,7 +180,6 @@ PoseStorePanel.Init = function(options) {
     li.appendChild(rightSpan);
     poseListWidget.appendChild(li);
     poseItem.widget = li;
-    li.onclick = callbackClick;
 
     // add the item to the end of the list
     poseItems[poseItems.length] = poseItem;
@@ -192,6 +192,7 @@ PoseStorePanel.Init = function(options) {
     if (id >= 0) {
       var poseItem = poseItems[id];
       poseItem.minibot_state = minibotState;
+      poseItem.minibot_state.uid = uid;
 
       // update the dom accordingly 
       updateWidgets();
@@ -234,7 +235,7 @@ PoseStorePanel.Init = function(options) {
   var createPoseElement = function(minibotState) {
     // create and update the new pose
     var newPoseItem = createPoseItem();
-    updatePoseItem(newPoseItem.uid, minibotState);
+    updatePoseItem(newPoseItem.minibot_state.uid, minibotState);
     
     // update DOM
     updateWidgets();
@@ -355,7 +356,7 @@ PoseStorePanel.Init = function(options) {
     if (id != null) {
       var li = getPoseItem(id).widget;
       // check if this pose is not used in a programme
-      var statementID = programmePanel.getStatementIDByPoseUID(poseItems[id].uid);
+      var statementID = programmePanel.getStatementIDByPoseUID(poseItems[id].minibot_state.uid);
       if (statementID != null && statementID>=0) {
         programmePanel.activateStatement(statementID);
         displayErr("pose is used, delete the statement first");
@@ -396,7 +397,7 @@ PoseStorePanel.Init = function(options) {
 
     // create new element without a name yet
     var poseItem = createPoseElement(minibotState);
-    var id = getPoseItemIDByUID(poseItem.uid);
+    var id = getPoseItemIDByUID(poseItem.minibot_state.uid);
     // scroll to new element and activate it
     poseItem.widget.scrollIntoView();
     activate(id);
@@ -426,7 +427,7 @@ PoseStorePanel.Init = function(options) {
     var id = getActiveId();
 
     if (id > 0) {
-      var uid = poseItems[id].uid;
+      var uid = poseItems[id].minibot_state.uid;
       var poseItem = poseItems[id];
       var prevPoseItem = poseItems[id - 1];
 
@@ -445,7 +446,7 @@ PoseStorePanel.Init = function(options) {
     var id = getActiveId();
 
     if (id != null && id < poseItems.length - 1) {
-      var uid = poseItems[id].uid;
+      var uid = poseItems[id].minibot_state.uid;
       var poseItem = poseItems[id];
       poseListWidget.removeChild(poseItem.widget);
       movePoseItem(uid, id + 1);
@@ -465,7 +466,7 @@ PoseStorePanel.Init = function(options) {
   function getCurrentPoseUID() {
     var id = getActiveId();
     if (id != null) {
-      return poseItems[id].uid;
+      return poseItems[id].minibot_state.uid;
     }
     return null;
   }

@@ -29,9 +29,10 @@ using namespace mongodb_store;
 
 MessageStoreProxy* messageStore = NULL;
 
-std::string settings_store_db_key = "settings_store";
-std::string pose_store_db_key = "pose_store";
-std::string programme_store_db_key = "programme_store";
+// names of main objects in mongo
+std::string settings_store_db_key 	= "settings_store";
+std::string pose_store_db_key		= "pose_store";
+std::string programme_store_db_key 	= "programme_store";
 
 
 void init() {
@@ -72,8 +73,8 @@ void setSettings(const minibot::Configuration & settings) {
 	messageStore->updateNamed(settings_store_db_key, settings);
 }
 
-void setPoseStorage(const minibot::PoseStorage & settings) {
-	messageStore->updateNamed(posestore_prefix, settings);
+void setPoseStorage(const minibot::PoseStorage & pose_store) {
+	messageStore->updateNamed(posestore_prefix, pose_store);
 }
 
 
@@ -113,8 +114,8 @@ minibot::Programme getProgramme() {
 }
 
 
-void setProgramme(const minibot::Programme & settings) {
-	messageStore->updateNamed(programme_store_db_key, settings);
+void setProgramme(const minibot::Programme & programme) {
+	messageStore->updateNamed(programme_store_db_key, programme);
 }
 
 bool handleDatabaseAction(minibot::Database::Request &req,

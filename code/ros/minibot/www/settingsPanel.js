@@ -44,7 +44,7 @@ SettingsPanel.Init = function(options) {
 
 		readConfiguration.callService(request,
 			function(result) {
-				if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+				if (result.error_code.val == Constants.ErrorCodes.SUCCESS) {
 					configuration = result.configuration;
 					callbackSuccess(result.configuration);
 				} else {
@@ -69,7 +69,7 @@ SettingsPanel.Init = function(options) {
 
 		readConfiguration.callService(request,
 			function(result) {
-				if (result.error_code.val == ErrorCode.MOVEIT.SUCCESS) {
+				if (result.error_code.val == Constants.ErrorCodes.SUCCESS) {
 					callbackSuccess(result);
 				} else {
 					callbackFailure(result);

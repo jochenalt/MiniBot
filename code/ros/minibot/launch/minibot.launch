@@ -1,8 +1,9 @@
 <launch>
   <arg name="debug" default="false" />
-  <arg name="pipeline" default="ompl" />
-  <arg name="mongodb_port" default="62345" />
-  <arg name="mongodb_host" default="localhost" />
+  <arg name="pipeline" value="ompl" />
+  <arg name="mongodb_port" value="62345" />
+  <arg name="mongodb_host" value="localhost" />
+  <arg name="no_minibot_server"  default="0"/>
 
   <!-- start the database server -->
   <node  name="mongodb_server" pkg="mongodb_store" type="mongodb_server.py" output="screen"/> 
@@ -15,9 +16,8 @@
     <arg name="load_robot_description" value="true"/>
   </include>
 
-
   <!-- listen to  /joint states, do forward kinematics and publish in tf -->
-  <!-- publish in the same frequency as coming from joint_states -->
+  <!-- dont throttle, use same frequency like  joint_states -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
     <rosparam param="ignore_timestamp">true</rosparam>
   </node>
@@ -32,7 +32,7 @@
     <arg name="pipeline" value="$(arg pipeline)"  />
   </include>
 
-  <!-- node to send /tf to rosbridge_server -->
+  <!-- node to forward /tf to rosbridge_server -->
   <node name="tf2_web_republisher" pkg="tf2_web_republisher" type="tf2_web_republisher">
     <rosparam param="rate">25</rosparam> <!-- maximum frequency sent to the browser -->
   </node>
@@ -54,14 +54,9 @@
     <arg name="index" value="minibot"/> 
   </include>
 
-
   <!-- start the server node  --> 
-
-  <arg name="no-minibot-server"  default="0"/>
-
-  <group unless="$(arg no-minibot-server)">
-    <node pkg="minibot" type="minibot_server" name="minibot_server" output="screen">
-    </node>
-  </group>
-
+  <node pkg="minibot" type="minibot_server" name="minibot_server" output="screen"
+           unless="$(eval arg('no_minibot_server'))">
+  </node>
+ 
 </launch>
