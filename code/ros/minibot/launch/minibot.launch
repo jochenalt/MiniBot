@@ -1,5 +1,4 @@
 <launch>
-  <arg name="minibot-server" default="true" />
   <arg name="debug" default="false" />
   <arg name="pipeline" default="ompl" />
   <arg name="mongodb_port" default="62345" />
@@ -55,8 +54,12 @@
     <arg name="index" value="minibot"/> 
   </include>
 
+
   <!-- start the server node  --> 
-  <group if="$(arg minibot-server)">
+
+  <arg name="no-minibot-server"  default="0"/>
+
+  <group unless="$(arg no-minibot-server)">
     <node pkg="minibot" type="minibot_server" name="minibot_server" output="screen">
     </node>
   </group>
