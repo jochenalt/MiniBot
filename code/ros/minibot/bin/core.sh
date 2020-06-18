@@ -22,9 +22,3 @@ echo "setting localhost:62345 for mongodb"
 rosparam set mongodb_port 62345
 rosparam set mongodb_host localhost
 
-# start mongo db
-echo "starting mongodb"
-rosrun mongodb_store mongodb_server.py &
-echo "done"
-
-sleep 5
