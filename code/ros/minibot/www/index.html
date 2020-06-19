@@ -147,8 +147,6 @@
 
                  // kinematics panel needs to load the robot model first before the unit can be changed 
                  setTimeout(function() {
-                    settingsPanel.setWidgets();                    
-                    programmePanel.refresh();
 
                     // initialize planning view
                     switchToPlan();
@@ -162,6 +160,10 @@
                     // load content after resizing (cannot be seen yet, since opacity is still 0)
                     poseStorePanel.initialize();
                     programmePanel.initialize();
+
+                    // settings are loaded, now set the widgets (e.g. units)
+                    settingsPanel.setWidgets();                    
+                    programmePanel.refresh();
 
                     // fade in the view 
                     var root = document.getElementById("root");
@@ -238,8 +240,9 @@
 
             // estabish connection to ROS
             var serverName = window.location.href.replace("http://","").split(":")[0]
+            var wsServerName = 'ws://' + serverName + ':9090';
             var ros = new ROSLIB.Ros({
-                 url: 'ws://' + serverName + ':9090'
+                 url: wsServerName
             });
             
             // initialize settings panel
@@ -258,7 +261,8 @@
                       settingsPanel.initialize();
                  }, 
                  function (result) { 
-                      alert ("could not read the configuration from database : " + result)
+                    var msg=document.getElementById("splashMessage");
+                    msg.innerHTML ="Server is reachable via " + wsServerName + ", but service does not respond. " + result + ")"
                  });  
 
         </script>
@@ -266,6 +270,8 @@
     <body onload="init()">
         <!-- show the splashscreen when loading, everything else is not displayed but activated once the page is fully loaded-->
         <div id="splashscreen" style="background-color:black;text-align:center;line-height:100vh;display:none;">
+            <div id="splashMessage" style="background-color:white;">
+            </div>
             <img class="center" id="splashscreenImage" src="/minibot/splashscreen-steam.gif" style="height:25vh;"/>
         </div>
 
