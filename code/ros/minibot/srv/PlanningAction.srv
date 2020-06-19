@@ -12,6 +12,6 @@ uint8 type
 
 bool jfdi
 uint8 startStatementUID
-uint8 endStatementUID
+uint8 endStatementUI
 ---
 minibot/ErrorCodes error_code

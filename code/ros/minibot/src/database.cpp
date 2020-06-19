@@ -13,7 +13,6 @@
 #include <minibot/Configuration.h>
 #include <minibot/ErrorCodes.h>
 
-#include <boost/foreach.hpp>
 #include "database.h"
 #include "node.h"
 #include "utils.h"
@@ -118,30 +117,30 @@ void setProgramme(const minibot::Programme & programme) {
 	messageStore->updateNamed(programme_store_db_key, programme);
 }
 
-bool handleDatabaseAction(minibot::Database::Request &req,
-						  minibot::Database::Response &res) {
+bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
+						  minibot::DatabaseAction::Response &res) {
 	switch (req.type) {
-	case minibot::Database::Request::READ_SETTINGS:
+	case minibot::DatabaseAction::Request::READ_SETTINGS:
 		res.configuration = getSettings();
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
-	case minibot::Database::Request::WRITE_SETTINGS:
+	case minibot::DatabaseAction::Request::WRITE_SETTINGS:
 		setSettings(req.configuration);
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
-	case minibot::Database::Request::READ_POSES:
+	case minibot::DatabaseAction::Request::READ_POSES:
 		res.pose_store = getPoseStorage();
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
-	case minibot::Database::Request::WRITE_POSES:
+	case minibot::DatabaseAction::Request::WRITE_POSES:
 		setPoseStorage(req.pose_store);
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
-	case minibot::Database::Request::READ_PROGRAMME:
+	case minibot::DatabaseAction::Request::READ_PROGRAMME:
 		res.programme_store = getProgramme();
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
-	case minibot::Database::Request::WRITE_PROGRAMME:
+	case minibot::DatabaseAction::Request::WRITE_PROGRAMME:
 		setProgramme(req.programme_store);
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;

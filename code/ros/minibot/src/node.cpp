@@ -53,9 +53,10 @@ int main(int argc, char *argv[]) {
 		Minibot::Gearwheel::init();
 		Minibot::Database::init();
 
-		// publish messages to UI
+		// *** publish messages to UI ***
 		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
 
+		// **** topcis handling kinematics ***
 		// listen to changes of the tcp coming from UI
 		ros::Subscriber pose_input = nh.subscribe("/pose/input/update", 1,Minibot::Dispatcher::updateTCPCallback);
 
@@ -77,8 +78,12 @@ int main(int argc, char *argv[]) {
 		// publish new joint states, consumed by UI
 		pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
 
-		// database service
+		// *** services ***
+		// database service, maintaining settings, pose storage and programm storage
 		ros::ServiceServer database_srv = nh.advertiseService("/database", Minibot::Database::handleDatabaseAction);
+
+		// planning service, handling planing requests and generating displayed trajectories
+		ros::ServiceServer planning_srv = nh.advertiseService("/planning", Minibot::Planner::handlePlanningAction);
 
 		ros::AsyncSpinner spinner(0); // 0 = one thread per core
 		spinner.start();

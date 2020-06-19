@@ -10,7 +10,7 @@
 
 #include "ros/ros.h"
 #include <minibot/Configuration.h>
-#include <minibot/Database.h>
+#include <minibot/DatabaseAction.h>
 
 namespace Minibot {
 namespace Database {
@@ -33,8 +33,8 @@ void setProgramme(const minibot::Programme & settings);
 minibot::Programme getProgramme();
 
 	// handle incoming database Requests
-bool handleDatabaseAction(minibot::Database::Request &req,
-						  minibot::Database::Response &res);
+bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
+						  minibot::DatabaseAction::Response &res);
 
 }
 }
