@@ -404,7 +404,7 @@ ProgrammePanel.Init = function(options) {
     }
     if (statement.type == Constants.Statement.STATEMENT_TYPE_WAIT) {
       if (statement.wait_type == Constants.Statement.WAIT_TYPE_WAIT)
-        return statement.waitForSeconds.toString() + "s";
+        return statement.kitkat.secs.toString() + "s";
       else
       if (statement.wait_type == Constants.Statement.WAIT_TYPE_CONFIRMATION)
         return statement.comment;
@@ -765,17 +765,17 @@ ProgrammePanel.Init = function(options) {
   }
 
   function setWaitTypeNoWait(event) {
-    setWaitType(Constants.Statement.wait_type.WAIT_TYPE_NOWAIT);
+    setWaitType(Constants.Statement.WAIT_TYPE_NOWAIT);
     storeInDatabase(false);
   }
 
   function setWaitTypeWaitForConfirmation(event) {
-    setWaitType(Constants.Statement.wait_type.WAIT_TYPE_CONFIRMATION);
+    setWaitType(Constants.Statement.WAIT_TYPE_CONFIRMATION);
     storeInDatabase(false);
   }
 
   function setWaitTypeWaitForSeconds(event) {
-    setWaitType(Constants.Statement.wait_type.WAIT_TYPE_WAIT);
+    setWaitType(Constants.Statement.WAIT_TYPE_WAIT);
     storeInDatabase(false);
   }
 
@@ -785,6 +785,10 @@ ProgrammePanel.Init = function(options) {
     if (id >= 0) {
       var prgItem = programmeItems[id];
       prgItem.statement.kitkat.secs = Utils.makeFloatString(event.target.value);
+
+      // activate the wait type
+      prgItem.statement.wait_type = Constants.Statement.WAIT_TYPE_WAIT;
+
       updateWidget(id);
       storeInDatabase(false);
     }
@@ -795,6 +799,10 @@ ProgrammePanel.Init = function(options) {
     if (id >= 0) {
       var prgItem = programmeItems[id];
       prgItem.statement.comment = event.target.value;
+
+      // activate the wait type
+      prgItem.statement.wait_type = Constants.Statement.WAIT_TYPE_CONFIRMATION;
+
       updateWidget(id);
       storeInDatabase(false);
     }
