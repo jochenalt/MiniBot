@@ -31,5 +31,3 @@ uint8 wait_type
 duration kitkat
 
 ErrorCodes error_code
-
-

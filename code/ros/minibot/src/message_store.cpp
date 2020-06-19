@@ -1,7 +1,7 @@
 /**
  * This is a strange class I stole from the github source of mongodb_store, it is declared in
- * "mongodb_store/message_store.h" but not implemented in any library,
- * so we need to implement it explicitely
+ * "mongodb_store/message_store.h" but not implemented in any library I found,
+ * so its implementation is needed here
  */
 
 #include "mongodb_store/message_store.h"

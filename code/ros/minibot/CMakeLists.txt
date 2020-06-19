@@ -45,8 +45,6 @@ add_service_files(
   FILES
   Database.srv
   PlanningAction.srv
-  GetPositionAllIK.srv
-  GetPositionAllFK.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
