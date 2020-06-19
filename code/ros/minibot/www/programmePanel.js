@@ -69,6 +69,7 @@ ProgrammePanel.Init = function(options) {
 
 
   var storeInDatabase = function(force) {
+    validateAndRectify();
     if (force)
       Utils.callDelay("storedatabase", 0, function() { 
         displayInfo("store and plan")
@@ -79,7 +80,6 @@ ProgrammePanel.Init = function(options) {
         displayInfo("store and plan")
         rawStoreInDatabase() 
       }); 
-
   }
 
   var rawStoreInDatabase = function() {
@@ -227,6 +227,40 @@ ProgrammePanel.Init = function(options) {
     }
     document.getElementById('visualizeLocalPlan').checked = settingsPanel.getVisualizationLocalPlan()
     document.getElementById('visualizeGlobalPlan').checked = settingsPanel.getVisualizationGlobalPlan()
+  }
+
+  var validateAndRectify = function() {
+    var inMovement = false; 
+    var endPointFound = false;
+    var movementStartIdx = -1;
+    for (var idx = 0; idx < getProgrammeLength(); idx++) {
+      var stmt = programmeItems[idx].statement;
+      if (inMovement) {
+        if (stmt.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
+          endPointFound = true;
+        }
+        if (stmt.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT) {
+          endPointFound = false;
+          movementStartIdx = idx;
+        }
+      }
+      else {
+        if (stmt.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
+          // make the waypoint a movement
+          convertType();
+          inMovement = true;
+          movementStartIdx = idx;
+          endpointFound = false;
+        } 
+        else if (stmt.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT) {
+          inMovement = true;
+          movementStartIdx = idx;
+          endpointFound = false;
+        } 
+      }
+    }
+    if (inMovement && !endPointFound) 
+      displayErr("move " + movementStartIdx + " has no endpoint.");
   }
 
   var getStatementIDByUID = function(uid) {
@@ -468,7 +502,7 @@ ProgrammePanel.Init = function(options) {
   }
 
   var callbackClick = function(event) {
-    var id = event.target.id;
+    var id = parseFloat(event.target.id);
     activateStatement(id);
     poseStorePanel.activateByUID(programmeItems[id].statement.pose_uid);
 
