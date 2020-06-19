@@ -72,6 +72,9 @@ Utils.callThrottler =function (name, rate, func, params) {
 }
 
 var callDelayDict = new Object();
+
+// call a function after a delay of "duration". Every call extends the delay time left, such 
+// that the actual call of "func" will always take place the same duration "duration" after the last call  
 Utils.callDelay = function (name, duration, func) {
 	var callDelayObject = callDelayDict[name];
 	if (callDelayObject == null) {
