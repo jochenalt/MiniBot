@@ -147,7 +147,7 @@ ProgrammePanel.Init = function(options) {
     badge.classList.remove('badge-secondary');
     badge.classList.remove('badge-primary');
 
-    if (prgStmt.type == Constants.Statement.STATEMENT_TYPE_WAIT) {
+    if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_WAIT) {
       prgStmt.widget.classList.add('list-group-item-light');
       badge.classList.add('badge-secondary');
 
@@ -167,16 +167,17 @@ ProgrammePanel.Init = function(options) {
       if (prgStmt.statement.wait_type == Constants.Statement.WAIT_TYPE_NOWAIT)
         document.getElementById('dontWait').checked = true;
     }
+
     if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT) {
       badge.classList.add('badge-primary');
       prgStmt.widget.classList.add('list-group-item-success');
-      document.getElementById('collisionCheck').checked = prgStmt.collision_check;
+      document.getElementById('collisionCheck').checked = prgStmt.statement.collision_check;
 
-      if (prgStmt.path_strategy == Constants.Planning.PLAN_CARTESIC_STRATEGY)
+      if (prgStmt.statement.path_strategy == Constants.Planning.PLAN_CARTESIC_STRATEGY)
         document.getElementById('cartesicPath').checked = true;
-      if (prgStmt.path_strategy == Constants.Planning.PLAN_SPLINE_STRATEGY)
+      if (prgStmt.statement.path_strategy == Constants.Planning.PLAN_SPLINE_STRATEGY)
         document.getElementById('splinePath').checked = true;
-      if (prgStmt.path_strategy == Constants.Planning.PLAN_SPACE_STRATEGY)
+      if (prgStmt.statement.path_strategy == Constants.Planning.PLAN_SPACE_STRATEGY)
         document.getElementById('spacePath').checked = true;
       var movementErrorWidget = document.getElementById('movementError');
       if (prgStmt.statement.error_code != null && prgStmt.statement.error_code.val != Constants.ErrorCodes.SUCCESS) {
@@ -201,7 +202,7 @@ ProgrammePanel.Init = function(options) {
       document.getElementById('blendWaypoint').checked = prgStmt.statement.blend;
     }
 
-    if (prgStmt.type == Constants.Statement.STATEMENT_TYPE_COMMENT) {
+    if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_COMMENT) {
       badge.classList.add('badge-secondary');
       document.getElementById('commentStatement').value = prgStmt.statement.comment;
     }
@@ -219,6 +220,7 @@ ProgrammePanel.Init = function(options) {
     }
     if (getProgrammeLength() == 0) {
         // last element? then hide the detail view
+        document.getElementById('detailsMovementStatement').style.display = 'none';
         document.getElementById('detailsWaypointStatement').style.display = 'none';
         document.getElementById('detailsWaitStatement').style.display = 'none';
         document.getElementById('detailsCommentStatement').style.display = 'none';
@@ -357,6 +359,9 @@ ProgrammePanel.Init = function(options) {
     else
       programmeItems[id].statement.type = Constants.Statement.STATEMENT_TYPE_MOVEMENT;
 
+    // activate the same statement to show the right details
+    activateStatement(id);
+
     updateWidgets();
     storeInDatabase(false);
   }
@@ -392,7 +397,7 @@ ProgrammePanel.Init = function(options) {
       return s;
     }
     if (statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
-      var s = statement.pose_uid;
+      var s = "Point " + statement.pose_uid;
       var minibotState = poseStorePanel.getMinibotStateByUID(statement.pose_uid);
       if (minibotState != null)
         s += ":" + minibotState.name;
@@ -400,14 +405,14 @@ ProgrammePanel.Init = function(options) {
     }
 
     if (statement.type == Constants.Statement.STATEMENT_TYPE_COMMENT) {
-      return statement.comment.substring(0, 16);
+      return statement.comment.substring(0, 6);
     }
     if (statement.type == Constants.Statement.STATEMENT_TYPE_WAIT) {
       if (statement.wait_type == Constants.Statement.WAIT_TYPE_WAIT)
         return statement.kitkat.secs.toString() + "s";
       else
       if (statement.wait_type == Constants.Statement.WAIT_TYPE_CONFIRMATION)
-        return statement.comment;
+        return statement.comment.substring(0, 6);
       else
         return "NIL";
     }
@@ -452,7 +457,8 @@ ProgrammePanel.Init = function(options) {
       var prgStmt = getStatement(id);
       prgStmt.statement.name = event.target.value
       cancelEditMode();
-      updateWidgets;
+      updateWidgets();
+      storeInDatabase(false);
     }
   }
 
@@ -549,7 +555,7 @@ ProgrammePanel.Init = function(options) {
       inputWidget.id = 'statementPanelInputField'
       inputWidget.onkeydown = callbackKeyDown;
       inputWidget.onfocusout = callbackFocusOut;
-      inputWidget.value = programmeItem.statement.pose_uid;
+      inputWidget.value = programmeItem.statement.name;
       inputWidget.type = 'text';
       // inputWidget.setAttribute('class', 'form-control');
       programmeItem.widget.insertBefore(inputWidget, text);
@@ -712,7 +718,7 @@ ProgrammePanel.Init = function(options) {
       displayErr('selected statement is last already')
   }
 
-  function setpath_strategy(event) {
+  function setPathStrategy(event) {
     var id = getActiveId();
     if (id >= 0) {
       var prgItem = programmeItems[id];
@@ -784,7 +790,7 @@ ProgrammePanel.Init = function(options) {
     var id = getActiveId();
     if (id >= 0) {
       var prgItem = programmeItems[id];
-      prgItem.statement.kitkat.secs = Utils.makeFloatString(event.target.value);
+      prgItem.statement.kitkat.secs = parseFloat(event.target.value);
 
       // activate the wait type
       prgItem.statement.wait_type = Constants.Statement.WAIT_TYPE_WAIT;
@@ -1113,7 +1119,7 @@ ProgrammePanel.Init = function(options) {
     getStatementIDByPoseUID: getStatementIDByPoseUID,
     activateStatement: activateStatement,
 
-    setpath_strategy: setpath_strategy,
+    setPathStrategy: setPathStrategy,
     setCollisionCheck: setCollisionCheck,
     assignActivePose: assignActivePose,
     setBlendWaypoint : setBlendWaypoint,
