@@ -502,9 +502,12 @@ ProgrammePanel.Init = function(options) {
   }
 
   var callbackClick = function(event) {
-    var id = parseFloat(event.target.id);
-    activateStatement(id);
-    poseStorePanel.activateByUID(programmeItems[id].statement.pose_uid);
+    if (event.target.nodeName == "LI") {
+      var id = parseFloat(event.target.id);
+
+      activateStatement(id);
+      poseStorePanel.activateByUID(programmeItems[id].statement.pose_uid);
+    }
 
     // display the trajectory to the next Item
     // planningAction();
