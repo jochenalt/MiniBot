@@ -35,18 +35,19 @@ sudo apt-get install ros-melodic-desktop-full
 sudo apt-get install ros-melodic-joint-state-publisher-gui
 sudo apt-get install ros-melodic-roswww
 sudo apt-get install python-catkin-tools 
-sudo apt-get install ros-kinetic-catkin
+sudo apt-get install ros-melodic-catkin
 
 --- install necessities for ros3djs: rosbridge server, tf2 web republisher, robot_state_publisher, joint_state_publisher,
 sudo apt-get install ros-melodic-rosbridge-suite
 sudo apt-get install ros-melodic-tf2-web-republisher
-sudo apt-get install ros-melodic-pr2-common
 sudo apt-get install ros-melodic-robot-state-publisher
 sudo apt-get install ros-melodic-interactive-marker-proxy
 
 --- install mongodb
 sudo apt-get install ros-melodic-mongodb-store
-sudo mkdir /opt/ros/mongodb_store
+sudo mkdir -p /opt/ros/mongodb_store
+sudo chmod a+w /opt/ros/mongodb_store
+
 
 --- install moveit
 sudo apt-get install ros-melodic-moveit
@@ -67,14 +68,15 @@ git clone https://github.com/jochenalt/MiniBot.git -b master
 
 ---  generate catkin workspace
 
-cd catkin_ws
+mkdir -p ~catkin_ws/src
+cd catkin_ws/src
 
 --- link to minibot sources
-ln -s ~/MiniBot/code/ros/minibot ~/catkin_ws/src
-ln -s ~/MiniBot/code/ros/roswww ~/catkin_ws/src
-ln -s ~/MiniBot/code/ros/minibot_ikfast_plugin/ ~/catkin_ws/src
-ln -s ~/MiniBot/code/ros/minibot_moveit_config ~/catkin_ws/src
-ln -s ~/MiniBot/code/ros/descartes_capability ~/catkin_ws/src
+ln -s ~/Minibot/code/ros/minibot ~/catkin_ws/src
+ln -s ~/Minibot/code/ros/roswww ~/catkin_ws/src
+ln -s ~/Minibot/code/ros/minibot_ikfast_plugin/ ~/catkin_ws/src
+ln -s ~/Minibot/code/ros/minibot_moveit_config ~/catkin_ws/src
+ln -s ~/Minibot/code/ros/descartes_capability ~/catkin_ws/src
 
 source ~/.bashrc
 
@@ -191,6 +193,7 @@ sudo chmod a+w /opt/ros/mongodb_store
 -- install c++ driver for mongo (according to http://mongocxx.org/legacy-v1/installation/)
 -- dont install libmongoclient-dev!
 cd ~
+sudo apt-get install scons
 git clone -b releases/legacy https://github.com/mongodb/mongo-cxx-driver.git
 cd mongo-cxx-driver/
 git checkout legacy
@@ -249,7 +252,9 @@ rosdep install --from-paths . --ignore-src --rosdistro melodic
 
 
 --- install eclipse along http://wiki.ros.org/IDEs with catkin tools
-# download Eclipse for C++ from https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2020-03/R/eclipse-cpp-2020-03-R-incubation-linux-gtk-x86_64.tar.gz&mirror_id=1099
+# download Eclipse for C++ from https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2020-03/R/http://ftp-stud.fht-esslingen.de/pub/Mirrors/eclipse/technology/epp/downloads/release/2020-03/R/eclipse-cpp-2020-03-R-incubation-linux-gtk-x86_64.tar.gz
+# install java
+sudo apt install default-jre
 # extra in ~
 catkin build  --force-cmake -G"Eclipse CDT4 - Unix Makefiles"
 sudo apt install openjdk-8-jdk

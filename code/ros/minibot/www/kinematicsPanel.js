@@ -522,6 +522,7 @@ KinematicsPanel.Init = function(options) {
     minibotState.joint_state.name = names;
     minibotState.joint_state.position = values;
     minibotState.pose.tool_length = 0;
+    minibotState.name ="zero position";
 
     // post new joint state to compute forward kinematics
     pubMinibotStateJoints.publish(minibotState);
@@ -591,7 +592,9 @@ KinematicsPanel.Init = function(options) {
         name: names,
         position: values
       },
-      configuration: solutionsIK
+      configuration: solutionsIK,
+      name : "",
+      uid : 0
     });  
     return state;
   }
