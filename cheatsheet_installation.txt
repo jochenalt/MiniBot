@@ -256,10 +256,19 @@ rosdep install --from-paths . --ignore-src --rosdistro melodic
 # install java
 sudo apt install default-jre
 # extra in ~
-catkin build  --force-cmake -G"Eclipse CDT4 - Unix Makefiles"
-sudo apt install openjdk-8-jdk
-~/catkin/src/generate_eclipse_files.sh
 catkin build  --force-cmake -G"Eclipse CDT4 - Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug
+~/catkin/src/generate_eclipse_files.sh
+catkin build  -DCMAKE_BUILD_TYPE=Debug
+ln -s ~/Minibot/code/ros/bin/generate_eclipse_project_files.sh .
+./generate_eclipse_project_files
+
+--- start minibot server without debugging in Eclipse
+cd ~/catkin_ws
+roslaunch minibot minibot.launch 
+
+--- start minibot server without server node, it has to be started separately in Eclipse
+cd ~/catkin_ws
+roslaunch minibot minibot.launch no_minibot_server:='1'
 
 ----
 ToDos
