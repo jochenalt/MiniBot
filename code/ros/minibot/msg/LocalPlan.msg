@@ -1,0 +1,3 @@
+uint32 start_index
+uint32 end_index
+ErrorCodes error_code

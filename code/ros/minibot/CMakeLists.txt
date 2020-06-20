@@ -38,6 +38,9 @@ add_message_files(
    Configuration.msg
    JointStateConfiguration.msg
    ClientAction.msg
+
+   LocalPlan.msg
+   GlobalPlan.msg
 )
 
 ## Generate services in the 'srv' folder
