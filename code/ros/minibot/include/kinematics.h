@@ -20,6 +20,14 @@
 namespace Minibot {
   namespace Kinematics {
 
+  	// the following variables are defined in init()
+  	extern std::vector<std::string> minibot_arm_joint_names; 		// joint names of the arm without the gripper
+  	extern std::vector<std::string> minibot_gripper_joint_names;		// joint names of the gripper without the arm
+  	extern std::vector<std::string> minibot_joint_names;				// all joint names, including gripper
+
+    // call me before anything else, but after node initialisation
+    void init();
+
     // compute all pose values to a given pose. Does not consider joint limits
     // returns true if IK was successful.
     geometry_msgs::Pose computeTCPBase(const geometry_msgs::Pose& tcpPose, double tool_distance);
@@ -39,9 +47,6 @@ namespace Minibot {
 
     // check if the robotstate is in self-collision
     bool inSelfCollision(const robot_state::RobotStatePtr& kinematic_state);
-
-    // call me before anything else, but after node initialisation
-    void init();
 
     // add or overwrite the end effector positions from eff to joint_state
     bool setEndEffectorPosition(sensor_msgs::JointState& joint_state, const sensor_msgs::JointState& eff);

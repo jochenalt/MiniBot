@@ -34,9 +34,9 @@ namespace Minibot {
 namespace Kinematics {
 
 // cache the joint names of the group "minibot_arm" as defined in SRDF
-std::vector<std::string> minibot_arm_joint_names;
-std::vector<std::string> minibot_gripper_joint_names;
-std::vector<std::string> minibot_joint_names;
+std::vector<std::string> minibot_arm_joint_names; 			// joint names of the arm without the gripper
+std::vector<std::string> minibot_gripper_joint_names;		// joint names of the gripper without the arm
+std::vector<std::string> minibot_joint_names;				// all joint names, including gripper
 
 minibot::MinibotState last_joint_state;
 

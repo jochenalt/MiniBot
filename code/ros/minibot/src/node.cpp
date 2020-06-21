@@ -54,10 +54,10 @@ int main(int argc, char *argv[]) {
 		ROS_INFO_STREAM("starting minibot server node");
 
 		Minibot::Utils::init();
-		Minibot::Planner::init();
 		Minibot::Kinematics::init();
 		Minibot::Gearwheel::init();
 		Minibot::Database::init();
+		Minibot::Planner::init();
 
 		// *** publish messages to UI ***
 		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
@@ -94,6 +94,9 @@ int main(int argc, char *argv[]) {
 
 		// planning service, handling planing requests and generating displayed trajectories
 		ros::ServiceServer planning_srv = nh.advertiseService("/planning", Minibot::Planner::handlePlanningAction);
+
+		// *** planning ***
+		Minibot::Planner::plan();
 
 		ros::AsyncSpinner spinner(0); // 0 = one thread per core
 		spinner.start();

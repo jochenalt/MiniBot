@@ -16,6 +16,7 @@
 #include "database.h"
 #include "node.h"
 #include "utils.h"
+#include "planner.h"
 
 namespace Minibot {
 namespace Database {
@@ -33,6 +34,7 @@ std::string settings_store_db_key 	= "settings_store";
 std::string pose_store_db_key		= "pose_store";
 std::string programme_store_db_key 	= "programme_store";
 
+minibot::Configuration settings_cache;
 
 void init() {
 	ROS_INFO_STREAM_NAMED(LOG_NAME, "module database init");
@@ -45,6 +47,10 @@ void init() {
 	getSettings();
 	getPoseStorage();
 	getProgramme();
+}
+
+const minibot::Configuration& getCachedSettings() {
+	return settings_cache;
 }
 
 minibot::Configuration getSettings() {
@@ -70,6 +76,7 @@ minibot::Configuration getSettings() {
 
 void setSettings(const minibot::Configuration & settings) {
 	messageStore->updateNamed(settings_store_db_key, settings);
+	settings_cache = settings;
 }
 
 void setPoseStorage(const minibot::PoseStorage & pose_store) {
@@ -142,6 +149,10 @@ bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
 		break;
 	case minibot::DatabaseAction::Request::WRITE_PROGRAMME:
 		setProgramme(req.programme_store);
+
+		// initiate planning
+		Minibot::Planner::plan();
+
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
 	default:

@@ -23,6 +23,7 @@ void init();
 	// read/write settings from the database
 minibot::Configuration getSettings();
 void setSettings(const minibot::Configuration & settings);
+const minibot::Configuration& getCachedSettings();
 
 	// read/write pose storarge
 void setPoseStorage(const minibot::PoseStorage & settings);

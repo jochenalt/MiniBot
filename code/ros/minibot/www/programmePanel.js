@@ -111,7 +111,9 @@ ProgrammePanel.Init = function(options) {
       },
       function(result) {
         displayErr("database error " + result.toString());
-      });
+    });
+
+
   }
 
 
@@ -508,9 +510,6 @@ ProgrammePanel.Init = function(options) {
       activateStatement(id);
       poseStorePanel.activateByUID(programmeItems[id].statement.pose_uid);
     }
-
-    // display the trajectory to the next Item
-    // planningAction();
   }
 
   // activate the statement by the passed statement id
@@ -646,7 +645,7 @@ ProgrammePanel.Init = function(options) {
       // and we cannot start the planning yet
       prgItem.widget.scrollIntoView();
 
-      // immediately store in database
+      // lazily store in database
       storeInDatabase(false);
 
     } else
@@ -668,7 +667,7 @@ ProgrammePanel.Init = function(options) {
       // and we cannot start the planning yet
       prgItem.widget.scrollIntoView();
 
-      // immediately store in database
+      // lazily store in database
       storeInDatabase(false);
 
     } else
@@ -686,7 +685,7 @@ ProgrammePanel.Init = function(options) {
     prgItem.widget.scrollIntoView();
     activateStatement(id);
 
-    // immediately store in database
+    // lazily store in database
     storeInDatabase(false);
   }
 
@@ -749,7 +748,7 @@ ProgrammePanel.Init = function(options) {
       prgItem.widget.scrollIntoView();
       updateWidgets();
 
-      // immediately store in database
+      // lazily store in database
       storeInDatabase(false);
     } else
       displayErr('selected statement is last already')
@@ -767,7 +766,7 @@ ProgrammePanel.Init = function(options) {
         prgItem.statement.path_strategy = Constants.Statement.PLAN_SPLINE_STRATEGY;
       updateWidget(id);
 
-      // immediately store in database
+      // lazily store in database
       storeInDatabase(false);
     }
   }
@@ -779,7 +778,7 @@ ProgrammePanel.Init = function(options) {
       prgItem.statement.bend = event.target.checked;
       updateWidget(id);
 
-      // immediately store in database
+      // lazily store in database
       storeInDatabase(false);
     }
   }
@@ -792,7 +791,7 @@ ProgrammePanel.Init = function(options) {
       prgItem.statement.collision_check = event.target.checked;
       updateWidget(id);
 
-      // immediately store in database
+      // lazily store in database
       storeInDatabase(false);
     }
   }
@@ -886,7 +885,7 @@ ProgrammePanel.Init = function(options) {
       prgItem.statement.name = event.target.value;
       cancelEditMode();
 
-      // immediately store in database
+      // lazily store in database
       storeInDatabase(false);
 
       updateWidgets;
@@ -953,7 +952,6 @@ ProgrammePanel.Init = function(options) {
 
   // save  the programm to the server
   var planningAction = function() {
-    // anything active?
     var startID = getActiveId();
     if (startID == null || startID < 0) {
       displayErr("select a statement first");
@@ -967,7 +965,7 @@ ProgrammePanel.Init = function(options) {
 
     var planningAction = new ROSLIB.Service({
       ros: ros,
-      name: '/planning_action',
+      name: '/planning',
       serviceType: 'minibot/PlanningAction'
     });
 
@@ -1013,7 +1011,7 @@ ProgrammePanel.Init = function(options) {
 
     var planningAction = new ROSLIB.Service({
       ros: ros,
-      name: '/planning_action',
+      name: '/planning',
       serviceType: 'minibot/PlanningAction'
     });
 
@@ -1042,7 +1040,7 @@ ProgrammePanel.Init = function(options) {
 
     var planningAction = new ROSLIB.Service({
       ros: ros,
-      name: '/planning_action',
+      name: '/planning',
       serviceType: 'minibot/PlanningAction'
     });
 
@@ -1057,13 +1055,13 @@ ProgrammePanel.Init = function(options) {
   }
 
   var visualizeGlobalPlan = function(event) {
-    visualizePlan(Constants.PlanningAction.VIS_GLOBAL_PLAN, event.target.checked);
     settingsPanel.setVisualizationGlobalPlan(event.target.checked);
+    visualizePlan(Constants.PlanningAction.VIS_GLOBAL_PLAN, event.target.checked);
   }
 
   var visualizeLocalPlan = function(event) {
-    visualizePlan(Constants.PlanningAction.VIS_LOCAL_PLAN, event.target.checked);
     settingsPanel.setVisualizationLocalPlan(event.target.checked);
+    visualizePlan(Constants.PlanningAction.VIS_LOCAL_PLAN, event.target.checked);
   }
 
   var forward = function(event) {
@@ -1090,7 +1088,7 @@ ProgrammePanel.Init = function(options) {
 
       var planningAction = new ROSLIB.Service({
         ros: ros,
-        name: '/planning_action',
+        name: '/planning',
         serviceType: 'minibot/PlanningAction'
       });
 

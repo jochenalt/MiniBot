@@ -7,9 +7,9 @@
 
 
 
-
 #include "utils.h"
 #include "constants.h"
+#include "kinematics.h"
 
 #include "trap_velocity_profile.h"
 #include "ros/ros.h"
@@ -35,12 +35,13 @@ void planPTP(
         double acceleration_scaling_factor)
 {
 
+	joint_trajectory.joint_names = Minibot::Kinematics::minibot_joint_names;
 
 	// find the slowest joint that takes the longest for a normalized profile
-	std::string leading_axis = joint_trajectory.joint_names.front();
+	std::string leading_axis = Minibot::Kinematics::minibot_joint_names.front();
 	double max_duration = -1.0; // negative, since we are looking for max
 	std::map<std::string, TrapVelocityProfile> velocity_profile;
-	for(const auto& joint_name : joint_trajectory.joint_names)
+	for(const auto& joint_name : Minibot::Kinematics::minibot_joint_names)
 	{
 		// create velocity profile if necessary
 		velocity_profile.insert(std::make_pair(
@@ -53,6 +54,8 @@ void planPTP(
 		velocity_profile.at(joint_name).SetProfile(
 											Utils::getJointValue(start_pos.joint_state, joint_name),
 											Utils::getJointValue(goal_pos.joint_state,joint_name));
+
+		// if moving this joint takes longer than the slowest joint, switch the leading axis
 		if(velocity_profile.at(joint_name).Duration() > max_duration)
 		{
 		  max_duration = velocity_profile.at(joint_name).Duration();
@@ -60,34 +63,21 @@ void planPTP(
 		}
 	}
 
-	// generate the time samples upfront to garanty that the last time sample hits max_duration exactly
-	std::vector<double> time_samples;
-	for(double t_sample=0.0; t_sample<max_duration; t_sample += trajectory_sampling_time)
-		time_samples.push_back(t_sample);
-	// add last time
-	time_samples.push_back(max_duration);
-
 	// construct joint trajectory point
-	for(double time_stamp : time_samples)
-	{
+	// squeeze the sampling time such that it fits exactly
+	int samples = std::round(max_duration/trajectory_sampling_time);
+	for(int sample = 0;sample < samples;sample++) {
+		double t_sample=(max_duration*sample)/(samples-1);
 		trajectory_msgs::JointTrajectoryPoint point;
-		point.time_from_start =  ros::Duration(time_stamp);
+		point.time_from_start =  ros::Duration(t_sample);
 		for(std::string & joint_name : joint_trajectory.joint_names)
 		{
-		  point.positions.push_back(velocity_profile.at(joint_name).Pos(time_stamp));
-		  point.velocities.push_back(velocity_profile.at(joint_name).Vel(time_stamp));
-		  point.accelerations.push_back(velocity_profile.at(joint_name).Acc(time_stamp));
+		  point.positions.push_back(velocity_profile.at(joint_name).Pos(t_sample));
+		  point.velocities.push_back(velocity_profile.at(joint_name).Vel(t_sample));
+		  point.accelerations.push_back(velocity_profile.at(joint_name).Acc(t_sample));
 		}
 		joint_trajectory.points.push_back(point);
 	}
-
-	// Set last point velocity and acceleration to zero, just in case we have some rounding errors
-	std::fill(joint_trajectory.points.back().velocities.begin(),
-			  joint_trajectory.points.back().velocities.end(),
-			  0.0);
-	std::fill(joint_trajectory.points.back().accelerations.begin(),
-			  joint_trajectory.points.back().accelerations.end(),
-			  0.0);
 }
 
 }

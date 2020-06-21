@@ -142,13 +142,22 @@ void createTrajectoryMarker(const trajectory_msgs::JointTrajectory& joint_trajec
 	control.interaction_mode = InteractiveMarkerControl::BUTTON;
 
 	int point_counter = 1;
-	Marker marker;
-	for (size_t p_idx;p_idx < joint_trajectory.points.size();p_idx++) {
+
+
+	for (size_t p_idx=0;p_idx < joint_trajectory.points.size();p_idx++) {
+        sensor_msgs::JointState joint_state;
+        joint_state.name =  joint_trajectory.joint_names;
+        joint_state.position =  joint_trajectory.points[p_idx].positions;
+        geometry_msgs::Pose pose;
+	    Minibot::Kinematics::computeFK(joint_state,pose);
+
+
     	// first and last point is one spehere list,
     	// all points in between is another sphere list,
     	// because one sphere list can have only identical spheres
     	// and the first and last sphere is supposed to be bigger
-    	if ((p_idx == 1) || (p_idx == joint_trajectory.points.size()-1)) {
+    	if ((p_idx == 0) || (p_idx == joint_trajectory.points.size()-1)) {
+    		Marker marker;
     		marker.type = Marker::SPHERE_LIST;
     		if (is_global) {
     			marker.color = getTrajectoryColor(color_no);
@@ -158,35 +167,28 @@ void createTrajectoryMarker(const trajectory_msgs::JointTrajectory& joint_trajec
 	        	marker.color = getWaypointColor();
 				marker.scale.x = marker.scale.y = marker.scale.z = 0.005;
 	        }
-           control.markers.push_back( marker );
+            marker.points.push_back(pose.position);
+    		control.markers.push_back( marker );
     	}
         else {
-        	if (p_idx == 2) {
-                marker.type = Marker::SPHERE_LIST;
-                if (is_global) {
-                    marker.scale.x = marker.scale.y = marker.scale.z = 0.004;
-                    marker.color = getTrajectoryColor(color_no);
-                }
-                else {
-                    marker.scale.x = marker.scale.y = marker.scale.z = 0.005;
-                    marker.color = getWaypointColor();
-                }
-        	}
-        	control.markers.push_back( marker );
+        	Marker waypoints_marker;
+    		waypoints_marker.type = Marker::SPHERE_LIST;
+            if (is_global) {
+              	waypoints_marker.scale.x = waypoints_marker.scale.y = waypoints_marker.scale.z = 0.004;
+               	waypoints_marker.color = getTrajectoryColor(color_no);
+            }
+            else {
+             	waypoints_marker.scale.x = waypoints_marker.scale.y = waypoints_marker.scale.z = 0.005;
+               	waypoints_marker.color = getWaypointColor();
+            }
+        	waypoints_marker.points.push_back(pose.position);
+            control.markers.push_back( waypoints_marker );
+        	ROS_INFO_STREAM_NAMED(LOG_NAME, " pose " << p_idx << ":" << pose.position.x << "|" << pose.position.y << "|" << pose.position.z);
         }
-
-    	// add the point to the active sphere list
-        sensor_msgs::JointState joint_state;
-        joint_state.name =  joint_trajectory.joint_names;
-        joint_state.position =  joint_trajectory.points[p_idx].positions;
-        geometry_msgs::Pose pose;
-	    Minibot::Kinematics::computeFK(joint_state,pose);
-	    marker.points.push_back(pose.position);
-
-	    int_marker.controls.push_back( control );
-	    server->insert(int_marker, &processFeedback);
 	}
-    server->applyChanges();
+    int_marker.controls.push_back( control );
+    server->insert(int_marker, &processFeedback);
+	server->applyChanges();
 }
 
 void init() {
