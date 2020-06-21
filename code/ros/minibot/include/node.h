@@ -31,6 +31,12 @@ extern ros::Publisher pub_gearwheel_pose;
 // publisher for messages
 extern ros::Publisher pub_msg;
 
+// publisher for global trajectories
+extern ros::Publisher pub_global_plan;
+
+// publisher for local trajectories
+extern ros::Publisher pub_local_plan;
+
 
 
 #endif /* INCLUDE_NODE_H_ */

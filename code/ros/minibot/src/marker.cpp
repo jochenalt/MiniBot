@@ -7,9 +7,13 @@
 
 #include "ros/ros.h"
 
+#include "utils.h"
 #include "marker.h"
 #include "node.h"
 #include "dispatcher.h"
+#include "planner.h"
+#include "kinematics.h"
+
 #include <interactive_markers/interactive_marker_server.h>
 #include <interactive_markers/menu_handler.h>
 #include <visualization_msgs/Marker.h>
@@ -68,13 +72,10 @@ void processFeedback(
 	server->applyChanges();
 }
 
-void init() {
-	ROS_INFO_STREAM_NAMED(LOG_NAME, "module marker init");
-
-	server = new interactive_markers::InteractiveMarkerServer("markers", "",
-			true);
+// create the marker at the tip of the arm
+void createTipMarker() {
 	InteractiveMarker int_marker;
-	int_marker.header.frame_id = "base_link";
+	int_marker.header.frame_id = Utils::getBaseFrameName();
 	int_marker.scale = 0.03;
 	int_marker.name = gearwheel_marker_name;
 
@@ -104,6 +105,97 @@ void init() {
 
 	server->insert(int_marker);
 	server->setCallback(int_marker.name, &processFeedback);
+}
+
+void deleteTrajectoryMarker(std::string name, int start_index) {
+	std::string trajectory_name = name + "-" + std::to_string(start_index);
+	server->erase(trajectory_name);
+}
+
+std_msgs::ColorRGBA getTrajectoryColor(int& no) {
+	std_msgs::ColorRGBA color;
+    color.r = 0.2;
+    color.g =  (no % 2) == 0?1-no/4:no/4;
+    color.b =  (no % 2) == 1?1-no/4:no/4;
+    color.a = 1.0;
+    no++;
+
+    return color;
+}
+
+std_msgs::ColorRGBA getWaypointColor() {
+	int no = 0;
+	return getTrajectoryColor(no);
+}
+
+void createTrajectoryMarker(const trajectory_msgs::JointTrajectory& joint_trajectory, bool is_global, std::string name, int start_index, int& color_no) {
+	// delete the previous trajectory with the same name and number
+	std::string trajectory_name = name + "-" + std::to_string(start_index);
+	InteractiveMarker int_marker;
+	int_marker.header.frame_id = Utils::getBaseFrameName();
+	int_marker.scale = 0.01;
+	int_marker.name = trajectory_name;
+
+	// insert a sphere list control
+	InteractiveMarkerControl control;
+	control.always_visible = true;
+	control.interaction_mode = InteractiveMarkerControl::BUTTON;
+
+	int point_counter = 1;
+	Marker marker;
+	for (size_t p_idx;p_idx < joint_trajectory.points.size();p_idx++) {
+    	// first and last point is one spehere list,
+    	// all points in between is another sphere list,
+    	// because one sphere list can have only identical spheres
+    	// and the first and last sphere is supposed to be bigger
+    	if ((p_idx == 1) || (p_idx == joint_trajectory.points.size()-1)) {
+    		marker.type = Marker::SPHERE_LIST;
+    		if (is_global) {
+    			marker.color = getTrajectoryColor(color_no);
+	            marker.scale.x = marker.scale.y = marker.scale.z = 0.008;
+    		}
+	        else {
+	        	marker.color = getWaypointColor();
+				marker.scale.x = marker.scale.y = marker.scale.z = 0.005;
+	        }
+           control.markers.push_back( marker );
+    	}
+        else {
+        	if (p_idx == 2) {
+                marker.type = Marker::SPHERE_LIST;
+                if (is_global) {
+                    marker.scale.x = marker.scale.y = marker.scale.z = 0.004;
+                    marker.color = getTrajectoryColor(color_no);
+                }
+                else {
+                    marker.scale.x = marker.scale.y = marker.scale.z = 0.005;
+                    marker.color = getWaypointColor();
+                }
+        	}
+        	control.markers.push_back( marker );
+        }
+
+    	// add the point to the active sphere list
+        sensor_msgs::JointState joint_state;
+        joint_state.name =  joint_trajectory.joint_names;
+        joint_state.position =  joint_trajectory.points[p_idx].positions;
+        geometry_msgs::Pose pose;
+	    Minibot::Kinematics::computeFK(joint_state,pose);
+	    marker.points.push_back(pose.position);
+
+	    int_marker.controls.push_back( control );
+	    server->insert(int_marker, &processFeedback);
+	}
+    server->applyChanges();
+}
+
+void init() {
+	ROS_INFO_STREAM_NAMED(LOG_NAME, "module marker init");
+
+	server = new interactive_markers::InteractiveMarkerServer("markers", "",true);
+
+	createTipMarker();
+
 }
 
 void updateGerwheelPose(const geometry_msgs::Pose &pose) {

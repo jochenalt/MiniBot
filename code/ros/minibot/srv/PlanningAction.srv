@@ -10,8 +10,9 @@ uint8 VIS_LOCAL_PLAN=8 		# publish displayTraectory of local plan
 uint8 STEP_FORWARD=9 		# simulate one step after startStatementID
 uint8 type
 
-bool jfdi
-uint8 startStatementUID
-uint8 endStatementUI
+bool jfdi					# boolean flag used for binary requests
+uint8 start_index 			# start index of programme.statement
+uint8 goal_index 			# goalindex of programme.statement
+
 ---
 minibot/ErrorCodes error_code

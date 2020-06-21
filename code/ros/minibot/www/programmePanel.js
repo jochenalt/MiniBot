@@ -134,7 +134,7 @@ ProgrammePanel.Init = function(options) {
 
     // set color of right badge
     if (prgStmt.statement.error_code != null && 
-        prgStmt.statement.error_code.val == Constants.ErrorCodes.SUCCESS) {
+        prgStmt.statement.error_code.val != Constants.ErrorCodes.SUCCESS) {
       badge.classList.remove("badge-success");
       badge.classList.add("badge-danger");
     } else {
@@ -962,7 +962,7 @@ ProgrammePanel.Init = function(options) {
 
     var request = new ROSLIB.ServiceRequest({
         type: Constants.Planning.SELECT_LOCAL_PLAN,
-        startStatementUID: programmeItems[startID].statement.uid
+        start_index: programmeItems[startID].statement.uid
     });
 
     var planningAction = new ROSLIB.Service({
@@ -1007,8 +1007,8 @@ ProgrammePanel.Init = function(options) {
 
     var request = new ROSLIB.ServiceRequest({
       type: Constants.PlannigAction.SIMULATE_PLAN,
-      startStatementUID: programmeItems[startID].statement.uid,
-      endStatementUID: programmeItems[endID].statement.uid
+      start_index: startID,
+      goal_index: endID
     });
 
     var planningAction = new ROSLIB.Service({
@@ -1085,7 +1085,7 @@ ProgrammePanel.Init = function(options) {
 
       var request = new ROSLIB.ServiceRequest({
         type: Constants.Planning.ACTION_STEP_FORWARD,
-        startStatementUID: programmeItems[startID].statement.uid
+        start_index: startID
       });
 
       var planningAction = new ROSLIB.Service({

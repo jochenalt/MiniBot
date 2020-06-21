@@ -39,6 +39,12 @@ ros::Publisher pub_joint_state;
 // publisher for messages
 ros::Publisher pub_msg;
 
+// publisher for global trajectories
+ros::Publisher pub_global_plan;
+
+// publisher for local trajectories
+ros::Publisher pub_local_plan;
+
 
 int main(int argc, char *argv[]) {
 	try {
@@ -77,6 +83,10 @@ int main(int argc, char *argv[]) {
 
 		// publish new joint states, consumed by UI
 		pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
+
+		// *** publish messages around planning ***
+		pub_local_plan = nh.advertise<moveit_msgs::DisplayTrajectory>("/minibot/local_plan",1);
+		pub_global_plan = nh.advertise<moveit_msgs::DisplayTrajectory>("/minibot/global_plan",1);
 
 		// *** services ***
 		// database service, maintaining settings, pose storage and programm storage

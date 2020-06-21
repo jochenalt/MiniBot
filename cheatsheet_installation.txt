@@ -76,7 +76,6 @@ ln -s ~/Minibot/code/ros/minibot ~/catkin_ws/src
 ln -s ~/Minibot/code/ros/roswww ~/catkin_ws/src
 ln -s ~/Minibot/code/ros/minibot_ikfast_plugin/ ~/catkin_ws/src
 ln -s ~/Minibot/code/ros/minibot_moveit_config ~/catkin_ws/src
-ln -s ~/Minibot/code/ros/descartes_capability ~/catkin_ws/src
 
 source ~/.bashrc
 
@@ -268,7 +267,7 @@ roslaunch minibot minibot.launch
 
 --- start minibot server without server node, it has to be started separately in Eclipse
 cd ~/catkin_ws
-roslaunch minibot minibot.launch no_minibot_server:='1'
+roslaunch minibot minibot.launch debug_minibot_server:='1'
 
 ----
 ToDos

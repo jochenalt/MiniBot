@@ -3,7 +3,7 @@
   <arg name="pipeline" value="ompl" />
   <arg name="mongodb_port" value="62345" />
   <arg name="mongodb_host" value="localhost" />
-  <arg name="no_minibot_server"  default="0"/>
+  <arg name="debug_minibot_server"  default="0"/>
 
   <!-- start the database server -->
   <node  name="mongodb_server" pkg="mongodb_store" type="mongodb_server.py" output="screen"/> 
@@ -54,9 +54,10 @@
     <arg name="index" value="minibot"/> 
   </include>
 
-  <!-- start the server node  --> 
+  <!-- start the server node unless debug_minibot_server is set. This means that 
+       minibot_server is debugged in eclipse outside this launch file --> 
   <node pkg="minibot" type="minibot_server" name="minibot_server" output="screen"
-           unless="$(eval arg('no_minibot_server'))">
+        unless="$(eval arg('debug_minibot_server'))">
   </node>
  
 </launch>
