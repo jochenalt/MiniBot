@@ -110,6 +110,7 @@ void createTipMarker() {
 void deleteTrajectoryMarker(std::string name, int start_index) {
 	std::string trajectory_name = name + "-" + std::to_string(start_index);
 	server->erase(trajectory_name);
+	server->applyChanges();
 }
 
 std_msgs::ColorRGBA getTrajectoryColor(int no) {
