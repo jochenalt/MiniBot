@@ -15,26 +15,27 @@
 
 namespace Minibot {
 
-#define LOG_NAME "planner"
+minibot::GlobalPlan global_plan;
 
 std::string planner_prefix = "PLANNER:";
-
 std::string global_trajectory_name = "global_trajectory";
 std::string local_trajectory_name= "local_trajectory";
+
 
 namespace Planner {
 
 int local_plan_index = -1;		// index of the programme.statement that is to be displayed as local plan
-minibot::GlobalPlan global_plan;
+#define LOG_NAME "planner"
+
 
 void init() {
 	ROS_INFO_STREAM_NAMED(LOG_NAME, "module planner init");
 }
 
 
-minibot::GlobalPlan createGlobalPlan (const minibot::Configuration& settings,  minibot::Programme & prog, const minibot::PoseStorage& poses) {
-	minibot::GlobalPlan global_plan;
-	global_plan.error_code.val = minibot::ErrorCodes::SUCCESS; // think positive
+void  createGlobalPlan (const minibot::Configuration& settings,  minibot::Programme & prog, const minibot::PoseStorage& poses) {
+	minibot::GlobalPlan tmp_global_plan;
+	tmp_global_plan.error_code.val = minibot::ErrorCodes::SUCCESS; // think positive
 
 	bool is_in_trajectory = false;
 	int start_index = -1;
@@ -76,7 +77,7 @@ minibot::GlobalPlan createGlobalPlan (const minibot::Configuration& settings,  m
 			else {
 				if (stmt.type == minibot::Statement::STATEMENT_TYPE_WAYPOINT) {
 					stmt.error_code.val = minibot::ErrorCodes::TRAJECTORY_CANNOT_START_WITH_WAYPOINT;
-					global_plan.error_code.val = minibot::ErrorCodes::FAILURE;
+					tmp_global_plan.error_code.val = minibot::ErrorCodes::FAILURE;
 				}
 			}
 		}
@@ -84,20 +85,20 @@ minibot::GlobalPlan createGlobalPlan (const minibot::Configuration& settings,  m
 		// did we find a local plan?
 		if ((start_index >= 0) && (end_index >=0) && (number_of_points > 1)) {
 			minibot::LocalPlan local_plan = createLocalPlan(prog, poses, start_index, end_index);
-			global_plan.local_plan.push_back(local_plan);
+			tmp_global_plan.local_plan.push_back(local_plan);
 			start_index = -1;
 			is_in_trajectory = false;
 			end_index = -1;
 			number_of_points = 0;
 			if (local_plan.error_code.val != minibot::ErrorCodes::SUCCESS)
-				global_plan.error_code.val = minibot::ErrorCodes::FAILURE;
+				tmp_global_plan.error_code.val = minibot::ErrorCodes::FAILURE;
 		}
 		if ((start_index >= 0) && (end_index >=0) && (number_of_points <= 1)) {
 			stmt.error_code.val = minibot::ErrorCodes::LOCAL_TRAJECTORY_TOO_SHORT;
-			global_plan.error_code.val = minibot::ErrorCodes::FAILURE;
+			tmp_global_plan.error_code.val = minibot::ErrorCodes::FAILURE;
 		}
 	}
-	return global_plan;
+	Minibot::global_plan = tmp_global_plan;
 }
 
 
@@ -144,8 +145,8 @@ minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::Po
 void undisplayTrajectory(const minibot::GlobalPlan& global_plan, std::string trajectory_name) {
 
 	int last_index = 0;
-	if (Minibot::Planner::global_plan.local_plan.size()> 0)
-		last_index = Minibot::Planner::global_plan.local_plan.back().start_index;
+	if (Minibot::global_plan.local_plan.size()> 0)
+		last_index = Minibot::global_plan.local_plan.back().start_index;
 
 	// undisplay any old trajectories beyond the last one
 	for (int traj_idx = 0; traj_idx <= last_index; traj_idx++)
@@ -180,17 +181,13 @@ void displayTrajectory(const minibot::Configuration& settings, const minibot::Gl
 
 
 void plan() {
-	minibot::Programme prgm = Minibot::Database::getProgramme();
-	minibot::PoseStorage poses= Minibot::Database::getPoseStorage();
-	minibot::Configuration settings= Minibot::Database::getSettings();
-
 	// find out the last index of the previously display trajectory
 	int last_index = -1;
-	if (Minibot::Planner::global_plan.local_plan.size()> 0)
-		last_index = Minibot::Planner::global_plan.local_plan.back().start_index;
+	if (Minibot::global_plan.local_plan.size()> 0)
+		last_index = Minibot::global_plan.local_plan.back().start_index;
 
-	Minibot::Planner::global_plan = createGlobalPlan(settings, prgm, poses);
-	displayTrajectory(settings, global_plan, last_index);
+	createGlobalPlan(Minibot::settings, Minibot::programme_store, Minibot::pose_store);
+	displayTrajectory(Minibot::settings, Minibot::global_plan , last_index);
 }
 
 // handle incoming planning requests
@@ -210,18 +207,10 @@ bool handlePlanningAction(minibot::PlanningAction::Request &req,
 			local_plan_index = req.start_index;
 			res.error_code.val = minibot::ErrorCodes::SUCCESS;
 			break;
-		case minibot::PlanningAction::Request::CLEAR_PLAN:
-			res.error_code.val = minibot::ErrorCodes::SUCCESS;
-			break;
-		case minibot::PlanningAction::Request::GLOBAL_PLAN: {
-			plan();
-			res.error_code.val = global_plan.error_code.val;
-			break;
-		}
 		case minibot::PlanningAction::Request::SIMULATE_LOCAL_PLAN: {
 			res.error_code.val = minibot::ErrorCodes::SUCCESS;
-
 			for (size_t idx = 0; idx < global_plan.local_plan.size();idx++) {
+
 				if ((req.start_index >= global_plan.local_plan[idx].start_index) &&
 					(req.start_index <= global_plan.local_plan[idx].goal_index)) {
 					res.error_code = Minibot::Execution::execute(global_plan.local_plan[idx]);
@@ -229,25 +218,23 @@ bool handlePlanningAction(minibot::PlanningAction::Request &req,
 			}
 			break;
 		}
-
 		case minibot::PlanningAction::Request::VIS_GLOBAL_PLAN: {
-			minibot::Configuration settings = Minibot::Database::getSettings();
 			settings.vis_global_plan = req.jfdi;
 			if (settings.vis_global_plan)
-				displayTrajectory(settings, Minibot::Planner::global_plan, 0);
+				displayTrajectory(settings, Minibot::global_plan, 0);
 			else
-				undisplayTrajectory(Minibot::Planner::global_plan, global_trajectory_name);
+				undisplayTrajectory(Minibot::global_plan, global_trajectory_name);
 			Minibot::Database::setSettings(settings);
 			res.error_code.val = minibot::ErrorCodes::SUCCESS;
 			break;
 		}
 		case minibot::PlanningAction::Request::VIS_LOCAL_PLAN: {
-			minibot::Configuration settings = Minibot::Database::getSettings();
+			Minibot::Database::readSettings();
 			settings.vis_local_plan = req.jfdi;
 			if (settings.vis_global_plan)
-				displayTrajectory(settings, Minibot::Planner::global_plan, 0);
+				displayTrajectory(settings, Minibot::global_plan, 0);
 			else
-				undisplayTrajectory(Minibot::Planner::global_plan, local_trajectory_name);
+				undisplayTrajectory(Minibot::global_plan, local_trajectory_name);
 			Minibot::Database::setSettings(settings);
 
 			res.error_code.val = minibot::ErrorCodes::SUCCESS;

@@ -11,27 +11,31 @@
 #include "ros/ros.h"
 #include <minibot/Configuration.h>
 #include <minibot/DatabaseAction.h>
+#include <minibot/GlobalPlan.h>
 
 namespace Minibot {
-namespace Database {
 
 extern minibot::Configuration settings;
+extern minibot::PoseStorage pose_store;
+extern minibot::Programme programme_store;
+
+namespace Database {
+
 
 	// call me before anything happens in the database
 void init();
 
 	// read/write settings from the database
-minibot::Configuration getSettings();
+void readSettings();
 void setSettings(const minibot::Configuration & settings);
-const minibot::Configuration& getCachedSettings();
 
 	// read/write pose storarge
 void setPoseStorage(const minibot::PoseStorage & settings);
-minibot::PoseStorage getPoseStorage();
+void readPoseStorage();
 
 	// read/write programme
 void setProgramme(const minibot::Programme & settings);
-minibot::Programme getProgramme();
+void readProgramme();
 
 	// handle incoming database Requests
 bool handleDatabaseAction(minibot::DatabaseAction::Request &req,

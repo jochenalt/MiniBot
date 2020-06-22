@@ -19,6 +19,12 @@
 #include "planner.h"
 
 namespace Minibot {
+
+minibot::Configuration settings;
+minibot::PoseStorage pose_store;
+minibot::Programme programme_store;
+
+
 namespace Database {
 
 std::string database_prefix = "DATABASE:";
@@ -34,7 +40,6 @@ std::string settings_store_db_key 	= "settings_store";
 std::string pose_store_db_key		= "pose_store";
 std::string programme_store_db_key 	= "programme_store";
 
-minibot::Configuration settings_cache;
 
 void init() {
 	ROS_INFO_STREAM_NAMED(LOG_NAME, "module database init");
@@ -44,17 +49,12 @@ void init() {
 	messageStore = new MessageStoreProxy (nh);
 
 	// read all main objects to ensure that they are initialized
-	getSettings();
-	getPoseStorage();
-	getProgramme();
+	readSettings();
+	readPoseStorage();
+	readProgramme();
 }
 
-const minibot::Configuration& getCachedSettings() {
-	return settings_cache;
-}
-
-minibot::Configuration getSettings() {
-	minibot::Configuration settings;
+void readSettings() {
 	std::vector< boost::shared_ptr<minibot::Configuration> > results;
 	if (messageStore->queryNamed<minibot::Configuration>(settings_store_db_key, results)) {
 		// expect only one result
@@ -70,22 +70,22 @@ minibot::Configuration getSettings() {
 		settings.save_after = ros::Duration(3000,0);
 		messageStore->insertNamed(settings_store_db_key, settings);
 	}
-	return settings;
 }
 
 
 void setSettings(const minibot::Configuration & settings) {
 	messageStore->updateNamed(settings_store_db_key, settings);
-	settings_cache = settings;
+	Minibot::settings = settings;
 }
 
 void setPoseStorage(const minibot::PoseStorage & pose_store) {
 	messageStore->updateNamed(posestore_prefix, pose_store);
+	Minibot::pose_store = pose_store;
 }
 
 
-minibot::PoseStorage getPoseStorage() {
-	minibot::PoseStorage posestorage;
+void  readPoseStorage() {
+	minibot::PoseStorage tmp_pose_store;
 	std::vector< boost::shared_ptr<minibot::PoseStorage> > results;
 	if (messageStore->queryNamed<minibot::PoseStorage>(posestore_prefix, results)) {
 		// expect only one result
@@ -93,17 +93,17 @@ minibot::PoseStorage getPoseStorage() {
 			ROS_DEBUG_STREAM_NAMED(LOG_NAME, "Minibot::Database::getPoseStorage" <<
 					" more than one pose store object found");
 		} else {
-			posestorage = *results[0];
+			tmp_pose_store = *results[0];
 		}
 	} else {
-		messageStore->insertNamed(posestore_prefix, posestorage);
+		messageStore->insertNamed(posestore_prefix, tmp_pose_store);
 	}
-	return posestorage;
+	Minibot::pose_store = tmp_pose_store;
 }
 
 
-minibot::Programme getProgramme() {
-	minibot::Programme programme;
+void readProgramme() {
+	minibot::Programme tmp_programme;
 	std::vector< boost::shared_ptr<minibot::Programme> > results;
 	if (messageStore->queryNamed<minibot::Programme>(programme_store_db_key, results)) {
 		// expect only one result
@@ -111,24 +111,26 @@ minibot::Programme getProgramme() {
 			ROS_DEBUG_STREAM_NAMED(LOG_NAME, "Minibot::Database::getProgramme" <<
 					" more than one programme store object found");
 		} else {
-			programme = *results[0];
+			tmp_programme = *results[0];
 		}
 	} else {
-		messageStore->insertNamed(programme_store_db_key, programme);
+		messageStore->insertNamed(programme_store_db_key, tmp_programme);
 	}
-	return programme;
+	Minibot::programme_store = tmp_programme;
 }
 
 
 void setProgramme(const minibot::Programme & programme) {
 	messageStore->updateNamed(programme_store_db_key, programme);
+	Minibot::programme_store = programme;
+
 }
 
 bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
 						  minibot::DatabaseAction::Response &res) {
 	switch (req.type) {
 	case minibot::DatabaseAction::Request::READ_SETTINGS:
-		res.configuration = getSettings();
+		res.configuration = Minibot::settings;
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
 	case minibot::DatabaseAction::Request::WRITE_SETTINGS:
@@ -136,7 +138,7 @@ bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
 	case minibot::DatabaseAction::Request::READ_POSES:
-		res.pose_store = getPoseStorage();
+		res.pose_store = Minibot::pose_store;
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
 	case minibot::DatabaseAction::Request::WRITE_POSES:
@@ -144,7 +146,7 @@ bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
 	case minibot::DatabaseAction::Request::READ_PROGRAMME:
-		res.programme_store = getProgramme();
+		res.programme_store = Minibot::programme_store;
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
 	case minibot::DatabaseAction::Request::WRITE_PROGRAMME:

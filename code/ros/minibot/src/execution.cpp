@@ -35,8 +35,16 @@ void init() {
 }
 
 minibot::ErrorCodes  execute (const minibot::LocalPlan& local_plan) {
-	// robot_state::RobotStatePtr start_state_ptr = move_group->getCurrentState();
-	// robot_state::RobotState start_state = *start_state_ptr;
+
+	// set the first position as starting pose
+	minibot::MinibotState start_state;
+	start_state.joint_state.name = local_plan.joint_trajectory.joint_names;
+	start_state.joint_state.position = local_plan.joint_trajectory.points[0].positions;
+	Minibot::Kinematics::setLastMinibotState(start_state);
+
+	// the next main loop will publish this to /joint_states
+	// which is necessary for moveit, otherwise execute will complain about a different starting state
+
 	move_group->setStartStateToCurrentState();
 	moveit_msgs::RobotTrajectory trajectory;
 	trajectory.joint_trajectory = local_plan.joint_trajectory;

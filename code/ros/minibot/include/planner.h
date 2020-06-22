@@ -17,9 +17,10 @@
 
 namespace Minibot {
 
+extern minibot::GlobalPlan global_plan;
+
 namespace Planner{
 
-	extern minibot::GlobalPlan global_plan;
 
 	// call me before anything else
 	void init();
@@ -34,7 +35,7 @@ namespace Planner{
 
 
 	// compile a programme and create a global plan consisting of local plans
-	minibot::GlobalPlan createGlobalPlan (const minibot::Configuration& settings, minibot::Programme & prog, const minibot::PoseStorage& poses);
+	void createGlobalPlan (const minibot::Configuration& settings, minibot::Programme & prog, const minibot::PoseStorage& poses);
 
 	// compile a local plan with from start_index to end_index
 	minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::PoseStorage& poses, int start_index, int goal_index);
