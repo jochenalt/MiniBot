@@ -21,6 +21,10 @@ void updateTCPCallback(const minibot::MinibotState&);
   // callback for joint_input from UI
 void updateJointStatesCallback(const minibot::MinibotState&);
 
+	// callback for joint input from execution of a trajectory
+void updateExecutionJointStatesCallback(const sensor_msgs::JointState& joint_state);
+
+
 	// callback for a different configuration of the same tcp
 void updateJointStatesConfigurationCallback(const minibot::MinibotState& state);
 

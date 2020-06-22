@@ -25,7 +25,7 @@
 
 namespace Minibot {
 namespace Planner {
-
+#define LOG_NAME "planner"
 
 void planPTP(
 		const minibot::MinibotState& start_pos,
@@ -35,13 +35,13 @@ void planPTP(
         double acceleration_scaling_factor)
 {
 
-	joint_trajectory.joint_names = Minibot::Kinematics::minibot_joint_names;
+	joint_trajectory.joint_names = Minibot::minibot_joint_names;
 
 	// find the slowest joint that takes the longest for a normalized profile
-	std::string leading_axis = Minibot::Kinematics::minibot_joint_names.front();
+	std::string leading_axis = Minibot::minibot_joint_names.front();
 	double max_duration = -1.0; // negative, since we are looking for max
 	std::map<std::string, TrapVelocityProfile> velocity_profile;
-	for(const auto& joint_name : Minibot::Kinematics::minibot_joint_names)
+	for(const auto& joint_name : Minibot::minibot_joint_names)
 	{
 		// create velocity profile if necessary
 		velocity_profile.insert(std::make_pair(
@@ -61,6 +61,29 @@ void planPTP(
 		  max_duration = velocity_profile.at(joint_name).Duration();
 		  leading_axis = joint_name;
 		}
+	}
+
+	// synchronize all non-leading joints such that duration of all joints is the same
+	double acc_time = velocity_profile.at(leading_axis).FirstPhaseDuration();
+	double const_time = velocity_profile.at(leading_axis).SecondPhaseDuration();
+	double dec_time = velocity_profile.at(leading_axis).ThirdPhaseDuration();
+
+	for(const auto& joint_name : Minibot::minibot_joint_names) {
+		if(joint_name != leading_axis)
+	    {
+	      // make full synchronization
+	      // causes the program to terminate if acc_time<=0 or dec_time<=0 (should be prevented by goal_reached block above)
+	      // by using the most strict limit, the following should always return true
+	      if (!velocity_profile.at(joint_name).setProfileAllDurations(
+	    		  Utils::getJointValue(start_pos.joint_state, joint_name),
+	    		  Utils::getJointValue(goal_pos.joint_state, joint_name), acc_time,const_time,dec_time))
+	      {
+	        std::stringstream error_str;
+	        error_str << "TrajectoryGeneratorPTP::planPTP(): Can not synchronize velocity profile of axis " << joint_name
+	                  << " with leading axis " << leading_axis;
+			ROS_ERROR_STREAM_NAMED (LOG_NAME, "Minibot::Planner::planPTP invalid synchronisation =" << error_str.str());
+	      }
+	    }
 	}
 
 	// construct joint trajectory point

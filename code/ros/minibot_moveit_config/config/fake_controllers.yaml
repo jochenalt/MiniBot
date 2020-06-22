@@ -1,5 +1,6 @@
+rate: 25
 controller_list:
-  - name: fake_minibot_arm_controller
+  - name: fake_minibot_controller
     joints:
       - base_joint
       - shoulder_joint
@@ -8,11 +9,7 @@ controller_list:
       - forearm_joint
       - wrist_joint
       - flange_joint
-  - name: fake_palm_controller
-    joints:
       - knuckle_joint
-  - name: fake_hand_controller
-    joints:
       - finger_joint
 initial:
   - group: minibot_arm

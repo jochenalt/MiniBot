@@ -3,6 +3,7 @@
 #include "node.h"
 #include "utils.h"
 #include "marker.h"
+#include "execution.h"
 
 #include <minibot/Programme.h>
 #include <minibot/ErrorCodes.h>
@@ -217,6 +218,18 @@ bool handlePlanningAction(minibot::PlanningAction::Request &req,
 			res.error_code.val = global_plan.error_code.val;
 			break;
 		}
+		case minibot::PlanningAction::Request::SIMULATE_LOCAL_PLAN: {
+			res.error_code.val = minibot::ErrorCodes::SUCCESS;
+
+			for (size_t idx = 0; idx < global_plan.local_plan.size();idx++) {
+				if ((req.start_index >= global_plan.local_plan[idx].start_index) &&
+					(req.start_index <= global_plan.local_plan[idx].goal_index)) {
+					res.error_code = Minibot::Execution::execute(global_plan.local_plan[idx]);
+				}
+			}
+			break;
+		}
+
 		case minibot::PlanningAction::Request::VIS_GLOBAL_PLAN: {
 			minibot::Configuration settings = Minibot::Database::getSettings();
 			settings.vis_global_plan = req.jfdi;

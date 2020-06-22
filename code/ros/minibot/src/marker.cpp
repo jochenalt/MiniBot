@@ -182,7 +182,6 @@ void createTrajectoryMarker(const trajectory_msgs::JointTrajectory& joint_trajec
             }
         	marker.points.push_back(pose.position);
             control.markers.push_back( marker );
-        	ROS_INFO_STREAM_NAMED(LOG_NAME, " pose " << p_idx << ":" << pose.position.x << "|" << pose.position.y << "|" << pose.position.z);
         }
 	}
     int_marker.controls.push_back( control );
@@ -202,7 +201,7 @@ void init() {
 
 }
 
-void updateGerwheelPose(const geometry_msgs::Pose &pose) {
+void updateGearwheelPose(const geometry_msgs::Pose &pose) {
 	if (server == NULL)
 		ROS_ERROR_STREAM_NAMED(LOG_NAME, "interactive server not initialized");
 

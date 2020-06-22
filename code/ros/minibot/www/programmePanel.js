@@ -704,16 +704,16 @@ ProgrammePanel.Init = function(options) {
     prgItem.widget.scrollIntoView();
     activateStatement(id);
 
-    // immediately store in database
+    // lazily store in database
     storeInDatabase(false);
   }
 
 
-  function up() {
+  var up = function() {
     var id = getActiveId();
 
     if (id > 0) {
-      var uid = programmeItems[id].uid;
+      var uid = programmeItems[id].statement.uid;
       var prgItem = programmeItems[id];
       var prevPrgItem = programmeItems[id - 1];
 
@@ -726,7 +726,7 @@ ProgrammePanel.Init = function(options) {
       prgItem.widget.scrollIntoView();
       updateWidgets();
 
-      // immediately store in database
+      // lazily store in database
       storeInDatabase(false);
     } else
       displayErr('selected statement is first already')
@@ -736,7 +736,7 @@ ProgrammePanel.Init = function(options) {
     var id = getActiveId();
 
     if (id < programmeItems.length - 1) {
-      var uid = programmeItems[id].uid;
+      var uid = programmeItems[id].statement.uid;
       var prgItem = programmeItems[id];
       programmeListWidget.removeChild(prgItem.widget);
       moveStatement(uid, id + 1);
@@ -925,11 +925,11 @@ ProgrammePanel.Init = function(options) {
   var getNumberOfWaypoints = function() {
     var id = getActiveId();
     if (id != null && id >= 0 && 
-      ((programmeItems[id].type == Constants.Statement.Statement.STATEMENT_TYPE_WAYPOINT) ||
-       (programmeItems[id].type == Constants.Statement.Statement.STATEMENT_TYPE_MOVEMENT))) {
+      ((programmeItems[id].statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) ||
+       (programmeItems[id].statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT))) {
       var endID = -1;
       for (var idx = id + 1; idx < programmeItems.length; idx++) {
-        if (programmeItems[idx].type == Constants.Statement.Statement.STATEMENT_TYPE_WAYPOINT) {
+        if (programmeItems[idx].statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
           endID = idx;
         } else
           break;
@@ -988,7 +988,7 @@ ProgrammePanel.Init = function(options) {
   var simulatePlan = function() {
     var startID = getActiveId();
     if (startID == null || startID < 0 || 
-       ((programmeItems[startID].statement.type != Constants.Statement.STATEMENT_TYPE_WAYPOINT) || 
+       ((programmeItems[startID].statement.type != Constants.Statement.STATEMENT_TYPE_WAYPOINT) && 
         (programmeItems[startID].statement.type != Constants.Statement.STATEMENT_TYPE_MOVEMENT))) {
       displayErr("select a statement first");
       return;
@@ -1004,7 +1004,7 @@ ProgrammePanel.Init = function(options) {
     poseStorePanel.setPoseByUID(programmeItems[startID].statement.pose_uid);
 
     var request = new ROSLIB.ServiceRequest({
-      type: Constants.PlannigAction.SIMULATE_PLAN,
+      type: Constants.PlanningAction.SIMULATE_LOCAL_PLAN,
       start_index: startID,
       goal_index: endID
     });

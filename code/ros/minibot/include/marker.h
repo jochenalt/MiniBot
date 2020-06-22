@@ -19,7 +19,7 @@ namespace Gearwheel {
 	// call me before anything else, but after node initialisation
 	void init();
 
-	void updateGerwheelPose(const geometry_msgs::Pose& pose);
+	void updateGearwheelPose(const geometry_msgs::Pose& pose);
 
 	// @brief Display a trajectory, i.e. create an interactive marker per trajectory point.
 	// Overwrites the previous trajectory

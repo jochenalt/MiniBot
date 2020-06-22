@@ -18,12 +18,14 @@
 #include "utils.h"
 
 namespace Minibot {
-  namespace Kinematics {
 
-  	// the following variables are defined in init()
-  	extern std::vector<std::string> minibot_arm_joint_names; 		// joint names of the arm without the gripper
-  	extern std::vector<std::string> minibot_gripper_joint_names;		// joint names of the gripper without the arm
-  	extern std::vector<std::string> minibot_joint_names;				// all joint names, including gripper
+// the following variables are defined in init()
+extern std::vector<std::string> minibot_arm_joint_names; 		// joint names of the arm without the gripper
+extern std::vector<std::string> minibot_gripper_joint_names;	// joint names of the gripper without the arm
+extern std::vector<std::string> minibot_joint_names;			// all joint names, including gripper
+
+namespace Kinematics {
+
 
     // call me before anything else, but after node initialisation
     void init();

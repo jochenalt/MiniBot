@@ -46,7 +46,7 @@ void updateTCPCallback(const minibot::MinibotState& state) {
 	  pub_joint_values_config.publish(jointStateConfiguration);
 
 	  // change the gearhweel
-	  Minibot::Gearwheel::updateGerwheelPose(state.pose.pose);
+	  Minibot::Gearwheel::updateGearwheelPose(state.pose.pose);
 
 	  // store this state
 	  Minibot::Kinematics::setLastMinibotState(new_state);
@@ -57,15 +57,19 @@ void updateTCPCallback(const minibot::MinibotState& state) {
 
 }
 
+void updateExecutionJointStatesCallback(const sensor_msgs::JointState& joint_state) {
+	ROS_ASSERT_MSG( joint_state.name.size() > 0, "updateExecutionJointStatesCallback called without joints");
+	minibot::MinibotState minibot_state;
+	minibot_state.joint_state = joint_state;
+	updateJointStatesCallback(minibot_state);
+}
+
 // receive joint state input from UI and act accordingly:
 // - compute FK
 // - post new tcp values and all configurations
 void updateJointStatesCallback(const minibot::MinibotState& state) {
+	ROS_ASSERT_MSG( state.joint_state.name.size() > 0, "updateJointStatesCallback called without joints");
 
-	if (state.joint_state.name.size() == 0) {
-		ROS_ERROR_STREAM_NAMED(LOG_NAME,"updateJointStatesCallback call without joints");
-		return;
-	}
 	geometry_msgs::Pose flange_pose;
 	Minibot::Kinematics::computeFK(state.joint_state, flange_pose);
 
@@ -90,7 +94,7 @@ void updateJointStatesCallback(const minibot::MinibotState& state) {
 		  pub_tcp_ui.publish(new_state.pose);
 
 		  // update the position of gearhweel
-		  Minibot::Gearwheel::updateGerwheelPose(new_state.pose.pose);
+		  Minibot::Gearwheel::updateGearwheelPose(new_state.pose.pose);
 
 		  // publish tcp and all configuration
 		  pub_joint_state_ui.publish(new_state.joint_state);

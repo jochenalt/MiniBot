@@ -18,39 +18,40 @@ joint_limits:
     has_velocity_limits: true
     max_velocity: 5.0             # Herkulex DRS-402: 0.162s / 60 = 6.28 rad/s
     has_acceleration_limits: true
-    max_acceleration: 0.5         # assumption is max speed in 0.5s, a=v/t = 1.2 rad/s^2
+    max_acceleration: 1.0         # assumption is max speed in 0.5s, a=v/t = 1.2 rad/s^2
   shoulder_joint:
     has_velocity_limits: true
     max_velocity: 4.0             # 2xHerkulex DRS-402
     has_acceleration_limits: true
-    max_acceleration: 0.6      
+    max_acceleration: 1.25      
   upperarm_joint:
     has_velocity_limits: true
     max_velocity: 4.0         # Herkulex DRS-602
     has_acceleration_limits: true
-    max_acceleration: 0.5
+    max_acceleration: 1.5
   elbow_joint:
     has_velocity_limits: true
     max_velocity: 5.0
     has_acceleration_limits: true
-    max_acceleration: 1.0
+    max_acceleration: 2.0
   forearm_joint:
     has_velocity_limits: true
     max_velocity: 5.0
     has_acceleration_limits: true
-    max_acceleration: 1.0
+    max_acceleration: 2.5
   wrist_joint:
     has_velocity_limits: true
     max_velocity: 5.0
     has_acceleration_limits: true
-    max_acceleration: 1.0
+    max_acceleration: 3.0
   knuckle_joint:
     has_velocity_limits: true
     max_velocity: 5.0
     has_acceleration_limits: true
-    max_acceleration: 2.0
+    max_acceleration: 5.0
   finger_joint:
     has_velocity_limits: true
     max_velocity: 0.7      # gear 8.5/4.5 and worm with 1:2.5 = 1:0.7, 360° respr. 60° finger,  
-    has_acceleration_limits: false
+    has_acceleration_limits: true
     max_acceleration: 5.0
+

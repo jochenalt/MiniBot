@@ -102,6 +102,7 @@ add_executable(${PROJECT_NAME}_server
    src/message_store.cpp
    src/trap_velocity_profile.cpp
    src/trajectory_ptp.cpp
+   src/execution.cpp
 )
 
 target_link_libraries(

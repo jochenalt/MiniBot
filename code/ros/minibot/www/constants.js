@@ -18,7 +18,7 @@ Constants.PlanningAction = {
 		RUN:2,
 		SELECT_LOCAL_PLAN : 3,	    // plan and display the path		
 		CLEAR_PLAN : 4,				// clear the last plan		
-		SIMULATE_PLAN : 5,			// simulate the last plan
+		SIMULATE_LOCAL_PLAN : 5,			// simulate the last plan
 		GLOBAL_PLAN : 6,			// create a plan of the entire programm
 		VIS_GLOBAL_PLAN : 7,		// visualize the global plan 
 		VIS_LOCAL_PLAN : 8,			// visualize the current local plan

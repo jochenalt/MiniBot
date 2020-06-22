@@ -31,12 +31,14 @@ double SIGN(double x) {
 }
 
 namespace Minibot {
-namespace Kinematics {
 
 // cache the joint names of the group "minibot_arm" as defined in SRDF
 std::vector<std::string> minibot_arm_joint_names; 			// joint names of the arm without the gripper
 std::vector<std::string> minibot_gripper_joint_names;		// joint names of the gripper without the arm
 std::vector<std::string> minibot_joint_names;				// all joint names, including gripper
+
+
+namespace Kinematics {
 
 minibot::MinibotState last_joint_state;
 
@@ -217,8 +219,8 @@ void computeFK(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& p
 
    // Put input joint values into array
    ikfast::IkReal joints[numOfJoints];
-   for (int i = 0;i<numOfJoints;i++)
-	   joints[i] = jointState.position[i];
+   for (size_t idx = 0;idx<minibot_arm_joint_names.size();idx++)
+	   joints[idx] = Utils::getJointValue(jointState, minibot_arm_joint_names[idx]);
 
    ikfast::ComputeFk(joints, eetrans, eerot); // void return
 

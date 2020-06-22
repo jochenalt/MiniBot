@@ -19,6 +19,7 @@ using namespace std;
 #include "marker.h"
 #include "planner.h"
 #include "constants.h"
+#include "execution.h"
 
 
 // publisher of new joint values
@@ -58,6 +59,7 @@ int main(int argc, char *argv[]) {
 		Minibot::Gearwheel::init();
 		Minibot::Database::init();
 		Minibot::Planner::init();
+		Minibot::Execution::init();
 
 		// *** publish messages to UI ***
 		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
@@ -68,6 +70,9 @@ int main(int argc, char *argv[]) {
 
 		// listen to changes of the joints coming from UI
 		ros::Subscriber joint_states_input = nh.subscribe("/joint_states/input/update", 1, Minibot::Dispatcher::updateJointStatesCallback);
+
+		// listen to changes of the joints coming from UI
+		ros::Subscriber joint_states_execution = nh.subscribe("/move_group/fake_controller_joint_states", 1, Minibot::Dispatcher::updateExecutionJointStatesCallback);
 
 		// listen to changes of the joints coming from UI
 		ros::Subscriber configuration_input = nh.subscribe("/joint_configuration/input/update", 1, Minibot::Dispatcher::updateJointStatesConfigurationCallback);
@@ -102,7 +107,7 @@ int main(int argc, char *argv[]) {
 		spinner.start();
 
 		// carry out a loop that publishs the joint_states at 20Hz
-		ros::Rate loop_rate(joint_state_publish_rate);
+		ros::Rate loop_rate(Minibot::joint_state_publish_rate);
 		uint32_t joint_states_seq = 0;
 		while(ros::ok()) {
 

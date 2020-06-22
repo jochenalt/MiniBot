@@ -84,6 +84,7 @@ namespace Utils {
 	  return -1;
   }
 
+
   bool isInArray(const std::string &value, const std::vector<std::string> &array) {
       return std::find(array.begin(), array.end(), value) != array.end();
   }
