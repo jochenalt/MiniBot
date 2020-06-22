@@ -112,13 +112,12 @@ void deleteTrajectoryMarker(std::string name, int start_index) {
 	server->erase(trajectory_name);
 }
 
-std_msgs::ColorRGBA getTrajectoryColor(int& no) {
+std_msgs::ColorRGBA getTrajectoryColor(int no) {
 	std_msgs::ColorRGBA color;
     color.r = 0.2;
     color.g =  (no % 2) == 0?1-no/4:no/4;
     color.b =  (no % 2) == 1?1-no/4:no/4;
     color.a = 1.0;
-    no++;
 
     return color;
 }
@@ -160,7 +159,7 @@ void createTrajectoryMarker(const trajectory_msgs::JointTrajectory& joint_trajec
     		Marker marker;
     		marker.type = Marker::SPHERE_LIST;
     		if (is_global) {
-    			marker.color = getTrajectoryColor(color_no);
+    			marker.color = getWaypointColor();
 	            marker.scale.x = marker.scale.y = marker.scale.z = 0.008;
     		}
 	        else {
@@ -168,27 +167,30 @@ void createTrajectoryMarker(const trajectory_msgs::JointTrajectory& joint_trajec
 				marker.scale.x = marker.scale.y = marker.scale.z = 0.005;
 	        }
             marker.points.push_back(pose.position);
-    		control.markers.push_back( marker );
+          	control.markers.push_back( marker );
     	}
         else {
-        	Marker waypoints_marker;
-    		waypoints_marker.type = Marker::SPHERE_LIST;
+        	Marker marker;
+    		marker.type = Marker::SPHERE_LIST;
             if (is_global) {
-              	waypoints_marker.scale.x = waypoints_marker.scale.y = waypoints_marker.scale.z = 0.004;
-               	waypoints_marker.color = getTrajectoryColor(color_no);
+              	marker.scale.x = marker.scale.y = marker.scale.z = 0.004;
+               	marker.color = getTrajectoryColor(color_no);
             }
             else {
-             	waypoints_marker.scale.x = waypoints_marker.scale.y = waypoints_marker.scale.z = 0.005;
-               	waypoints_marker.color = getWaypointColor();
+             	marker.scale.x = marker.scale.y = marker.scale.z = 0.005;
+               	marker.color = getWaypointColor();
             }
-        	waypoints_marker.points.push_back(pose.position);
-            control.markers.push_back( waypoints_marker );
+        	marker.points.push_back(pose.position);
+            control.markers.push_back( marker );
         	ROS_INFO_STREAM_NAMED(LOG_NAME, " pose " << p_idx << ":" << pose.position.x << "|" << pose.position.y << "|" << pose.position.z);
         }
 	}
     int_marker.controls.push_back( control );
     server->insert(int_marker, &processFeedback);
 	server->applyChanges();
+
+	// next time use a different color
+	color_no++;
 }
 
 void init() {
