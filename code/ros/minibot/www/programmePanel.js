@@ -340,7 +340,7 @@ ProgrammePanel.Init = function(options) {
     prgItem.statement.kitkat.nsecs = 0;
 
     var li = document.createElement('LI');
-    li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center');
+    li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center p-1');
     li.onclick = callbackClick;
     li.ondblclick = renameStatementCallback;
 
