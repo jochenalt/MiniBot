@@ -104,6 +104,15 @@ ProgrammePanel.Init = function(options) {
     databaseAction.callService(request,
       function(result) {
         if (result.error_code.val == Constants.ErrorCodes.SUCCESS) {
+          // update the programme (especially the error messages) 
+          for (var idx = 0; idx < result.programme_store.statements.length; idx++) {
+            var statementDB = result.programme_store.statements[idx];
+            programmeItems[idx].statement = result.programme_store.statements[idx];
+          }
+
+          // update DOM 
+          updateWidgets();
+
           displayInfo("saved");
         } else {
           displayErr("database error " + result.error_code.val);
@@ -239,6 +248,7 @@ ProgrammePanel.Init = function(options) {
   var validateAndRectify = function() {
     var inMovement = false; 
     var endPointFound = false;
+    var lastMovementIdx = -1;
     var movementStartIdx = -1;
     for (var idx = 0; idx < getProgrammeLength(); idx++) {
       var stmt = programmeItems[idx].statement;
@@ -247,14 +257,14 @@ ProgrammePanel.Init = function(options) {
           endPointFound = true;
         }
         if (stmt.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT) {
-          endPointFound = false;
+          // start a new movement
           movementStartIdx = idx;
         }
       }
       else {
         if (stmt.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
           // make the waypoint a movement
-          convertType();
+          convertType(idx);
           inMovement = true;
           movementStartIdx = idx;
           endpointFound = false;
@@ -266,8 +276,11 @@ ProgrammePanel.Init = function(options) {
         } 
       }
     }
-    if (inMovement && !endPointFound) 
-      displayErr("move " + movementStartIdx + " has no endpoint.");
+    if (inMovement && !endPointFound) {
+      // last movement does not have a goal and needs to become a waypoint
+      // this does not count as a separate movement anymore
+      convertType(movementStartIdx); 
+    }
   }
 
   var getStatementIDByUID = function(uid) {
@@ -393,8 +406,7 @@ ProgrammePanel.Init = function(options) {
     statement.blend = blend;
   }
 
-  var convertType = function() {
-    var id = getActiveId();
+  var convertType = function(id) {
     if (programmeItems[id].statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT)
       programmeItems[id].statement.type = Constants.Statement.STATEMENT_TYPE_WAYPOINT;
     else
@@ -405,6 +417,15 @@ ProgrammePanel.Init = function(options) {
 
     updateWidgets();
     storeInDatabase(false);
+  }
+
+  var convertActiveType = function() {
+    var id = getActiveId();
+    var type = programmeItems[id].statement.type;
+    convertType(id);
+    validateAndRectify();
+    if (type == programmeItems[id].statement.type) 
+      displayErr("Cannot convert this item");
   }
 
   // move a statement up or down
@@ -1178,7 +1199,7 @@ ProgrammePanel.Init = function(options) {
     visualizeGlobalPlan : visualizeGlobalPlan,
 
     modifyPose : modifyPose,                          // called when a pose has been modified, updates the database and the plan
-    convertType : convertType,
+    convertActiveType : convertActiveType,
     forward: forward,
     run: run,
     refresh: refresh,
