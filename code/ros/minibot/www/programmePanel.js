@@ -1045,16 +1045,10 @@ ProgrammePanel.Init = function(options) {
 
     planningAction.callService(request,
       function(response) {
-        var id = getActiveId();
-        if (response.error_code.val == Constants.ErrorCodes.SUCCESS)
-          programmeItems[id].statement.error_code.val = response.error_code.val;
-        else {
-          programmeItems[id].statement.error_code.val = response.error_code.val;
-        }
       },
       function(response) {
         var id = getActiveId();
-        programmeItems[id].statement.error_code.val = Constants.ErrorCodes.FAILURE;
+        displayErr(response);
       });
   }
 
