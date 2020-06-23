@@ -150,6 +150,7 @@ ProgrammePanel.Init = function(options) {
     badge.classList.remove('badge-primary');
 
     if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_WAIT) {
+
       prgStmt.widget.classList.add('list-group-item-light');
       badge.classList.add('badge-secondary');
 
@@ -173,6 +174,8 @@ ProgrammePanel.Init = function(options) {
     if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT) {
       badge.classList.add('badge-primary');
       prgStmt.widget.classList.add('list-group-item-success');
+      prgStmt.widget.classList.add('pl-1');
+
       document.getElementById('collisionCheck').checked = prgStmt.statement.collision_check;
 
       if (prgStmt.statement.path_strategy == Constants.Planning.PLAN_CARTESIC_STRATEGY)
@@ -192,6 +195,8 @@ ProgrammePanel.Init = function(options) {
     }
     if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
       badge.classList.add('badge-primary');
+      prgStmt.widget.classList.add('pl-2');
+
       prgStmt.widget.classList.add('list-group-item-success');
       var waypointErrorWidget = document.getElementById('waypointError');
       if (prgStmt.statement.error_code != null && prgStmt.statement.error_code.val != Constants.ErrorCodes.SUCCESS) {
@@ -316,7 +321,7 @@ ProgrammePanel.Init = function(options) {
     prgItem.statement.kitkat.nsecs = 0;
 
     var li = document.createElement('LI');
-    li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center p-1');
+    li.setAttribute('class', 'list-group-item py-1 list-group-item-action justify-content-center align-self-center');
     li.onclick = callbackClick;
     li.ondblclick = renameStatementCallback;
 

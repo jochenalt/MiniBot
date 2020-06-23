@@ -136,6 +136,8 @@
                  settingsPanel.setPoseStorePanel(poseStorePanel);
                  settingsPanel.setProgrammePanel(poseStorePanel);
                  poseStorePanel.setProgrammePanel(programmePanel);
+                 poseStorePanel.initialize();
+                 programmePanel.initialize();
 
 
                  // fade out the splash            
@@ -154,9 +156,6 @@
                     // resize the dynamic elements (poseStoreBox and programmeStoreBox)
                     resize();
 
-                    // load content after resizing (cannot be seen yet, since opacity is still 0)
-                    poseStorePanel.initialize();
-                    programmePanel.initialize();
 
                     // settings are loaded, now set the widgets (e.g. units)
                     settingsPanel.setWidgets();                    
