@@ -193,13 +193,15 @@ void createTrajectoryMarker(const trajectory_msgs::JointTrajectory& joint_trajec
 	color_no++;
 }
 
-void init() {
+void construct() {
 	ROS_INFO_STREAM_NAMED(LOG_NAME, "module marker init");
 
 	server = new interactive_markers::InteractiveMarkerServer("markers", "",true);
 
-	createTipMarker();
+}
 
+void init() {
+	createTipMarker();
 }
 
 void updateGearwheelPose(const geometry_msgs::Pose &pose) {

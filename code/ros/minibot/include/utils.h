@@ -42,7 +42,7 @@ static const std::string minibot_group_name = "minibot";
 static const std::string robot_description= "robot_description";
 
 namespace Utils {
-  void init();
+  void construct();
 
   // @brief returns the name of the base link, probably "base_link"
   std::string getBaseFrameName();

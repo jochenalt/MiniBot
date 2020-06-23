@@ -54,12 +54,15 @@ int main(int argc, char *argv[]) {
 		ros::NodeHandle nh;
 		ROS_INFO_STREAM("starting minibot server node");
 
-		Minibot::Utils::init();
-		Minibot::Kinematics::init();
+		Minibot::Utils::construct();
+		Minibot::Kinematics::construct();
+		Minibot::Gearwheel::construct();
+		Minibot::Database::construct();
+		Minibot::Planner::construct();
+		Minibot::Execution::construct();
+
 		Minibot::Gearwheel::init();
-		Minibot::Database::init();
 		Minibot::Planner::init();
-		Minibot::Execution::init();
 
 		// *** publish messages to UI ***
 		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);

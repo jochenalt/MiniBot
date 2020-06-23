@@ -23,7 +23,7 @@ namespace Database {
 
 
 	// call me before anything happens in the database
-void init();
+void construct();
 
 	// read/write settings from the database
 void readSettings();

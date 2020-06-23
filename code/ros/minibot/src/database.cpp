@@ -41,7 +41,7 @@ std::string pose_store_db_key		= "pose_store";
 std::string programme_store_db_key 	= "programme_store";
 
 
-void init() {
+void construct() {
 	ROS_INFO_STREAM_NAMED(LOG_NAME, "module database init");
 
 	// initialize the proxy to mongodb

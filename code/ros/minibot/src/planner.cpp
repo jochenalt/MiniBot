@@ -28,10 +28,13 @@ int local_plan_index = -1;		// index of the programme.statement that is to be di
 #define LOG_NAME "planner"
 
 
-void init() {
+void construct() {
 	ROS_INFO_STREAM_NAMED(LOG_NAME, "module planner init");
 }
 
+void init() {
+	plan();
+}
 
 void  createGlobalPlan (const minibot::Configuration& settings,  minibot::Programme & prog, const minibot::PoseStorage& poses) {
 	minibot::GlobalPlan tmp_global_plan;
@@ -113,7 +116,7 @@ minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::Po
     std::vector<minibot::MinibotState> waypoints;
     for (size_t idx = start_index;idx <= goal_index;idx++) {
     	minibot::Statement stmt = prog.statements[idx];
-    	int pose_idx = Utils::findPose(poses, stmt.uid);
+    	int pose_idx = Utils::findPose(poses, stmt.pose_uid);
     	minibot::MinibotState state = poses.states[pose_idx];
     	if ((stmt.type == minibot::Statement::STATEMENT_TYPE_WAYPOINT) ||
     	    (stmt.type == minibot::Statement::STATEMENT_TYPE_MOVEMENT)) {
@@ -250,6 +253,7 @@ bool handlePlanningAction(minibot::PlanningAction::Request &req,
 			res.error_code.val = minibot::ErrorCodes::FAILURE;
 			return true;
 		}
+	return true;
 }
 
 }

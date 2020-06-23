@@ -28,7 +28,7 @@ namespace Execution {
 #define LOG_NAME "execution"
 
 moveit::planning_interface::MoveGroupInterface* move_group = NULL;
-void init() {
+void construct() {
   ROS_INFO_STREAM_NAMED(LOG_NAME, "module execution init");
 
   move_group = new moveit::planning_interface::MoveGroupInterface(Minibot::minibot_group_name);

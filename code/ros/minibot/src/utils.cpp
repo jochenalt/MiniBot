@@ -22,7 +22,7 @@ namespace Utils {
   robot_model_loader::RobotModelLoader* robot_model_loader_ptr = NULL;
   std::map<std::string, moveit_msgs::JointLimits> joint_limits;
 
-  void init() {
+  void construct() {
 	ROS_INFO_STREAM_NAMED(LOG_NAME, "module utils  init");
     robot_model_loader_ptr = new robot_model_loader::RobotModelLoader(robot_description);
     kinematic_model = robot_model_loader_ptr->getModel();

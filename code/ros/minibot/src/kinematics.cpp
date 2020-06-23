@@ -42,7 +42,7 @@ namespace Kinematics {
 
 minibot::MinibotState last_joint_state;
 
-void init() {
+void construct() {
   ROS_INFO_STREAM_NAMED(LOG_NAME, "module kinematics init");
 
   // cache the joint names of the kinematics group

@@ -17,6 +17,8 @@ namespace Minibot {
 namespace Gearwheel {
 
 	// call me before anything else, but after node initialisation
+	void construct();
+
 	void init();
 
 	void updateGearwheelPose(const geometry_msgs::Pose& pose);

@@ -28,7 +28,7 @@ namespace Kinematics {
 
 
     // call me before anything else, but after node initialisation
-    void init();
+    void construct();
 
     // compute all pose values to a given pose. Does not consider joint limits
     // returns true if IK was successful.

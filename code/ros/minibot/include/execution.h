@@ -18,7 +18,7 @@
 namespace Minibot {
 namespace Execution {
 
-void init();
+void construct();
 
 // compile a programme and create a global plan consisting of local plans
 minibot::ErrorCodes  execute (const minibot::LocalPlan& local_plan);

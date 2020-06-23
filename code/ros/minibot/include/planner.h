@@ -22,7 +22,10 @@ extern minibot::GlobalPlan global_plan;
 namespace Planner{
 
 
-	// call me before anything else
+	// call me before anything else, does not depend on any other component
+	void construct();
+
+	// call me after construct of all other components
 	void init();
 
 	// @brief initiate planning. Invoked after programme changes. Takes the programme
