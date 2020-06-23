@@ -926,8 +926,8 @@ ProgrammePanel.Init = function(options) {
       displayErr("select a pose first");
   }
 
-  // return the id of the last continuous waypoint starting from the active statement
-  var getNumberOfWaypoints = function() {
+  // return the id of the goal of movement
+  var getGoalID = function() {
     var id = getActiveId();
     if (id != null && id >= 0 && 
       ((programmeItems[id].statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) ||
@@ -937,6 +937,8 @@ ProgrammePanel.Init = function(options) {
         if (programmeItems[idx].statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
           endID = idx;
         } else
+          if (programmeItems[id].statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT)
+            endID = idx;
           break;
       }
       if (endID >= 0) {
@@ -999,7 +1001,7 @@ ProgrammePanel.Init = function(options) {
       return;
     }
 
-    var endID = getNumberOfWaypoints();
+    var endID = getGoalID();
     if (endID == null || endID < 0) {
       displayErr("select a move sequence first");
       return;
