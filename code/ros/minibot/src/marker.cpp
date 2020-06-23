@@ -63,7 +63,21 @@ void processFeedback(
 		break;
 
 	case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
-		Minibot::Dispatcher::updateGearwheelCallback(feedback->pose);
+		if (feedback->marker_name == "gearwheel")
+			Minibot::Dispatcher::updateGearwheelCallback(feedback->pose);
+		else {
+			std::string no_str = feedback->marker_name.substr(feedback->marker_name.find("-") + 1);
+			int start_index = -1;
+			if (feedback->marker_name.find(Minibot::global_trajectory_name) == 0) {
+				start_index = std::stoi(no_str);
+			} else
+				if (feedback->marker_name.find(Minibot::local_trajectory_name) == 0) {
+					start_index = std::stoi(no_str);
+				}
+			if (start_index >= 0) {
+			  pub_msg.publish(Minibot::Utils::createMsg(Minibot::planner_prefix + "activate-statement-" + no_str));
+			}
+		}
 		ROS_INFO_STREAM(
 				s.str() << ": mouse down" << mouse_point_ss.str() << ".");
 		break;
@@ -140,9 +154,6 @@ void createTrajectoryMarker(const trajectory_msgs::JointTrajectory& joint_trajec
 	InteractiveMarkerControl control;
 	control.always_visible = true;
 	control.interaction_mode = InteractiveMarkerControl::BUTTON;
-
-	int point_counter = 1;
-
 
 	for (size_t p_idx=0;p_idx < joint_trajectory.points.size();p_idx++) {
         sensor_msgs::JointState joint_state;

@@ -21,6 +21,7 @@ ProgrammePanel.Init = function(options) {
   var settingsPanel  = options.settingsPanel;
 
 
+  var msgTopicName = '/msg'  // listen to messages from server
 
   // each item has an id which is the positon in the list
   // and a uid that stays constant
@@ -1156,6 +1157,28 @@ ProgrammePanel.Init = function(options) {
     var goalIdx = simulatePlan();
     activateStatement(goalIdx);
   }
+
+
+  var msgTopic  = new ROSLIB.Topic({
+    ros : ros,
+    name : msgTopicName,
+    messageType : 'std_msgs/String'
+  });
+
+  msgTopic.subscribe(function(msg) {
+    if (msg.data.startsWith('PLANNER:ERR:'))
+      displayErr(msg.data.substring("PLANNER:ERR:".length));
+    if (msg.data.startsWith('PLANNER:WARN:'))
+      displayWarn(msg.data.substring("KINEMATICS:WARN:".length));
+    if (msg.data.startsWith('PLANNER:INFO:'))
+      displayInfo(msg.data.substring("PLANNER:INFO:".length));
+
+    // special commands coming from server
+    if (msg.data.startsWith('PLANNER:activate-statement-')) {
+      var start_index = msg.data.substring("PLANNER:activate-statement-".length);
+      activateStatement(parseInt(start_index));
+    }
+  });
 
   function displayAlert(text, headlinewidget, widget) {
     widget.style.display = 'block';

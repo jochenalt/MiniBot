@@ -18,6 +18,9 @@
 namespace Minibot {
 
 extern minibot::GlobalPlan global_plan;
+extern std::string planner_prefix;
+extern std::string global_trajectory_name;
+extern std::string local_trajectory_name;
 
 namespace Planner{
 
