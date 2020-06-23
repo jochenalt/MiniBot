@@ -155,6 +155,8 @@ bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
 		// initiate planning
 		Minibot::Planner::plan();
 
+		// return the programme in case we changed anything
+		res.programme_store = Minibot::programme_store;
 		res.error_code.val = minibot::ErrorCodes::SUCCESS;
 		break;
 	default:

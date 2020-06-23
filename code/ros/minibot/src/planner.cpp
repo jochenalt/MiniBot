@@ -42,7 +42,7 @@ void  createGlobalPlan (const minibot::Configuration& settings,  minibot::Progra
 
 	bool is_in_trajectory = false;
 	int start_index = -1;
-	int end_index = -1;
+	int goal_index = -1;
 	int number_of_points = 0;
 	for (int idx = 0;idx< prog.statements.size();idx++) {
 		bool is_last = (idx == prog.statements.size()-1);
@@ -56,22 +56,22 @@ void  createGlobalPlan (const minibot::Configuration& settings,  minibot::Progra
 			if (stmt.type == minibot::Statement::STATEMENT_TYPE_WAYPOINT) {
 				number_of_points ++;
 				if (is_last) {
-					end_index = idx;
+					goal_index = idx;
 				}
 			}
 			else {
 				if (stmt.type == minibot::Statement::STATEMENT_TYPE_MOVEMENT) {
 					number_of_points ++;
-					end_index = idx;
+					goal_index = idx;
 				} else {
 					// a trajectory ends at a wait statement
 					if (stmt.type == minibot::Statement::STATEMENT_TYPE_WAIT) {
-						end_index = idx;
+						goal_index = idx;
 					}
 				}
 			}
 		} else {
-			// outside a trajctory
+			// outside a trajectory
 			if (stmt.type == minibot::Statement::STATEMENT_TYPE_MOVEMENT) {
 				start_index = idx;
 				is_in_trajectory = true;
@@ -86,19 +86,15 @@ void  createGlobalPlan (const minibot::Configuration& settings,  minibot::Progra
 		}
 
 		// did we find a local plan?
-		if ((start_index >= 0) && (end_index >=0) && (number_of_points > 1)) {
-			minibot::LocalPlan local_plan = createLocalPlan(prog, poses, start_index, end_index);
+		if ((start_index >= 0) && (goal_index >=0) && (number_of_points > 1)) {
+			minibot::LocalPlan local_plan = createLocalPlan(prog, poses, start_index, goal_index);
 			tmp_global_plan.local_plan.push_back(local_plan);
-			start_index = -1;
-			is_in_trajectory = false;
-			end_index = -1;
-			number_of_points = 0;
+			start_index = goal_index;
+			is_in_trajectory = true;
+			goal_index = -1;
+			number_of_points = 1;
 			if (local_plan.error_code.val != minibot::ErrorCodes::SUCCESS)
 				tmp_global_plan.error_code.val = minibot::ErrorCodes::FAILURE;
-		}
-		if ((start_index >= 0) && (end_index >=0) && (number_of_points <= 1)) {
-			stmt.error_code.val = minibot::ErrorCodes::LOCAL_TRAJECTORY_TOO_SHORT;
-			tmp_global_plan.error_code.val = minibot::ErrorCodes::FAILURE;
 		}
 	}
 	Minibot::global_plan = tmp_global_plan;
@@ -215,7 +211,7 @@ bool handlePlanningAction(minibot::PlanningAction::Request &req,
 			for (size_t idx = 0; idx < global_plan.local_plan.size();idx++) {
 
 				if ((req.start_index >= global_plan.local_plan[idx].start_index) &&
-					(req.start_index <= global_plan.local_plan[idx].goal_index)) {
+					(req.start_index < global_plan.local_plan[idx].goal_index)) {
 					res.error_code = Minibot::Execution::execute(global_plan.local_plan[idx]);
 				}
 			}

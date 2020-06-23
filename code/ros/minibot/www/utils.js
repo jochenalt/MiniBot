@@ -73,6 +73,12 @@ Utils.callThrottler =function (name, rate, func, params) {
 
 var callDelayDict = new Object();
 
+// return true if a delayed call is pending 
+Utils.callPending  = function (name) {
+	var callDelayObject = callDelayDict[name];
+	return  (callDelayObject != null) && (callDelayObject.timeoutId != null)
+}
+
 // call a function after a delay of "duration". Every call extends the delay time left, such 
 // that the actual call of "func" will always take place the same duration "duration" after the last call  
 Utils.callDelay = function (name, duration, func) {

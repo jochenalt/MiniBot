@@ -44,19 +44,22 @@ ProgrammePanel.Init = function(options) {
     databaseAction.callService(request,
       function(result) {
         if (result.error_code.val == Constants.ErrorCodes.SUCCESS) {
-          programmeItems = [];
-          for (var idx = 0; idx < result.programme_store.statements.length; idx++) {
-            var statementDB = result.programme_store.statements[idx];
-            var stmt = newStatement();
-            stmt.statement = result.programme_store.statements[idx];
-          }
+          // take over result only of there's no pending database call
+          if (!Utils.callPending("storedatabase")) {
+            programmeItems = [];
+            for (var idx = 0; idx < result.programme_store.statements.length; idx++) {
+              var statementDB = result.programme_store.statements[idx];
+              var stmt = newStatement();
+              stmt.statement = result.programme_store.statements[idx];
+            }
 
-          // update DOM 
-          updateWidgets();
+            // update DOM 
+            updateWidgets();
 
-          // and select the first statement if it is there
-          if (programmeItems.length > 0) {
-            activateStatement(0);
+            // and select the first statement if it is there
+            if (programmeItems.length > 0) {
+              activateStatement(0);
+            }
           }
         } else {
           displayErr("reading programme from database failed " + result.error_code.val);
@@ -161,6 +164,7 @@ ProgrammePanel.Init = function(options) {
     if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_WAIT) {
 
       prgStmt.widget.classList.add('list-group-item-light');
+
       badge.classList.add('badge-secondary');
 
       // even if a different radio button is on, display the other fields
@@ -183,7 +187,8 @@ ProgrammePanel.Init = function(options) {
     if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT) {
       badge.classList.add('badge-primary');
       prgStmt.widget.classList.add('list-group-item-success');
-      prgStmt.widget.classList.add('pl-1');
+      prgStmt.widget.classList.remove('pl-2');
+      prgStmt.widget.classList.add('pl-0');
 
       document.getElementById('collisionCheck').checked = prgStmt.statement.collision_check;
 
@@ -204,6 +209,7 @@ ProgrammePanel.Init = function(options) {
     }
     if (prgStmt.statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
       badge.classList.add('badge-primary');
+      prgStmt.widget.classList.remove('pl-0');
       prgStmt.widget.classList.add('pl-2');
 
       prgStmt.widget.classList.add('list-group-item-success');
@@ -340,7 +346,7 @@ ProgrammePanel.Init = function(options) {
 
 
     var leftSpan = document.createElement("SPAN");
-    leftSpan.setAttribute('class', 'badge badge-light float-left mr-1  justify-content-center align-self-center');
+    leftSpan.setAttribute('class', 'badge badge-light float-left ml-1 pl-1 justify-content-center align-self-center');
 
     var rightSpan = document.createElement("A");
     rightSpan.setAttribute('href', '#');
@@ -426,6 +432,7 @@ ProgrammePanel.Init = function(options) {
     validateAndRectify();
     if (type == programmeItems[id].statement.type) 
       displayErr("Cannot convert this item");
+    updateWidget(id);
   }
 
   // move a statement up or down
