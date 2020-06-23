@@ -955,22 +955,23 @@ ProgrammePanel.Init = function(options) {
   }
 
   // return the id of the goal of movement
-  var getGoalID = function() {
+  var getGoalIdx = function() {
     var id = getActiveId();
     if (id != null && id >= 0 && 
       ((programmeItems[id].statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) ||
        (programmeItems[id].statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT))) {
-      var endID = -1;
+      var goal_idx = -1;
       for (var idx = id + 1; idx < programmeItems.length; idx++) {
         if (programmeItems[idx].statement.type == Constants.Statement.STATEMENT_TYPE_WAYPOINT) {
-          endID = idx;
-        } else
-          if (programmeItems[id].statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT)
-            endID = idx;
+          goal_idx = idx;
+        } else {
+          if (programmeItems[idx].statement.type == Constants.Statement.STATEMENT_TYPE_MOVEMENT)
+            goal_idx = idx;
           break;
+        }
       }
-      if (endID >= 0) {
-        return endID;
+      if (goal_idx >= 0) {
+        return goal_idx;
       }
     }
     return -1;
@@ -1021,27 +1022,27 @@ ProgrammePanel.Init = function(options) {
 
 
   var simulatePlan = function() {
-    var startID = getActiveId();
-    if (startID == null || startID < 0 || 
-       ((programmeItems[startID].statement.type != Constants.Statement.STATEMENT_TYPE_WAYPOINT) && 
-        (programmeItems[startID].statement.type != Constants.Statement.STATEMENT_TYPE_MOVEMENT))) {
+    var start_idx = getActiveId();
+    if (start_idx == null || start_idx < 0 || 
+       ((programmeItems[start_idx].statement.type != Constants.Statement.STATEMENT_TYPE_WAYPOINT) && 
+        (programmeItems[start_idx].statement.type != Constants.Statement.STATEMENT_TYPE_MOVEMENT))) {
       displayErr("select a statement first");
       return;
     }
 
-    var endID = getGoalID();
-    if (endID == null || endID < 0) {
+    var goal_idx = getGoalIdx();
+    if (goal_idx == null || goal_idx < 0) {
       displayErr("select a move sequence first");
       return;
     }
 
     // activate the pose of that statement as starting point
-    poseStorePanel.setPoseByUID(programmeItems[startID].statement.pose_uid);
+    poseStorePanel.setPoseByUID(programmeItems[start_idx].statement.pose_uid);
 
     var request = new ROSLIB.ServiceRequest({
       type: Constants.PlanningAction.SIMULATE_LOCAL_PLAN,
-      start_index: startID,
-      goal_index: endID
+      start_index: start_idx,
+      goal_index: goal_idx
     });
 
     var planningAction = new ROSLIB.Service({
@@ -1057,6 +1058,7 @@ ProgrammePanel.Init = function(options) {
         var id = getActiveId();
         displayErr(response);
       });
+    return goal_idx;
   }
 
 
@@ -1146,6 +1148,15 @@ ProgrammePanel.Init = function(options) {
     simulatePlan();
   }
 
+  var step = function(event) {
+    simulatePlan();
+  }
+
+  var forward = function(event) {
+    var goalIdx = simulatePlan();
+    activateStatement(goalIdx);
+  }
+
   function displayAlert(text, headlinewidget, widget) {
     widget.style.display = 'block';
     widget.innerHTML = text;
@@ -1203,6 +1214,7 @@ ProgrammePanel.Init = function(options) {
     convertActiveType : convertActiveType,
     forward: forward,
     run: run,
+    step: step,
     refresh: refresh,
     initialize : initialize
   };
