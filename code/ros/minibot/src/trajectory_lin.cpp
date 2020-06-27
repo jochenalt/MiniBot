@@ -21,6 +21,7 @@
 #include "trap_velocity_profile.h"
 #include <moveit/robot_state/conversions.h>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
+#include <uniform_sample_filter.h>
 
 #include <splines.hpp>
 #include <Vec3.hpp>
@@ -196,7 +197,8 @@ bool generateTrajectory(const std::vector<minibot::MinibotState>& waypoints,
 }
 
 
-bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, trajectory_msgs::JointTrajectory& local_local_traj) {
+bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, trajectory_msgs::JointTrajectory& result_local_traj) {
+	trajectory_msgs::JointTrajectory local_local_traj;
 	std::vector<minibot::MinibotState> trajectory;
 	for (int i = 0;i<waypoints.size();i++) {
 		geometry_msgs::Pose pose= waypoints[i].pose.pose;
@@ -244,44 +246,14 @@ bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, traj
 
 	}
 
+	UniformSampleFilter smoothness_filter;
+	smoothness_filter.configure(Minibot::trajectory_sampling_time);
+	smoothness_filter.update(local_local_traj, result_local_traj);
+
 
 	return ok;
 };
 
-
-
-/*
-    moveit_msgs::RobotTrajectory trajectory_msg;
-  group.setPlanningTime(10.0);
-
-  double fraction = group.computeCartesianPath(waypoints,
-                                               0.01,  // eef_step
-                                               0.0,   // jump_threshold
-                                               trajectory_msg, false);
-  // The trajectory needs to be modified so it will include velocities as well.
-  // First to create a RobotTrajectory object
-  robot_trajectory::RobotTrajectory rt(group.getCurrentState()->getRobotModel(), "arm_group");
-
-  // Second get a RobotTrajectory from trajectory
-  rt.setRobotTrajectoryMsg(*group.getCurrentState(), trajectory_msg);
-
-  // Thrid create a IterativeParabolicTimeParameterization object
-  trajectory_processing::IterativeParabolicTimeParameterization iptp;
-
-  // Fourth compute computeTimeStamps
-  success = iptp.computeTimeStamps(rt);
-  ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
-
-  // Get RobotTrajectory_msg from RobotTrajectory
-  rt.getRobotTrajectoryMsg(trajectory_msg);
-
-  // Finally plan and execute the trajectory
-  plan.trajectory_ = trajectory_msg;
-  ROS_INFO("Visualizing plan 4 (cartesian path) (%.2f%% acheived)",fraction * 100.0);
-  sleep(5.0);
-  group.execute(plan);
-
- */
 }
 }
 

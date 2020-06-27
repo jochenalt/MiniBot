@@ -108,6 +108,7 @@ add_executable(${PROJECT_NAME}_server
    src/trajectory_ptp.cpp
    src/trajectory_lin.cpp
    src/execution.cpp
+   src/uniform_sample_filter.cpp
 )
 
 target_link_libraries(

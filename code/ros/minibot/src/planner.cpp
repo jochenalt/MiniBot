@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "marker.h"
 #include "execution.h"
+#include "constants.h"
 
 #include <minibot/Programme.h>
 #include <minibot/ErrorCodes.h>
@@ -33,6 +34,10 @@ void construct() {
 }
 
 void init() {
+
+	// used for
+	ros::NodeHandle nh;
+	nh.setParam("sample_duration", Minibot::trajectory_sampling_time);
 }
 
 void  createGlobalPlan (const minibot::Configuration& settings,  minibot::Programme & prog, const minibot::PoseStorage& poses) {

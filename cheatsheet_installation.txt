@@ -52,6 +52,9 @@ sudo chmod a+w /opt/ros/mongodb_store
 --- install moveit
 sudo apt-get install ros-melodic-moveit
 
+-- install industrial-core
+sudo apt-get install ros-melodic-industrial-core
+
 sudo apt install python-pip
 python -m pip install tornado
 sudo apt install python-bson
@@ -228,7 +231,9 @@ rosparam set mongodb_port 62345
 rosparam set mongodb_host localhost
 rosrun mongodb_store mongodb_server.py
 
---- install descartes along https://github.com/PickNikRobotics/descartes_capability
+--- install desca
+
+rtes along https://github.com/PickNikRobotics/descartes_capability
 sudo apt-get install python-wstool python-catkin-tools
 export CATKIN_WS=~/ws_catkin/
 #git clone https://github.com/PickNikRobotics/descartes_capability.git
