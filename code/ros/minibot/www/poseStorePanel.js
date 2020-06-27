@@ -413,7 +413,13 @@ PoseStorePanel.Init = function(options) {
       displayWarn('no pose selected, new pose created');
     } else {
       var poseItem = getPoseItem(id);
+      // save uid and name
+      var saved_uid = poseItem.minibot_state.uid; 
+      var saved_name = poseItem.minibot_state.name; 
+
       poseItem.minibot_state = kinematicsPanel.getCurrentMinibotState();
+      poseItem.minibot_state.uid = saved_uid;
+      poseItem.minibot_state.name = name_uid;
 
       // we need to change the badges, store everyhting and  inform the proramme panel 
       updateWidgets();
