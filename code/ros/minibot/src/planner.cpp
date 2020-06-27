@@ -33,7 +33,6 @@ void construct() {
 }
 
 void init() {
-	plan();
 }
 
 void  createGlobalPlan (const minibot::Configuration& settings,  minibot::Programme & prog, const minibot::PoseStorage& poses) {
@@ -106,7 +105,6 @@ minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::Po
 	minibot::LocalPlan local_plan;
 	local_plan.start_index = start_index;
 	local_plan.goal_index = goal_index;
-    trajectory_msgs::JointTrajectory joint_trajectory;
 
     // gather start, end and waypoints in one convinient vector
     std::vector<minibot::MinibotState> waypoints;
@@ -122,6 +120,8 @@ minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::Po
 
     switch (prog.statements[start_index].path_strategy) {
 		case minibot::Statement::PLAN_SPACE_STRATEGY: {
+		    trajectory_msgs::JointTrajectory joint_trajectory;
+
 			// SPACE strategy cannot deal with waypoints, it is just a concatenation of local plans
 		    for (size_t idx = 0;idx < waypoints.size()-1;idx++) {
 			    trajectory_msgs::JointTrajectory local_local_traj;
@@ -133,6 +133,17 @@ minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::Po
 		    }
 		    local_plan.joint_trajectory = joint_trajectory;
 		    local_plan.error_code.val = minibot::ErrorCodes::SUCCESS;
+			break;
+		}
+		case minibot::Statement::PLAN_CARTESIC_STRATEGY: {
+			trajectory_msgs::JointTrajectory local_local_traj;
+			bool ok = Minibot::Planner::planCartesianPath(waypoints, local_local_traj);
+			if (ok) {
+				local_plan.joint_trajectory = local_local_traj;
+				local_plan.error_code.val = minibot::ErrorCodes::SUCCESS;
+			} else {
+				local_plan.error_code.val = minibot::ErrorCodes::FAILURE;
+			}
 			break;
 		}
 		default:

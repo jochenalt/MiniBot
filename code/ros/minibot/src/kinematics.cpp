@@ -187,7 +187,9 @@ bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& j
 		};
 		std::sort(solutions.configuration.begin(), solutions.configuration.end(),
 				JointStateComparer(jointState));
+
     }
+
 
     return solutions.configuration.size() > 0;
 }

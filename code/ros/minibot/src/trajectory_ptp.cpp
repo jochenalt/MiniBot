@@ -25,6 +25,7 @@
 
 namespace Minibot {
 namespace Planner {
+
 #define LOG_NAME "planner"
 
 void planPTP(

@@ -12,16 +12,20 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   urdf
+  tf
+  eigen_conversions
   message_generation
   geometry_msgs
   sensor_msgs
   moveit_msgs
   moveit_core
+moveit_ros_planning
   moveit_ros_planning_interface
   visualization_msgs interactive_markers 
 )
 
 find_package(LAPACK REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS 
     system thread program_options filesystem)
 find_package(Boost REQUIRED system)
@@ -38,7 +42,6 @@ add_message_files(
    Configuration.msg
    JointStateConfiguration.msg
    ClientAction.msg
-
    LocalPlan.msg
    GlobalPlan.msg
 )
@@ -74,7 +77,8 @@ catkin_package(
      move_base_msgs
      moveit_core
      moveit_ros_planning_interface
-   DEPENDS
+   DEPENDS 
+    EIGEN3
 )
 
 ###########
@@ -102,11 +106,13 @@ add_executable(${PROJECT_NAME}_server
    src/message_store.cpp
    src/trap_velocity_profile.cpp
    src/trajectory_ptp.cpp
+   src/trajectory_lin.cpp
    src/execution.cpp
 )
 
 target_link_libraries(
    ${PROJECT_NAME}_server ${catkin_LIBRARIES}
+   ${catkin_LIBRARIES}
    ${LAPACK_LIBRARIES} # required for IKFast
    ${Boost_LIBRARIES}
    ${Boost_SYSTEM_LIBRARY}

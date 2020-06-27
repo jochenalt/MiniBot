@@ -59,6 +59,9 @@ namespace Planner{
 			     trajectory_msgs::JointTrajectory &joint_trajectory,
 			     double velocity_scaling_factor,
 			     double acceleration_scaling_factor);
+
+	bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, trajectory_msgs::JointTrajectory& local_local_traj);
+
 }
 }
 

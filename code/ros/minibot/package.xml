@@ -24,6 +24,7 @@
   <depend>message_generation</depend>
   <depend>cmake_modules</depend>
   <depend>tf</depend>
+  <depend>tf_conversions</depend>
   <depend>message_runtime</depend>
   <depend>eigen</depend>
   <depend>minibot_ikfast_plugin</depend>

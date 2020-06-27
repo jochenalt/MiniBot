@@ -125,8 +125,6 @@ ProgrammePanel.Init = function(options) {
       function(result) {
         displayErr("database error " + result.toString());
     });
-
-
   }
 
 
@@ -193,11 +191,11 @@ ProgrammePanel.Init = function(options) {
 
       document.getElementById('collisionCheck').checked = prgStmt.statement.collision_check;
 
-      if (prgStmt.statement.path_strategy == Constants.Planning.PLAN_CARTESIC_STRATEGY)
+      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_CARTESIC_STRATEGY)
         document.getElementById('cartesicPath').checked = true;
-      if (prgStmt.statement.path_strategy == Constants.Planning.PLAN_SPLINE_STRATEGY)
+      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_SPLINE_STRATEGY)
         document.getElementById('splinePath').checked = true;
-      if (prgStmt.statement.path_strategy == Constants.Planning.PLAN_SPACE_STRATEGY)
+      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_SPACE_STRATEGY)
         document.getElementById('spacePath').checked = true;
       var movementErrorWidget = document.getElementById('movementError');
       if (prgStmt.statement.error_code != null && prgStmt.statement.error_code.val != Constants.ErrorCodes.SUCCESS) {
