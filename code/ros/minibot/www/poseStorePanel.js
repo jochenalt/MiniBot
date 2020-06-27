@@ -252,7 +252,6 @@ PoseStorePanel.Init = function(options) {
   // called from a double click in a pose
   var renamePoseCallback = function(event) {
     var id = parseInt(event.target.parentNode.getAttribute('id'));
-    activate(id);
 
     renamePose();
   }
@@ -476,6 +475,7 @@ PoseStorePanel.Init = function(options) {
     var id =  getPoseItemIDByUID(uid);
     if (id != null && id >= 0 && id<poseItems.length) {      
       kinematicsPanel.setCurrentMinibotState(poseItems[id].minibot_state);
+      activate(id);
     }
     else
       return null;

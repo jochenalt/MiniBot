@@ -583,6 +583,8 @@ ProgrammePanel.Init = function(options) {
   var activatePoseInPosePanel  = function(id) {
     var id = parseInt(event.target.parentNode.getAttribute('id'));
     poseStorePanel.setPoseByUID(programmeItems[id].statement.pose_uid);
+    poseStorePanel.activateByUID(programmeItems[id].statement.pose_uid);
+
   }
 
   var activatePose = function(event) {

@@ -199,9 +199,8 @@ bool generateTrajectory(const std::vector<minibot::MinibotState>& waypoints,
 bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, trajectory_msgs::JointTrajectory& local_local_traj) {
 	std::vector<minibot::MinibotState> trajectory;
 	for (int i = 0;i<waypoints.size();i++) {
-
 		geometry_msgs::Pose pose= waypoints[i].pose.pose;
-	    ROS_INFO_STREAM_NAMED(LOG_NAME, "Plan(pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z << ")"
+	    ROS_DEBUG_STREAM_NAMED(LOG_NAME, "Plan(pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z << ")"
 					   << " ori=(x=" << pose.orientation.x << " y=" << pose.orientation.y << " z=" << pose.orientation.z << " w=" << pose.orientation.w <<") ");
 
 	}
@@ -237,7 +236,7 @@ bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, traj
 		point.positions = trajectory[i].joint_state.position;
 		joint_trajectory.points.push_back(point);
 		geometry_msgs::Pose pose= trajectory[i].pose.pose;
-	    ROS_INFO_STREAM_NAMED(LOG_NAME, "Point(pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z << ")"
+		ROS_DEBUG_STREAM_NAMED(LOG_NAME, "Point(pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z << ")"
 	    	    << "joint orig" << trajectory[i].joint_state
 	    	    << "joint copy" << local_local_traj.points[i]
 
