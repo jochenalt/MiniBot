@@ -419,7 +419,7 @@ PoseStorePanel.Init = function(options) {
 
       poseItem.minibot_state = kinematicsPanel.getCurrentMinibotState();
       poseItem.minibot_state.uid = saved_uid;
-      poseItem.minibot_state.name = name_uid;
+      poseItem.minibot_state.name = saved_name;
 
       // we need to change the badges, store everyhting and  inform the proramme panel 
       updateWidgets();
