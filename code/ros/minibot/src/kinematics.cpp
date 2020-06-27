@@ -16,6 +16,8 @@
 
 #include "utils.h"
 #include "kinematics.h"
+#include "globals.h"
+#include "constants.h"
 
 
 #define IKFAST_HAS_LIBRARY 	// Build IKFast with API functions
@@ -32,10 +34,6 @@ double SIGN(double x) {
 
 namespace Minibot {
 
-// cache the joint names of the group "minibot_arm" as defined in SRDF
-std::vector<std::string> minibot_arm_joint_names; 			// joint names of the arm without the gripper
-std::vector<std::string> minibot_gripper_joint_names;		// joint names of the gripper without the arm
-std::vector<std::string> minibot_joint_names;				// all joint names, including gripper
 
 
 namespace Kinematics {
@@ -53,7 +51,7 @@ void construct() {
       ROS_ERROR_STREAM("Minibot::Kinematics::init: did not find joint model group"
     		  << minibot_arm_group_name);
   }
-  minibot_arm_joint_names = jmg->getActiveJointModelNames();
+  Minibot::minibot_arm_joint_names = jmg->getActiveJointModelNames();
 
   jmg = kinematic_state->getJointModelGroup(minibot_gripper_group_name);
   if (jmg == NULL) {
@@ -61,14 +59,14 @@ void construct() {
     		  << minibot_gripper_group_name);
   }
 
-  minibot_gripper_joint_names = jmg->getActiveJointModelNames();
+  Minibot::minibot_gripper_joint_names = jmg->getActiveJointModelNames();
 
   jmg = kinematic_state->getJointModelGroup(minibot_group_name);
   if (jmg == NULL) {
       ROS_ERROR_STREAM("Minibot::Kinematics::init: did not find joint model group"
     		  << minibot_group_name);
   }
-  minibot_joint_names = jmg->getActiveJointModelNames();
+  Minibot::minibot_joint_names = jmg->getActiveJointModelNames();
 
 
   for (size_t i = 0;i < minibot_joint_names.size();i++) {
@@ -96,8 +94,8 @@ minibot::MinibotState getLastMinibotState() {
 // many small changes in the joints are considered closer source than a few big changes.
 double jointModelDistance(const sensor_msgs::JointState& a, const sensor_msgs::JointState& b) {
   double sum = 0;
-  for (size_t i = 0;i< minibot_arm_joint_names.size();i++) {
-	  std::string joint_name = minibot_arm_joint_names[i];
+  for (size_t i = 0;i< Minibot::minibot_arm_joint_names.size();i++) {
+	  std::string joint_name = Minibot::minibot_arm_joint_names[i];
 	  int a_idx = Minibot::Utils::findJoint(a, joint_name);
 	  int b_idx = Minibot::Utils::findJoint(b, joint_name);
 
@@ -160,7 +158,7 @@ bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& j
 		sol.GetSolution(&solValues[0],NULL);
 		sensor_msgs::JointState jointState;
 		for( std::size_t j = 0; j < solValues.size(); ++j) {
-			jointState.name.push_back(minibot_arm_joint_names[j]);
+			jointState.name.push_back(Minibot::minibot_arm_joint_names[j]);
 			jointState.position.push_back(solValues[j]);
 		}
 
@@ -196,8 +194,8 @@ bool computeIK(const geometry_msgs::Pose& pose, const sensor_msgs::JointState& j
 
 // set the position of the end effctor as defined in eff into joint_state
 bool setEndEffectorPosition(sensor_msgs::JointState& joint_state, const sensor_msgs::JointState& eff) {
-	for (size_t j = 0;j<minibot_gripper_joint_names.size();j++) {
-		std::string gripper_joint_name = minibot_gripper_joint_names[j];
+	for (size_t j = 0;j<Minibot::minibot_gripper_joint_names.size();j++) {
+		std::string gripper_joint_name = Minibot::minibot_gripper_joint_names[j];
 		int idx = Minibot::Utils::findJoint(eff, gripper_joint_name);
 		if (idx >= 0) {
 			int sidx = Minibot::Utils::findJoint(joint_state, gripper_joint_name);
@@ -221,8 +219,8 @@ void computeFK(const sensor_msgs::JointState& jointState, geometry_msgs::Pose& p
 
    // Put input joint values into array
    ikfast::IkReal joints[numOfJoints];
-   for (size_t idx = 0;idx<minibot_arm_joint_names.size();idx++)
-	   joints[idx] = Utils::getJointValue(jointState, minibot_arm_joint_names[idx]);
+   for (size_t idx = 0;idx<Minibot::minibot_arm_joint_names.size();idx++)
+	   joints[idx] = Utils::getJointValue(jointState, Minibot::minibot_arm_joint_names[idx]);
 
    ikfast::ComputeFk(joints, eetrans, eerot); // void return
 

@@ -8,21 +8,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "constants.h"
+#include "globals.h"
+
 #include "mongodb_store/message_store.h"
 
 #include <minibot/Configuration.h>
 #include <minibot/ErrorCodes.h>
 
+
 #include "database.h"
-#include "node.h"
 #include "utils.h"
 #include "planner.h"
+#include "globals.h"
 
 namespace Minibot {
-
-minibot::Configuration settings;
-minibot::PoseStorage pose_store;
-minibot::Programme programme_store;
 
 
 namespace Database {
@@ -79,7 +79,7 @@ void setSettings(const minibot::Configuration & settings) {
 }
 
 void setPoseStorage(const minibot::PoseStorage & pose_store) {
-	messageStore->updateNamed(posestore_prefix, pose_store);
+	messageStore->updateNamed(Minibot::posestore_prefix, pose_store);
 	Minibot::pose_store = pose_store;
 }
 
@@ -87,7 +87,7 @@ void setPoseStorage(const minibot::PoseStorage & pose_store) {
 void  readPoseStorage() {
 	minibot::PoseStorage tmp_pose_store;
 	std::vector< boost::shared_ptr<minibot::PoseStorage> > results;
-	if (messageStore->queryNamed<minibot::PoseStorage>(posestore_prefix, results)) {
+	if (messageStore->queryNamed<minibot::PoseStorage>(Minibot::posestore_prefix, results)) {
 		// expect only one result
 		if (results.size() != 1) {
 			ROS_DEBUG_STREAM_NAMED(LOG_NAME, "Minibot::Database::getPoseStorage" <<
@@ -96,7 +96,7 @@ void  readPoseStorage() {
 			tmp_pose_store = *results[0];
 		}
 	} else {
-		messageStore->insertNamed(posestore_prefix, tmp_pose_store);
+		messageStore->insertNamed(Minibot::posestore_prefix, tmp_pose_store);
 	}
 	Minibot::pose_store = tmp_pose_store;
 }

@@ -17,10 +17,7 @@
 
 namespace Minibot {
 
-extern minibot::GlobalPlan global_plan;
-extern std::string planner_prefix;
-extern std::string global_trajectory_name;
-extern std::string local_trajectory_name;
+
 
 namespace Planner{
 
@@ -54,13 +51,13 @@ namespace Planner{
 
 
 	// plan a point to point trajectory
-	void planPTP(const minibot::MinibotState& start_pos,
+	bool  planPTP(const minibot::MinibotState& start_pos,
 		  	     const minibot::MinibotState& goal_pos,
 			     trajectory_msgs::JointTrajectory &joint_trajectory,
 			     double velocity_scaling_factor,
 			     double acceleration_scaling_factor);
 
-	bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, trajectory_msgs::JointTrajectory& local_local_traj);
+	bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, double blend_radius, trajectory_msgs::JointTrajectory& local_local_traj);
 
 }
 }

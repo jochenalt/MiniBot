@@ -7,19 +7,20 @@
 
 
 
-#include "utils.h"
 #include "constants.h"
+#include "globals.h"
 #include "kinematics.h"
+#include "planner.h"
+#include "utils.h"
 
 #include "trap_velocity_profile.h"
-#include "ros/ros.h"
 #include "eigen_conversions/eigen_msg.h"
 #include "moveit/robot_state/conversions.h"
 
 #include <minibot/MinibotPose.h>
 #include <minibot/MinibotState.h>
 
-
+#include <uniform_sample_filter.h>
 #include <iostream>
 #include <sstream>
 
@@ -28,14 +29,15 @@ namespace Planner {
 
 #define LOG_NAME "planner"
 
-void planPTP(
+bool planPTP(
 		const minibot::MinibotState& start_pos,
 		const minibot::MinibotState& goal_pos,
-        trajectory_msgs::JointTrajectory &joint_trajectory,
+        trajectory_msgs::JointTrajectory &result_joint_trajectory,
         double velocity_scaling_factor,
         double acceleration_scaling_factor)
 {
-
+	bool ok = true;
+    trajectory_msgs::JointTrajectory joint_trajectory;
 	joint_trajectory.joint_names = Minibot::minibot_joint_names;
 
 	// find the slowest joint that takes the longest for a normalized profile
@@ -82,7 +84,9 @@ void planPTP(
 	        std::stringstream error_str;
 	        error_str << "TrajectoryGeneratorPTP::planPTP(): Can not synchronize velocity profile of axis " << joint_name
 	                  << " with leading axis " << leading_axis;
-			ROS_ERROR_STREAM_NAMED (LOG_NAME, "Minibot::Planner::planPTP invalid synchronisation =" << error_str.str());
+			ok = false;
+			ROS_ERROR_STREAM_NAMED (LOG_NAME, "Minibot::Planner::planPTP could not smooth trajectory " );
+			pub_msg.publish(Minibot::Utils::createMsg(planner_prefix + err_msg_prefix  + "cannot synchronize trajectory"));
 	      }
 	    }
 	}
@@ -102,6 +106,10 @@ void planPTP(
 		}
 		joint_trajectory.points.push_back(point);
 	}
+
+	UniformSampleFilter smoothness_filter;
+	smoothness_filter.configure(Minibot::trajectory_sampling_time);
+	smoothness_filter.update(joint_trajectory, result_joint_trajectory);
 }
 
 }

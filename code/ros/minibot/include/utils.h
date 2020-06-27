@@ -70,14 +70,6 @@ namespace Utils {
 
 }
 
-extern std::string err_msg_prefix;
-extern std::string warn_msg_prefix;
-extern std::string info_msg_prefix;
-extern std::string kinematics_prefix;
-extern std::string posestore_prefix;
-extern std::string programme_prefix;
-extern std::string settings_prefix;
-
 
 }
 

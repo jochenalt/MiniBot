@@ -14,32 +14,27 @@
 #include <minibot/GlobalPlan.h>
 
 namespace Minibot {
-
-extern minibot::Configuration settings;
-extern minibot::PoseStorage pose_store;
-extern minibot::Programme programme_store;
-
 namespace Database {
 
 
-	// call me before anything happens in the database
-void construct();
+		// call me before anything happens in the database
+	void construct();
 
-	// read/write settings from the database
-void readSettings();
-void setSettings(const minibot::Configuration & settings);
+		// read/write settings from the database
+	void readSettings();
+	void setSettings(const minibot::Configuration & settings);
 
-	// read/write pose storarge
-void setPoseStorage(const minibot::PoseStorage & settings);
-void readPoseStorage();
+		// read/write pose storarge
+	void setPoseStorage(const minibot::PoseStorage & settings);
+	void readPoseStorage();
 
-	// read/write programme
-void setProgramme(const minibot::Programme & settings);
-void readProgramme();
+		// read/write programme
+	void setProgramme(const minibot::Programme & settings);
+	void readProgramme();
 
-	// handle incoming database Requests
-bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
-						  minibot::DatabaseAction::Response &res);
+		// handle incoming database Requests
+	bool handleDatabaseAction(minibot::DatabaseAction::Request &req,
+							  minibot::DatabaseAction::Response &res);
 
 }
 }

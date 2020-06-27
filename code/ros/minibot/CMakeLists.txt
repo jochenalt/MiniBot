@@ -109,6 +109,7 @@ add_executable(${PROJECT_NAME}_server
    src/trajectory_lin.cpp
    src/execution.cpp
    src/uniform_sample_filter.cpp
+   src/globals.cpp
 )
 
 target_link_libraries(

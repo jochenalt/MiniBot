@@ -6,11 +6,12 @@
  */
 
 
+#include "globals.h"
+#include "constants.h"
+
 #include "dispatcher.h"
 #include "kinematics.h"
 #include "marker.h"
-
-#include "node.h"
 
 namespace Minibot {
 namespace Dispatcher {
@@ -52,7 +53,7 @@ void updateTCPCallback(const minibot::MinibotState& state) {
 	  Minibot::Kinematics::setLastMinibotState(new_state);
 
   } else {
-	  pub_msg.publish(Minibot::Utils::createMsg(kinematics_prefix + err_msg_prefix  + "Could not find inverse kinematic"));
+	  pub_msg.publish(Minibot::Utils::createMsg(Minibot::kinematics_prefix + Minibot::err_msg_prefix  + "Could not find inverse kinematic"));
   }
 
 }
@@ -102,7 +103,7 @@ void updateJointStatesCallback(const minibot::MinibotState& state) {
 
 		  Minibot::Kinematics::setLastMinibotState(new_state);
 	  } else {
-		  pub_msg.publish(Minibot::Utils::createMsg(kinematics_prefix + err_msg_prefix  + "Could not find inverse kinematic"));
+		  pub_msg.publish(Minibot::Utils::createMsg(Minibot::kinematics_prefix + Minibot::err_msg_prefix  + "Could not find inverse kinematic"));
 	  }
 }
 
@@ -156,7 +157,7 @@ void updateGearwheelCallback(const geometry_msgs::Pose& pose) {
 	  Minibot::Kinematics::setLastMinibotState(new_state);
 
   } else {
-	  pub_msg.publish(Minibot::Utils::createMsg(kinematics_prefix + err_msg_prefix  + "Could not find inverse kinematic"));
+	  pub_msg.publish(Minibot::Utils::createMsg(Minibot::kinematics_prefix + Minibot::err_msg_prefix  + "Could not find inverse kinematic"));
   }
 
 }

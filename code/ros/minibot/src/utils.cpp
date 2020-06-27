@@ -6,15 +6,6 @@ namespace Minibot {
 
 #define LOG_NAME "utils"
 
-std::string err_msg_prefix = "ERR:";
-std::string warn_msg_prefix = "WARN:";
-std::string info_msg_prefix ="INFO:";
-
-std::string kinematics_prefix = "KINEMATICS:";
-std::string posestore_prefix = "POSESTORE:";
-std::string programme_prefix = "PROGRAMME:";
-std::string settings_prefix = "SETTINGS:";
-
 namespace Utils {
 
   // robot_model_loader::RobotModelLoader robot_model_loader;

@@ -11,8 +11,9 @@ using namespace std;
 
 #include <ros/ros.h>
 
+#include "globals.h"
+
 #include "utils.h"
-#include "node.h"
 #include "kinematics.h"
 #include "dispatcher.h"
 #include "database.h"
@@ -20,31 +21,6 @@ using namespace std;
 #include "planner.h"
 #include "constants.h"
 #include "execution.h"
-
-
-// publisher of new joint values
-ros::Publisher pub_joint_state_uiui;
-
-// publisher of possible configurations
-ros::Publisher pub_joint_values_config;
-
-// publisher for new tcp data
-ros::Publisher pub_tcp_ui;
-
-// publisher for new joint_states
-ros::Publisher pub_joint_state_ui;
-
-// publisher for joint_states
-ros::Publisher pub_joint_state;
-
-// publisher for messages
-ros::Publisher pub_msg;
-
-// publisher for global trajectories
-ros::Publisher pub_global_plan;
-
-// publisher for local trajectories
-ros::Publisher pub_local_plan;
 
 
 int main(int argc, char *argv[]) {
@@ -65,7 +41,7 @@ int main(int argc, char *argv[]) {
 		Minibot::Planner::init();
 
 		// *** publish messages to UI ***
-		pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
+		Minibot::pub_msg = nh.advertise<std_msgs::String>("/msg", 10);
 
 		// **** topcis handling kinematics ***
 		// listen to changes of the tcp coming from UI
@@ -81,20 +57,20 @@ int main(int argc, char *argv[]) {
 		ros::Subscriber configuration_input = nh.subscribe("/joint_configuration/input/update", 1, Minibot::Dispatcher::updateJointStatesConfigurationCallback);
 
 		// publish new joints (forwarded by joint_state_publisher)
-		pub_joint_state_ui = nh.advertise<sensor_msgs::JointState>("/joint_states/update", 1);
+		Minibot::pub_joint_state_ui = nh.advertise<sensor_msgs::JointState>("/joint_states/update", 1);
 
 		// publish new tcp data, consumed by UI
-		pub_tcp_ui = nh.advertise<minibot::MinibotPose>("/pose/update", 1);
+		Minibot::pub_tcp_ui = nh.advertise<minibot::MinibotPose>("/pose/update", 1);
 
 		// publish new joint states, consumed by UI
-		pub_joint_values_config = nh.advertise<minibot::JointStateConfiguration>("/joint_states/configuration", 1);
+		Minibot::pub_joint_values_config = nh.advertise<minibot::JointStateConfiguration>("/joint_states/configuration", 1);
 
 		// publish new joint states, consumed by UI
-		pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
+		Minibot::pub_joint_state = nh.advertise<sensor_msgs::JointState>("/joint_states", 1);
 
 		// *** publish messages around planning ***
-		pub_local_plan = nh.advertise<moveit_msgs::DisplayTrajectory>("/minibot/local_plan",1);
-		pub_global_plan = nh.advertise<moveit_msgs::DisplayTrajectory>("/minibot/global_plan",1);
+		Minibot::pub_local_plan = nh.advertise<moveit_msgs::DisplayTrajectory>("/minibot/local_plan",1);
+		Minibot::pub_global_plan = nh.advertise<moveit_msgs::DisplayTrajectory>("/minibot/global_plan",1);
 
 		// *** services ***
 		// database service, maintaining settings, pose storage and programm storage
@@ -118,7 +94,7 @@ int main(int argc, char *argv[]) {
 			minibot::MinibotState state = Minibot::Kinematics::getLastMinibotState();
 			state.joint_state.header.stamp = ros::Time::now();
 			state.joint_state.header.seq = joint_states_seq++;
-			pub_joint_state.publish(state.joint_state);
+			Minibot::pub_joint_state.publish(state.joint_state);
 
 			loop_rate.sleep();
 		}

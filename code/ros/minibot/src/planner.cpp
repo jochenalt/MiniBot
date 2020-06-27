@@ -1,10 +1,11 @@
+#include "constants.h"
+#include "globals.h"
+
 #include "planner.h"
 #include "database.h"
-#include "node.h"
 #include "utils.h"
 #include "marker.h"
 #include "execution.h"
-#include "constants.h"
 
 #include <minibot/Programme.h>
 #include <minibot/ErrorCodes.h>
@@ -14,13 +15,8 @@
 
 #include <trap_velocity_profile.h>
 
+
 namespace Minibot {
-
-minibot::GlobalPlan global_plan;
-
-std::string planner_prefix = "PLANNER:";
-std::string global_trajectory_name = "global_trajectory";
-std::string local_trajectory_name= "local_trajectory";
 
 
 namespace Planner {
@@ -142,7 +138,7 @@ minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::Po
 		}
 		case minibot::Statement::PLAN_CARTESIC_STRATEGY: {
 			trajectory_msgs::JointTrajectory local_local_traj;
-			bool ok = Minibot::Planner::planCartesianPath(waypoints, local_local_traj);
+			bool ok = Minibot::Planner::planCartesianPath(waypoints, 0.0, local_local_traj);
 			if (ok) {
 				local_plan.joint_trajectory = local_local_traj;
 				local_plan.error_code.val = minibot::ErrorCodes::SUCCESS;

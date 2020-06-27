@@ -37,8 +37,6 @@ namespace Gearwheel {
 	// @param start_index index as passed to createTrajectoryMarker
 	void deleteTrajectoryMarker(std::string name, int start_index);
 
-
-
 }
 }
 

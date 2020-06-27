@@ -8,13 +8,16 @@
 
 
 
-#include <ros/ros.h>
 #include <time.h>
 #include <cassert>
 #include <sstream>
+
+#include "constants.h"
+#include "globals.h"
+
 #include "planner.h"
 #include "kinematics.h"
-#include "constants.h"
+
 
 #include <eigen_conversions/eigen_msg.h>
 #include <eigen_conversions/eigen_kdl.h>
@@ -71,7 +74,7 @@ Eigen::Isometry3d getIsometry(const minibot::MinibotState& state) {
 bool getPathPoint( double ratio, const minibot::MinibotState& start, const minibot::MinibotState& goal, minibot::MinibotState& result) {
 
 	Eigen::Isometry3d start_iso = getIsometry(start);
-	Eigen::Isometry3d goal_iso = getIsometry(goal);
+	Eigen::Isometry3d goal_iso 	= getIsometry(goal);
 	Eigen::Isometry3d result_iso = getPathPoint(ratio, start_iso, goal_iso);
 
 	tf::poseEigenToMsg(result_iso, result.pose.pose);
@@ -79,8 +82,9 @@ bool getPathPoint( double ratio, const minibot::MinibotState& start, const minib
 
 	bool ik_ok = Minibot::Kinematics::computeIK(result.pose.pose, start.joint_state,solutions);
 	if (ik_ok) {
-		// add the gripper, take care that the joints are listed in the same order like in goal
-		// (later on, all this is concatenated to a trajectory when it needs to be in the same order)
+		// IK works for the flange only, we need to add the gripper joints explicitely.
+		// take care that the joints are listed in the same order like in goal,
+		// since later on, all this is concatenated to one trajectory
 		for (size_t i = 0;i<solutions.configuration.size();i++) {
 			solutions.configuration[i].name.resize(minibot_joint_names.size());
 			solutions.configuration[i].position.resize(minibot_joint_names.size());
@@ -90,14 +94,15 @@ bool getPathPoint( double ratio, const minibot::MinibotState& start, const minib
 				double goal_pos = Utils::getJointValue(goal.joint_state, joint_name);
 				int idx = Utils::findJoint(goal.joint_state, joint_name);
 				solutions.configuration[i].name[idx] = joint_name;
-				solutions.configuration[i].position[idx]= start_pos + ratio * (goal_pos-start_pos);
+				solutions.configuration[i].position[idx]= (1.0-ratio)*start_pos + ratio*goal_pos;
 			}
 		}
 
 		result.configuration = solutions.configuration;
 		result.joint_state = solutions.configuration[0];
 	} else {
-		return false;
+		ROS_ERROR_STREAM_NAMED (LOG_NAME, "Minibot::Database::getPathPoint could not compute IK=" );
+		pub_msg.publish(Minibot::Utils::createMsg(planner_prefix + err_msg_prefix  + "Cannot do IK for this path"));
 	}
 	return ik_ok;
 }
@@ -124,8 +129,7 @@ double getMaxVelocityDuration(const minibot::MinibotState& start, const minibot:
 }
 
 bool generateTrajectoryRecursiv(const minibot::MinibotState& start, const minibot::MinibotState& goal,
-	    				std::vector<minibot::MinibotState>& trajectory, double left, double right) {
-    ROS_INFO_STREAM_NAMED(LOG_NAME, "call " << (left+right)/2 << " [" << left << " " << right<< "]");
+	    				std::vector<minibot::MinibotState>& trajectory) {
 
     trajectory.clear();
 	minibot::MinibotState middle;
@@ -137,39 +141,17 @@ bool generateTrajectoryRecursiv(const minibot::MinibotState& start, const minibo
 	std::vector<minibot::MinibotState> right_trajectory;
 
 	if (ok && (left_duration > trajectory_sampling_time)) {
-		ok = generateTrajectoryRecursiv(start,middle, left_trajectory, left, (left+right)/2);
+		ok = generateTrajectoryRecursiv(start,middle, left_trajectory);
 	}
 
 	if (ok && (right_duration > trajectory_sampling_time)) {
-		ok = generateTrajectoryRecursiv(middle,goal, right_trajectory, (left+right)/2, right);
+		ok = generateTrajectoryRecursiv(middle,goal, right_trajectory);
 	}
 
 	trajectory.insert( trajectory.begin(), left_trajectory.begin(), left_trajectory.end() );
 	trajectory.push_back(middle);
 	trajectory.insert( trajectory.end(), right_trajectory.begin(), right_trajectory.end() );
 
-	/*
-	ROS_INFO_STREAM_NAMED(LOG_NAME,   "[" << std::setprecision(4) << left << " " << (left+right)/2 << " " << right<< "] " <<
-							"pos=(x=" << middle.pose.pose.position.x << " y=" << middle.pose.pose.position.y << " z=" << middle.pose.pose.position.z);
-	for (int i = 0;i<left_trajectory.size();i++) {
-		geometry_msgs::Pose pose= left_trajectory[i].pose.pose;
-
-		ROS_INFO_STREAM_NAMED(LOG_NAME, "   L" << std::setprecision(4) << i << " pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z);
-	}
-	ROS_INFO_STREAM_NAMED(LOG_NAME, "   M" << std::setprecision(4) << " pos=(x=" << middle.pose.pose.position.x << " y=" << middle.pose.pose.position.y << " z=" << middle.pose.pose.position.z);
-
-	for (int i = 0;i<right_trajectory.size();i++) {
-		geometry_msgs::Pose pose= right_trajectory[i].pose.pose;
-
-		ROS_INFO_STREAM_NAMED(LOG_NAME, "   R" << std::setprecision(4) << i << " pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z);
-	}
-
-	for (int i = 0;i<trajectory.size();i++) {
-		geometry_msgs::Pose pose= trajectory[i].pose.pose;
-
-		ROS_INFO_STREAM_NAMED(LOG_NAME, "   R" << std::setprecision(4) << i << " pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z);
-	}
-	*/
 	return ok;
 }
 
@@ -178,7 +160,7 @@ bool generateTrajectoryRecursiv(const minibot::MinibotState& start, const minibo
 bool generateTrajectory(const minibot::MinibotState& start, const minibot::MinibotState& goal,
 	    				std::vector<minibot::MinibotState>& trajectory) {
 	bool result = true;
-	bool ok = generateTrajectoryRecursiv(start, goal, trajectory, 0,1);
+	bool ok = generateTrajectoryRecursiv(start, goal, trajectory);
 	trajectory.insert(trajectory.begin(),start);
 
 	return ok;
@@ -197,7 +179,7 @@ bool generateTrajectory(const std::vector<minibot::MinibotState>& waypoints,
 }
 
 
-bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, trajectory_msgs::JointTrajectory& result_local_traj) {
+bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, double blend_radius, trajectory_msgs::JointTrajectory& result_local_traj) {
 	trajectory_msgs::JointTrajectory local_local_traj;
 	std::vector<minibot::MinibotState> trajectory;
 	for (int i = 0;i<waypoints.size();i++) {
@@ -208,6 +190,7 @@ bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, traj
 	}
 
 	bool ok = generateTrajectory(waypoints,trajectory);
+
 
 	trajectory_msgs::JointTrajectory joint_trajectory;
 	joint_trajectory.joint_names = trajectory[0].joint_state.name;
@@ -226,6 +209,11 @@ bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, traj
 	robot_trajectory.setRobotTrajectoryMsg(*kinematic_state, joint_trajectory);
 	trajectory_processing::IterativeParabolicTimeParameterization iptp;
 	bool success = iptp.computeTimeStamps(robot_trajectory);
+	if (ok && !success) {
+		ROS_ERROR_STREAM_NAMED (LOG_NAME, "Minibot::Planner::planCartesianPath could not compute trajectory timeing" );
+		pub_msg.publish(Minibot::Utils::createMsg(planner_prefix + err_msg_prefix  + "Cannot do timing for this path"));
+		ok = false;
+	}
 
 	moveit_msgs::RobotTrajectory robot_trajectory_msg;
 	robot_trajectory.getRobotTrajectoryMsg(robot_trajectory_msg);
@@ -248,8 +236,13 @@ bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, traj
 
 	UniformSampleFilter smoothness_filter;
 	smoothness_filter.configure(Minibot::trajectory_sampling_time);
-	smoothness_filter.update(local_local_traj, result_local_traj);
+	bool smooth_ok = smoothness_filter.update(local_local_traj, result_local_traj);
 
+	if (ok && !smooth_ok) {
+		ROS_ERROR_STREAM_NAMED (LOG_NAME, "Minibot::Planner::planCartesianPath could not smoothe trajectory " );
+		pub_msg.publish(Minibot::Utils::createMsg(planner_prefix + err_msg_prefix  + "Cannot smooth trajectory"));
+		ok = false;
+	}
 
 	return ok;
 };

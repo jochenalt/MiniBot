@@ -9,10 +9,11 @@
 
 #include "utils.h"
 #include "marker.h"
-#include "node.h"
 #include "dispatcher.h"
 #include "planner.h"
 #include "kinematics.h"
+#include "globals.h"
+#include "constants.h"
 
 #include <interactive_markers/interactive_marker_server.h>
 #include <interactive_markers/menu_handler.h>
