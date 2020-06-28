@@ -521,18 +521,32 @@
                                             id='movementError' role='alert'/></div>
                                         <small>Path Strategy</small>
                                     </div>
-                                    <div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input id="spacePath" type="radio" class="custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)" checked>
-                                            <label class="custom-control-label" for="spacePath">joint space</label>
+                                    <div class="w-100">
+                                        <div class="col">
+                                            <div class="custom-control custom-radio custom-control-inline col-3">
+                                                <input id="spacePath" type="radio" class="custom-control-input w-100" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)" checked>
+                                                <label class="custom-control-label" for="spacePath">joint</label>
+                                            </div>
+                                            <div class="custom-control custom-radio custom-control-inline col-3">
+                                                <input id="splinePath" type="radio" class=" custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)">
+                                                <label class="custom-control-label" for="splinePath">spline</label>
+                                            </div>
+                                            <div class="custom-control custom-radio custom-control-inline col-3">
+                                                <input id="cartesicPath" type="radio" class="custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)">
+                                                <label class="custom-control-label" for="cartesicPath">cartesic</label>
+                                            </div>
                                         </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input id="cartesicPath" type="radio" class="custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)">
-                                            <label class="custom-control-label" for="cartesicPath">cartesic</label>
-                                        </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input id="splinePath" type="radio" class=" custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)">
-                                            <label class="custom-control-label" for="splinePath">spline</label>
+                                        <div class="row mx-3">
+                                            <div class="custom-control custom-radio custom-control-inline col-2">
+                                                <input id="cartesicBlendedPath" type="radio" class="custom-control-input" name="pathStrategy" onchange="programmePanel.setPathStrategy(event)">
+                                                <label class="custom-control-label" for="cartesicBlendedPath">blended</label>
+                                            </div>
+                                            <div id="blendedRadiusSliderBlock" class="custom-control col-6" style="display:block;">
+                                                <input id="blendRadiusSlider" type="range" class="custom-range" name="range" min="0" max="0.1" step="0.001" value="0" oninput="programmePanel.setBlendRadius(event)">
+                                            </div>
+                                            <div id="blendedRadiusSliderBlock" class="custom-control col-1" style="display:block;">
+                                                <label id="blendedRadiusSliderLabel" >0.01</label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="mt-3">

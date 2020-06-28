@@ -59,6 +59,8 @@ namespace Planner{
 
 	bool planCartesianPath(const std::vector<minibot::MinibotState>& waypoints, double blend_radius, trajectory_msgs::JointTrajectory& local_local_traj);
 
+	bool planCartesianBlendedPath(const std::vector<minibot::MinibotState>& waypoints, double blend_radius, trajectory_msgs::JointTrajectory& result_local_traj);
+
 }
 }
 

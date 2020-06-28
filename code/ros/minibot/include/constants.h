@@ -18,7 +18,8 @@ const double trajectory_sampling_time = 0.04; 					// [s] sample time to be used
 const double max_trans_vel= 1;									// [m/s] max translational velocity (used for cartesian path planning)
 const double max_trans_acc =  2.25;								// [m/s²] max translational acceleration (used for cartesian path planning)
 const double max_trans_dec = -5;								// [m/s²] max translational deceleration (used for cartesian path planning)
-const double max_rot_vel = 1.57;
+const double max_rot_vel = 1.57;								// [rad/s] max angular velocity (used in cartesian path planning)
+const double epsilon = 0.0000001;
 
 const std::string global_trajectory_name = "global_trajectory";	// marker name of global trajectory
 const std::string local_trajectory_name= "local_trajectory";	// marker name of local trajectory

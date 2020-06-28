@@ -147,6 +147,17 @@ minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::Po
 			}
 			break;
 		}
+		case minibot::Statement::PLAN_CARTESIC_BLENDED_STRATEGY: {
+			trajectory_msgs::JointTrajectory local_local_traj;
+			bool ok = Minibot::Planner::planCartesianBlendedPath(waypoints, prog.statements[start_index].blend_radius, local_local_traj);
+			if (ok) {
+				local_plan.joint_trajectory = local_local_traj;
+				local_plan.error_code.val = minibot::ErrorCodes::SUCCESS;
+			} else {
+				local_plan.error_code.val = minibot::ErrorCodes::FAILURE;
+			}
+			break;
+		}
 		default:
 			break;
 	}

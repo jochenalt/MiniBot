@@ -107,6 +107,7 @@ add_executable(${PROJECT_NAME}_server
    src/trap_velocity_profile.cpp
    src/trajectory_ptp.cpp
    src/trajectory_lin.cpp
+   src/trajectory_blended.cpp
    src/execution.cpp
    src/uniform_sample_filter.cpp
    src/globals.cpp

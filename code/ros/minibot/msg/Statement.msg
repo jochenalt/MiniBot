@@ -14,8 +14,11 @@ uint16 pose_uid
 uint8 PLAN_SPACE_STRATEGY=0
 uint8 PLAN_CARTESIC_STRATEGY=1
 uint8 PLAN_SPLINE_STRATEGY=2
+uint8 PLAN_CARTESIC_BLENDED_STRATEGY=3
+
 uint8 path_strategy
 bool collision_check
+float64 blend_radius
 
 # Waypoints are using the pose from a Movement
 bool blend # dont hit the waypoint exactly but blend it to keep the speed

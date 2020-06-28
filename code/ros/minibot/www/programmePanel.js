@@ -190,9 +190,13 @@ ProgrammePanel.Init = function(options) {
       prgStmt.widget.classList.add('pl-0');
 
       document.getElementById('collisionCheck').checked = prgStmt.statement.collision_check;
+      document.getElementById('blendedRadiusSliderLabel').innerHTML = prgStmt.statement.blend_radius;
+      document.getElementById('blendRadiusSlider').value = prgStmt.statement.blend_radius;
 
       if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_CARTESIC_STRATEGY)
         document.getElementById('cartesicPath').checked = true;
+      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_CARTESIC_BLENDED_STRATEGY)
+        document.getElementById('cartesicBlendedPath').checked = true;
       if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_SPLINE_STRATEGY)
         document.getElementById('splinePath').checked = true;
       if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_SPACE_STRATEGY)
@@ -796,8 +800,24 @@ ProgrammePanel.Init = function(options) {
         prgItem.statement.path_strategy = Constants.Statement.PLAN_SPACE_STRATEGY;
       if (event.target.id == "cartesicPath")
         prgItem.statement.path_strategy = Constants.Statement.PLAN_CARTESIC_STRATEGY;
+      if (event.target.id == "cartesicBlendedPath")
+        prgItem.statement.path_strategy = Constants.Statement.PLAN_CARTESIC_BLENDED_STRATEGY;
       if (event.target.id == "splinePath")
         prgItem.statement.path_strategy = Constants.Statement.PLAN_SPLINE_STRATEGY;
+
+      updateWidget(id);
+
+      // lazily store in database
+      storeInDatabase(false);
+    }
+  }
+
+   function setBlendRadius(event) {
+    var id = getActiveId();
+    if (id >= 0) {
+      var prgItem = programmeItems[id];
+
+      prgItem.statement.blend_radius = parseFloat(event.target.value)
       updateWidget(id);
 
       // lazily store in database
@@ -1221,6 +1241,7 @@ ProgrammePanel.Init = function(options) {
     setCollisionCheck: setCollisionCheck,
     assignActivePose: assignActivePose,
     setBlendWaypoint : setBlendWaypoint,
+    setBlendRadius : setBlendRadius,
 
     setWaitingSeconds: setWaitingSeconds,
     setConfirmationText: setConfirmationText,
