@@ -41,16 +41,27 @@ extern Eigen::Isometry3d getIsometry(const minibot::MinibotState& state);
 extern double getMaxVelocityDuration(const minibot::MinibotState& start, const minibot::MinibotState& goal);
 
 
-double getTriangleAngle(const Eigen::Vector3d& pa, const Eigen::Vector3d& pb, const Eigen::Vector3d& pc) {
-	Eigen::Vector3d a = (pa-pb);
-	Eigen::Vector3d b = (pc-pb);
-
-	double angle = std::atan2(a.cross(b).norm(), a.dot(b));
+// compute the angle between a-b and b-c
+double getTriangleAngle(const Eigen::Vector3d& a, const Eigen::Vector3d& b, const Eigen::Vector3d& c) {
+	Eigen::Vector3d ab = (a-b);
+	Eigen::Vector3d cb = (c-b);
+	double angle = std::atan2(ab.cross(cb).norm(), ab.dot(cb));
 	return angle;
 }
 
 
-Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Isometry3d>& waypoints, double radius) {
+Eigen::Vector3d intersectVectorCircle(const Eigen::Vector3d& a, const Eigen::Vector3d& b, double distance) {
+	return a + Eigen::Vector3d(b-a).normalized()*distance;
+}
+
+
+// compute a point that is on the blended cartesian path, definded by waypoints
+// blend_radius is reduced if two big for the waypoint (sometimes reduced to 0)
+// ratio gives the position int the path, starting at 0 to waypoints.size()
+// ratio = 0: waypoint[0]
+// ratio = 1: waypoint[1]
+// ...
+Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Isometry3d>& waypoints, double blend_radius) {
 
 	int no_of_waypoints = waypoints.size();
 	double local_ratio = fmod(ratio, 1.0);
@@ -87,7 +98,7 @@ Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Is
 	// compute the unblended point
 	Eigen::Isometry3d unblended;
 	unblended.translation() = left.translation() + (right.translation() - left.translation()) * local_ratio ;
-	unblended.linear() = Eigen::Quaterniond (left.rotation()).slerp(local_ratio_smooth, Eigen::Quaterniond (right.rotation())).toRotationMatrix();
+	unblended.linear() = Eigen::Quaterniond (left.rotation()).slerp(local_ratio, Eigen::Quaterniond (right.rotation())).toRotationMatrix();
 	Eigen::Isometry3d result = unblended;
 	double len  = Eigen::Vector3d(right.translation()-left.translation()).norm();
 
@@ -95,13 +106,17 @@ Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Is
 	if (has_left_support) {
 		double distance_to_left  = Eigen::Vector3d(left.translation()-unblended.translation()).norm();
 		double leftleft_len  = Eigen::Vector3d(leftleft.translation()-left.translation()).norm();
-		if (leftleft_len/2 < radius)
-			radius = leftleft_len/2;
-		if (len/2 < radius)
-			radius = len/2;
-		if ((radius > Minibot::epsilon) && (distance_to_left<radius)) {
-			const Eigen::Vector3d p1 = left.translation() + Eigen::Vector3d(leftleft.translation()-left.translation()).normalized()*radius;
-			const Eigen::Vector3d p2 = left.translation() + Eigen::Vector3d(right.translation()-left.translation()).normalized()*radius;
+		if (leftleft_len/2 < blend_radius)
+			blend_radius = leftleft_len/2;
+		if (len/2 < blend_radius)
+			blend_radius = len/2;
+		if ((blend_radius > Minibot::epsilon) && (distance_to_left<blend_radius)) {
+			// const Eigen::Vector3d p1 = left.translation() + Eigen::Vector3d(leftleft.translation()-left.translation()).normalized()*blend_radius;
+			// const Eigen::Vector3d p2 = left.translation() + Eigen::Vector3d(right.translation()-left.translation()).normalized()*blend_radius;
+			Eigen::Vector3d p1 = intersectVectorCircle(left.translation(), leftleft.translation(), blend_radius);
+			Eigen::Vector3d p2 = intersectVectorCircle(left.translation(), right.translation(), blend_radius);
+
+
 			const Eigen::Vector3d pm = (p1+p2)/2.0;
 
 			// Lemma of Euklid
@@ -110,77 +125,54 @@ Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Is
 			double q = h*h/p;
 
 			// compute centre of circle
-			Eigen::Vector3d centre = left.translation() + Eigen::Vector3d(pm - left.translation()).normalized()*(p+q);
+			// Eigen::Vector3d centre = left.translation() + Eigen::Vector3d(pm - left.translation()).normalized()*(p+q);
+			Eigen::Vector3d centre = intersectVectorCircle(left.translation(), pm, p+q);
 
 			// compute angle between vectors
 			double full_angle = getTriangleAngle(leftleft.translation(), left.translation(), right.translation());
 
-			double angle = (1.0-distance_to_left/radius)*full_angle/2;
+			double angle = (1.0-distance_to_left/blend_radius)*full_angle/2;
 			Eigen::Vector3d x = Eigen::Vector3d(p2-centre);
-			Eigen::Vector3d y = Eigen::Vector3d(left.translation() - p2).normalized()*radius;
+			Eigen::Vector3d y = Eigen::Vector3d(left.translation() - p2).normalized()*blend_radius;
 
 			result.translation() = centre + x*cos(angle) + y*sin(angle);
-
-			// compute drag ratio with
-			// drag_ratio(0)' = 0
-			// drag_ratio(1)' = 0
-			// drag_ratio(1) = 1
-			// drag_ratio(0) = 0.5
-			//   1     /---
-		    //        /
-			// 0.5 ---
-			//
-			//   0
-			//   0      1
-			// double drag_ratio = (-cos(distance_left*M_PI/radius)+1.0)/4.0 + 0.5;
-			double drag_ratio = (distance_to_left/radius)/2+0.5;
-			// result.translation() = unblended.translation()*drag_ratio + pm*(1.0-drag_ratio);;
 		}
 	}
 	if (has_right_support) {
 		double distance_to_right = Eigen::Vector3d(right.translation()-unblended.translation()).norm();
 		double rightright_len  = Eigen::Vector3d(rightright.translation()-right.translation()).norm();
-		if (rightright_len/2 < radius)
-			radius = rightright_len/2;
-		if (len/2 < radius)
-			radius = len/2;
+		if (rightright_len/2 < blend_radius)
+			blend_radius = rightright_len/2;
+		if (len/2 < blend_radius)
+			blend_radius = len/2;
 
-		if ((distance_to_right<radius) && (radius > Minibot::epsilon)) {
-			const Eigen::Vector3d p1 = right.translation() + (left.translation()-right.translation()).normalized()*radius;
-			const Eigen::Vector3d p2 = right.translation() + (rightright.translation()-right.translation()).normalized()*radius;
-			const Eigen::Vector3d pm = (p1+p2)/2.0;
+		if ((distance_to_right<blend_radius) && (blend_radius > Minibot::epsilon)) {
+			// const Eigen::Vector3d p2 = right.translation() + (left.translation()-right.translation()).normalized()*blend_radius;
+			// const Eigen::Vector3d p1 = right.translation() + (rightright.translation()-right.translation()).normalized()*blend_radius;
+			Eigen::Vector3d p2 = intersectVectorCircle(right.translation(), left.translation(), blend_radius);
+			Eigen::Vector3d p1 = intersectVectorCircle(right.translation(), rightright.translation(), blend_radius);
+
+			const Eigen::Vector3d pm = (p2+p1)/2.0;
 
 			// Lemma of Euklid
-			double h = Eigen::Vector3d(p1-pm).norm();
+			double h = Eigen::Vector3d(p2-pm).norm();
 			double p = Eigen::Vector3d(pm-right.translation()).norm();
 			double q = h*h/p;
 
 			// compute centre of circle
-			Eigen::Vector3d centre = right.translation() + Eigen::Vector3d(pm - right.translation()).normalized()*(p+q);
+			// Eigen::Vector3d centre = right.translation() + Eigen::Vector3d(pm - right.translation()).normalized()*(p+q);
+			Eigen::Vector3d centre = intersectVectorCircle(right.translation(), pm, p+q);
+
 
 			// compute angle between vectors
 			double full_angle = getTriangleAngle(left.translation(), right.translation(), rightright.translation());
 
-			double angle = (1.0-distance_to_right/radius)*full_angle/2;
-			Eigen::Vector3d x = Eigen::Vector3d(p1-centre);
-			Eigen::Vector3d y = Eigen::Vector3d(right.translation() - p1).normalized()*radius;
+			double angle = (1.0-distance_to_right/blend_radius)*full_angle/2;
+			Eigen::Vector3d x = Eigen::Vector3d(p2-centre);
+			Eigen::Vector3d y = Eigen::Vector3d(right.translation() - p2).normalized()*blend_radius;
 
 			result.translation() = centre + x*cos(angle) + y*sin(angle);
 
-			// compute drag ratio with
-			// drag_ratio(0)' = 0
-			// drag_ratio(1)' = 0
-			// drag_ratio(1) = 1
-			// drag_ratio(0) = 0.5
-			//   1     /---
-		    //        /
-			// 0.5 ---
-			//
-			//   0
-			//   0      1
-			// double drag_ratio = (-cos(distance_to_right*M_PI/radius)+1.0)/4.0 + 0.5;
-			double drag_ratio = (distance_to_right/radius)/2+0.5;
-			// result.translation() = unblended.translation()*drag_ratio+centre*(1-drag_ratio);// *0.5 + pm*0.5;
 		}
 	}
 
@@ -212,7 +204,6 @@ bool getPathPoint( const minibot::MinibotState& prev, double ratio, const std::v
 		result_iso = waypoints_iso.back();
 	}
 
-
 	tf::poseEigenToMsg(result_iso, result.pose.pose);
 	minibot::JointStateConfiguration solutions;
 
@@ -232,7 +223,7 @@ bool getPathPoint( const minibot::MinibotState& prev, double ratio, const std::v
 				int idx = Utils::findJoint(right.joint_state, joint_name);
 
 				solutions.configuration[i].name[idx] = joint_name;
-				solutions.configuration[i].position[idx]= local_ratio*start_pos + (1.0-local_ratio)*goal_pos;
+				solutions.configuration[i].position[idx]= (1.0-local_ratio)*start_pos + local_ratio*goal_pos;
 			}
 		}
 
@@ -253,13 +244,13 @@ bool generateTrajectory(const std::vector<minibot::MinibotState>& waypoints,doub
 	trajectory.clear();
 	minibot::MinibotState prev = waypoints[0];
 	for (int i = 0;i<waypoints.size()-1;i++) {
-		const int steps= 50;
+		const int steps= 50; // arbitrary number, later on, trajectory will be sampled again anyhow.
 		for (int j = 0;j<steps;j++) {
 			minibot::MinibotState result;
 			double ratio = i+((float)j)/steps;
 			bool ok = getPathPoint(prev, ratio, waypoints, result, radius);
-
-			// add starting point of that bit
+			if (!ok)
+				break;
 			trajectory.push_back(result);
 			prev = result;
 
@@ -328,7 +319,6 @@ bool planCartesianBlendedPath(const std::vector<minibot::MinibotState>& waypoint
 
 	}
 
-	/*
 	UniformSampleFilter smoothness_filter;
 	smoothness_filter.configure(Minibot::trajectory_sampling_time);
 	bool smooth_ok = smoothness_filter.update(local_local_traj, result_local_traj);
@@ -338,8 +328,6 @@ bool planCartesianBlendedPath(const std::vector<minibot::MinibotState>& waypoint
 		pub_msg.publish(Minibot::Utils::createMsg(planner_prefix + err_msg_prefix  + "Cannot smooth trajectory"));
 		ok = false;
 	}
-	 */
-	result_local_traj = local_local_traj;
 	return ok;
 };
 

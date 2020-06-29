@@ -168,7 +168,7 @@
             
                  window.addEventListener("resize", resize);
    
-
+ 
             }
             
             function resize() {
@@ -242,8 +242,14 @@
                  ros : ros
             })
 
+
+
             var settings = settingsPanel.readConfiguration(
                  function(settings) {
+                      if (!navigator.onLine) {  
+                            var msg=document.getElementById("splashMessage");
+                            msg.innerHTML ="There's no internet access. Please get in touch with your system administrator ";
+                      } 
                       setGlobalTheme(settings.theme); 
                       settingsPanel.initialize();
                  }, 
