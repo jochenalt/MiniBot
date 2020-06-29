@@ -138,7 +138,7 @@ minibot::LocalPlan createLocalPlan (minibot::Programme & prog, const minibot::Po
 		}
 		case minibot::Statement::PLAN_CARTESIC_STRATEGY: {
 			trajectory_msgs::JointTrajectory local_local_traj;
-			bool ok = Minibot::Planner::planCartesianPath(waypoints, 0.0, local_local_traj);
+			bool ok = Minibot::Planner::planCartesianBlendedPath(waypoints, 0, local_local_traj);
 			if (ok) {
 				local_plan.joint_trajectory = local_local_traj;
 				local_plan.error_code.val = minibot::ErrorCodes::SUCCESS;

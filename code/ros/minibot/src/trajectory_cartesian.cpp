@@ -34,11 +34,36 @@ namespace Planner {
 
 #define LOG_NAME "dispatcher"
 
+void logIsometry3d(const Eigen::Isometry3d& p) {
+	geometry_msgs::Pose pose;
+	tf::poseEigenToMsg(p, pose);
+    ROS_INFO_STREAM_NAMED(LOG_NAME, "Point(pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z << ")"
+				   << " ori=(x=" << pose.orientation.x << " y=" << pose.orientation.y << " z=" << pose.orientation.z << " w=" << pose.orientation.w <<") ");
+}
 
-extern void logIsometry3d(const Eigen::Isometry3d& p);
-extern double cartesianDistance(const std::vector<minibot::MinibotState>& waypoints);
-extern Eigen::Isometry3d getIsometry(const minibot::MinibotState& state);
-extern double getMaxVelocityDuration(const minibot::MinibotState& start, const minibot::MinibotState& goal);
+Eigen::Isometry3d getIsometry(const minibot::MinibotState& state) {
+	Eigen::Isometry3d iso;
+	tf::poseMsgToEigen (state.pose.pose, iso);
+	return iso;
+}
+
+double cartesianDistance(const minibot::MinibotState& a, const minibot::MinibotState& b) {
+	double distance = 0;
+	Eigen::Isometry3d end, start;
+	tf::poseMsgToEigen (a.pose.pose, start);
+	tf::poseMsgToEigen (b.pose.pose, end);
+	distance += (start.translation() - end.translation()).norm();
+	return distance;
+}
+
+double rotationDifference(const minibot::MinibotState& a, const minibot::MinibotState& b) {
+	double distance = 0;
+	Eigen::Isometry3d end, start;
+	tf::poseMsgToEigen (a.pose.pose, start);
+	tf::poseMsgToEigen (b.pose.pose, end);
+	distance += (start.rotation() - end.rotation()).norm();
+	return distance;
+}
 
 
 // compute the angle between a-b and b-c
@@ -111,11 +136,8 @@ Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Is
 		if (len/2 < blend_radius)
 			blend_radius = len/2;
 		if ((blend_radius > Minibot::epsilon) && (distance_to_left<blend_radius)) {
-			// const Eigen::Vector3d p1 = left.translation() + Eigen::Vector3d(leftleft.translation()-left.translation()).normalized()*blend_radius;
-			// const Eigen::Vector3d p2 = left.translation() + Eigen::Vector3d(right.translation()-left.translation()).normalized()*blend_radius;
 			Eigen::Vector3d p1 = intersectVectorCircle(left.translation(), leftleft.translation(), blend_radius);
 			Eigen::Vector3d p2 = intersectVectorCircle(left.translation(), right.translation(), blend_radius);
-
 
 			const Eigen::Vector3d pm = (p1+p2)/2.0;
 
@@ -125,7 +147,6 @@ Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Is
 			double q = h*h/p;
 
 			// compute centre of circle
-			// Eigen::Vector3d centre = left.translation() + Eigen::Vector3d(pm - left.translation()).normalized()*(p+q);
 			Eigen::Vector3d centre = intersectVectorCircle(left.translation(), pm, p+q);
 
 			// compute angle between vectors
@@ -147,8 +168,6 @@ Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Is
 			blend_radius = len/2;
 
 		if ((distance_to_right<blend_radius) && (blend_radius > Minibot::epsilon)) {
-			// const Eigen::Vector3d p2 = right.translation() + (left.translation()-right.translation()).normalized()*blend_radius;
-			// const Eigen::Vector3d p1 = right.translation() + (rightright.translation()-right.translation()).normalized()*blend_radius;
 			Eigen::Vector3d p2 = intersectVectorCircle(right.translation(), left.translation(), blend_radius);
 			Eigen::Vector3d p1 = intersectVectorCircle(right.translation(), rightright.translation(), blend_radius);
 
@@ -160,7 +179,6 @@ Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Is
 			double q = h*h/p;
 
 			// compute centre of circle
-			// Eigen::Vector3d centre = right.translation() + Eigen::Vector3d(pm - right.translation()).normalized()*(p+q);
 			Eigen::Vector3d centre = intersectVectorCircle(right.translation(), pm, p+q);
 
 
@@ -180,13 +198,12 @@ Eigen::Isometry3d getBlendedPathPoint( double ratio, const std::vector<Eigen::Is
 }
 
 
-bool getPathPoint( const minibot::MinibotState& prev, double ratio, const std::vector<minibot::MinibotState>& waypoints, minibot::MinibotState& result, double radius) {
+bool getPathPoint( 	const minibot::MinibotState& prev, double ratio,
+					const std::vector<minibot::MinibotState>& waypoints,const std::vector<Eigen::Isometry3d>& waypoints_iso,
+					double blend_radius,
+					minibot::MinibotState& result) {
 
-	std::vector<Eigen::Isometry3d> waypoints_iso;
-	for (int i = 0;i<waypoints.size();i++) {
-		Eigen::Isometry3d iso = getIsometry(waypoints[i]);
-		waypoints_iso.push_back(iso);
-	}
+
 	double local_ratio = fmod(ratio, 1.0);
 	double l_idx = floor(ratio);
 
@@ -197,7 +214,7 @@ bool getPathPoint( const minibot::MinibotState& prev, double ratio, const std::v
 
 	Eigen::Isometry3d result_iso;
 	if (l_idx < waypoints.size()) {
-		result_iso = getBlendedPathPoint(ratio, waypoints_iso, radius);
+		result_iso = getBlendedPathPoint(ratio, waypoints_iso, blend_radius);
 	}
 	else {
 		// very last waypoint
@@ -237,18 +254,21 @@ bool getPathPoint( const minibot::MinibotState& prev, double ratio, const std::v
 }
 
 
-bool generateTrajectory(const std::vector<minibot::MinibotState>& waypoints,double radius,
+bool generateTrajectory(const std::vector<minibot::MinibotState>& waypoints,const std::vector<Eigen::Isometry3d>& waypoints_iso,
+						double blend_radius,
 	    				std::vector<minibot::MinibotState>& trajectory) {
 	bool result = true;
 	bool ok = true;
 	trajectory.clear();
 	minibot::MinibotState prev = waypoints[0];
 	for (int i = 0;i<waypoints.size()-1;i++) {
-		const int steps= 50; // arbitrary number, later on, trajectory will be sampled again anyhow.
+		// guess the step size, does not really matter since we smooth it afterwards anyhow
+		const int steps= std::max(	cartesianDistance(waypoints[i], waypoints[i+1])*1000.0,
+									rotationDifference(waypoints[i], waypoints[i+1])*(2.0*M_PI));
 		for (int j = 0;j<steps;j++) {
 			minibot::MinibotState result;
 			double ratio = i+((float)j)/steps;
-			bool ok = getPathPoint(prev, ratio, waypoints, result, radius);
+			bool ok = getPathPoint(prev, ratio, waypoints, waypoints_iso, blend_radius, result);
 			if (!ok)
 				break;
 			trajectory.push_back(result);
@@ -267,14 +287,19 @@ bool generateTrajectory(const std::vector<minibot::MinibotState>& waypoints,doub
 bool planCartesianBlendedPath(const std::vector<minibot::MinibotState>& waypoints, double blend_radius, trajectory_msgs::JointTrajectory& result_local_traj) {
 	trajectory_msgs::JointTrajectory local_local_traj;
 	std::vector<minibot::MinibotState> trajectory;
+	std::vector<Eigen::Isometry3d> waypoints_iso;
 	for (int i = 0;i<waypoints.size();i++) {
+		waypoints_iso.push_back(getIsometry(waypoints[i]));
 		geometry_msgs::Pose pose= waypoints[i].pose.pose;
 	    ROS_DEBUG_STREAM_NAMED(LOG_NAME, "Plan(pos=(x=" << pose.position.x << " y=" << pose.position.y << " z=" << pose.position.z << ")"
 					   << " ori=(x=" << pose.orientation.x << " y=" << pose.orientation.y << " z=" << pose.orientation.z << " w=" << pose.orientation.w <<") ");
 
 	}
 
-	bool ok = generateTrajectory(waypoints,blend_radius, trajectory);
+	for (int i = 0;i<waypoints.size();i++) {
+	}
+
+	bool ok = generateTrajectory(waypoints,waypoints_iso, blend_radius, trajectory);
 
 
 	trajectory_msgs::JointTrajectory joint_trajectory;

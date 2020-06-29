@@ -193,14 +193,22 @@ ProgrammePanel.Init = function(options) {
       document.getElementById('blendedRadiusSliderLabel').innerHTML = prgStmt.statement.blend_radius;
       document.getElementById('blendRadiusSlider').value = prgStmt.statement.blend_radius;
 
-      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_CARTESIC_STRATEGY)
+      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_CARTESIC_STRATEGY) {
+        document.getElementById('blendRadiusSlider').disabled = true;
         document.getElementById('cartesicPath').checked = true;
-      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_CARTESIC_BLENDED_STRATEGY)
+      }
+      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_CARTESIC_BLENDED_STRATEGY) {
+        document.getElementById('blendRadiusSlider').disabled = false;
         document.getElementById('cartesicBlendedPath').checked = true;
-      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_SPLINE_STRATEGY)
+      }
+      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_SPLINE_STRATEGY) {
+        document.getElementById('blendRadiusSlider').disabled = true;
         document.getElementById('splinePath').checked = true;
-      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_SPACE_STRATEGY)
+      }
+      if (prgStmt.statement.path_strategy == Constants.Statement.PLAN_SPACE_STRATEGY) {
+        document.getElementById('blendRadiusSlider').disabled = true;
         document.getElementById('spacePath').checked = true;
+      }
       var movementErrorWidget = document.getElementById('movementError');
       if (prgStmt.statement.error_code != null && prgStmt.statement.error_code.val != Constants.ErrorCodes.SUCCESS) {
         movementErrorWidget.style.display = 'block';
